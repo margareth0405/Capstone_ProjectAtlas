@@ -206,6 +206,27 @@ class UserStore {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
   }
 
+  isRegistrationEmailAllowedForRole(email, role) {
+    const normalizedRole = User.normalizeRole(role);
+    const normalizedEmail = User.normalizeEmail(email);
+    if (!this.isEmailAllowedForRole(normalizedEmail, normalizedRole)) {
+      return false;
+    }
+
+    if (normalizedRole === "administrator") return true;
+
+    const domain = normalizedEmail.slice(normalizedEmail.lastIndexOf("@") + 1);
+    if (normalizedRole === "reader") {
+      return domain === "gmail.com";
+    }
+
+    if (normalizedRole === "teacher") {
+      return domain === "gmail.com" || domain === "deped.gov.ph";
+    }
+
+    return false;
+  }
+
   recordSuccessfulLogin(userData) {
     const users = this.loadUsers();
     const normalizedEmail = User.normalizeEmail(userData.email);
@@ -427,6 +448,10 @@ function isEmailAllowedForRole(email, role) {
   return userStore.isEmailAllowedForRole(email, role);
 }
 
+function isRegistrationEmailAllowedForRole(email, role) {
+  return userStore.isRegistrationEmailAllowedForRole(email, role);
+}
+
 function getUsers() {
   return userStore.loadUsers();
 }
@@ -584,8 +609,38 @@ function showRoleEmailError(role) {
   showToast("Please enter a valid email address.");
 }
 
+function showRegistrationEmailError(role) {
+  showToast(
+    role === "teacher"
+      ? "Teachers must use a Gmail or deped.gov.ph email address."
+      : "Students must use a Gmail address.",
+  );
+}
+
+function clearReaderAuthForms() {
+  ["readerLogin", "readerRegister"].forEach((formId) => {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    form.reset();
+    form.querySelectorAll("input").forEach((input) => {
+      input.value = "";
+      input.setCustomValidity("");
+      input.classList.remove("is-valid", "is-invalid");
+    });
+  });
+}
+
 function setReaderAuthRole(role, mode = "login") {
-  authManager.setReaderAuthRole(role);
+  const selectedRole = role === "teacher" ? "teacher" : "reader";
+  const roleChanged = authManager.getReaderAuthRole() !== selectedRole;
+
+  if (roleChanged) {
+    clearReaderAuthForms();
+    resetPendingRegistration();
+  }
+
+  authManager.setReaderAuthRole(selectedRole);
   updateReaderAuthUI(mode);
 }
 
@@ -655,9 +710,15 @@ function updateReaderAuthUI(mode) {
     emailLabel.innerHTML = '<i class="fas fa-envelope"></i> Email';
   if (emailInput) {
     emailInput.placeholder = isTeacher
-      ? "teacher@example.com"
-      : "student@example.com";
-    emailInput.removeAttribute("title");
+      ? "teacher@deped.gov.ph"
+      : "student@gmail.com";
+    if (mode === "register") {
+      emailInput.title = isTeacher
+        ? "Use an address ending in @gmail.com or @deped.gov.ph"
+        : "Use an address ending in @gmail.com";
+    } else {
+      emailInput.removeAttribute("title");
+    }
     emailInput.removeAttribute("pattern");
   }
   if (button)
@@ -1059,8 +1120,8 @@ function handleRoleRegister(event, role) {
     return;
   }
 
-  if (!isEmailAllowedForRole(email, role)) {
-    showRoleEmailError(role);
+  if (!isRegistrationEmailAllowedForRole(email, role)) {
+    showRegistrationEmailError(role);
     return;
   }
 
