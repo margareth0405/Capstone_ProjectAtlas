@@ -1,79 +1,79 @@
 /* ===== GUEST-SPECIFIC STYLES ===== */
 
 .guest-banner {
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .guest-banner i {
-    font-size: 1.5rem;
-    color: #888;
+  font-size: 1.5rem;
+  color: #888;
 }
 
 .guest-banner p {
-    margin: 0;
-    color: #666;
-    font-size: 0.9rem;
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .guest-banner .login-prompt {
-    color: var(--maroon-500);
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
+  color: var(--maroon-500);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .guest-banner .login-prompt:hover {
-    color: var(--maroon-700);
+  color: var(--maroon-700);
 }
 
 .guest-badge {
-    background: #888;
-    color: #fff;
-    padding: 0.2rem 0.8rem;
-    border-radius: 40px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  background: #888;
+  color: #fff;
+  padding: 0.2rem 0.8rem;
+  border-radius: 40px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .guest-view-only {
-    background: #f0f0f0;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    color: #666;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .guest-view-only i {
-    color: #888;
+  color: #888;
 }
 
 .guest-restricted {
-    color: #999;
-    font-size: 0.75rem;
-    font-style: italic;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: #f8f8f8;
-    padding: 0.15rem 0.6rem;
-    border-radius: 20px;
+  color: #999;
+  font-size: 0.75rem;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f8f8f8;
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
 }
 
 .guest-restricted i {
-    color: #ccc;
-    font-size: 0.7rem;
+  color: #ccc;
+  font-size: 0.7rem;
 }

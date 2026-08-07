@@ -1,249 +1,493 @@
 /* ===== LOGIN PAGE STYLES ===== */
 
 .login-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
-    background: linear-gradient(145deg, #fcfaf8 0%, #f5efe9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(145deg, #fcfaf8 0%, #f5efe9 100%);
 }
 
 .login-card {
-    background: #ffffff;
-    border-radius: 32px;
-    padding: 3.5rem 3rem;
-    max-width: 440px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(46, 10, 16, 0.12);
-    border: 1px solid rgba(232, 213, 181, 0.3);
-    text-align: center;
-    transition: transform 0.3s ease;
-    position: relative;
+  background: #ffffff;
+  border-radius: 32px;
+  padding: 3.5rem 3rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(46, 10, 16, 0.12);
+  border: 1px solid rgba(232, 213, 181, 0.3);
+  text-align: center;
+  transition: transform 0.3s ease;
+  position: relative;
 }
 
 .login-card:hover {
-    transform: translateY(-4px);
+  transform: translateY(-4px);
 }
 
 .login-card .brand-icon {
-    font-size: 2.8rem;
-    color: var(--maroon-600);
-    background: var(--maroon-50);
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.2rem;
+  font-size: 2.8rem;
+  color: var(--maroon-600);
+  background: var(--maroon-50);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
 }
 
 .login-card h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--maroon-900);
-    letter-spacing: -0.03em;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--maroon-900);
+  letter-spacing: -0.03em;
 }
 
 .login-card h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--maroon-800);
-    letter-spacing: -0.02em;
-    margin-bottom: 0.3rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--maroon-800);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.3rem;
 }
 
 .login-card .tagline {
-    font-weight: 300;
-    color: #888;
-    letter-spacing: 2px;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    margin-top: -0.2rem;
-    margin-bottom: 0.5rem;
+  font-weight: 300;
+  color: #888;
+  letter-spacing: 2px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  margin-top: -0.2rem;
+  margin-bottom: 0.5rem;
 }
 
 .login-card .sub {
-    color: #666;
-    font-size: 0.95rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid #f0ece8;
-    padding-bottom: 1rem;
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f0ece8;
+  padding-bottom: 1rem;
 }
 
 /* Role Buttons */
 .role-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 .role-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    padding: 0.9rem 1.2rem;
-    border-radius: 60px;
-    border: 1.5px solid #ede8e2;
-    background: #fff;
-    font-weight: 600;
-    font-size: 1rem;
-    color: #333;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: 60px;
+  border: 1.5px solid #ede8e2;
+  background: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  width: 100%;
 }
 
 .role-btn i {
-    font-size: 1.2rem;
-    color: var(--maroon-400);
-    width: 1.6rem;
+  font-size: 1.2rem;
+  color: var(--maroon-400);
+  width: 1.6rem;
 }
 
 .role-btn:hover {
-    background: var(--maroon-50);
-    border-color: var(--maroon-300);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(74, 17, 28, 0.08);
+  background: var(--maroon-50);
+  border-color: var(--maroon-300);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(74, 17, 28, 0.08);
 }
 
 .role-btn .role-label {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
 }
 
 .role-btn .role-label small {
-    font-weight: 400;
-    font-size: 0.7rem;
-    color: #999;
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: #999;
 }
 
 /* Login Forms */
 .form-group {
-    text-align: left;
-    margin-bottom: 1.2rem;
+  text-align: left;
+  margin-bottom: 1.2rem;
 }
 
 .form-group label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #555;
-    margin-bottom: 0.3rem;
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.3rem;
 }
 
 .form-group label i {
-    margin-right: 0.5rem;
-    color: var(--maroon-400);
-    width: 1.2rem;
+  margin-right: 0.5rem;
+  color: var(--maroon-400);
+  width: 1.2rem;
 }
 
 .form-group .form-control,
 .form-group .form-select {
-    border-radius: 12px;
-    padding: 0.7rem 1rem;
-    border: 1.5px solid #e0dcd8;
-    transition: all 0.3s ease;
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  border: 1.5px solid #e0dcd8;
+  transition: all 0.3s ease;
 }
 
 .form-group .form-control:focus,
 .form-group .form-select:focus {
-    border-color: var(--maroon-400);
-    box-shadow: 0 0 0 3px rgba(176, 58, 79, 0.1);
+  border-color: var(--maroon-400);
+  box-shadow: 0 0 0 3px rgba(176, 58, 79, 0.1);
 }
 
 .btn-login {
-    width: 100%;
-    padding: 0.8rem;
-    border: none;
-    border-radius: 60px;
-    font-weight: 700;
-    font-size: 1rem;
-    color: #fff;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 60px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
 }
 
-.btn-login.teacher-btn {
-    background: var(--maroon-600);
+.btn-login.administrator-btn {
+  background: var(--maroon-600);
 }
 
-.btn-login.teacher-btn:hover {
-    background: var(--maroon-800);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(74, 17, 28, 0.25);
+.btn-login.administrator-btn:hover {
+  background: var(--maroon-800);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(74, 17, 28, 0.25);
 }
 
-.btn-login.student-btn {
-    background: var(--gold);
-    color: var(--maroon-900);
+.btn-login.reader-btn {
+  background: var(--gold);
+  color: var(--maroon-900);
 }
 
-.btn-login.student-btn:hover {
-    background: #d4c09e;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(232, 213, 181, 0.4);
+.btn-login.reader-btn:hover {
+  background: #d4c09e;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(232, 213, 181, 0.4);
 }
 
 .btn-login i {
-    margin-left: 0.5rem;
+  margin-left: 0.5rem;
 }
 
 .btn-back {
-    position: absolute;
-    top: 1.5rem;
-    left: 1.5rem;
-    background: transparent;
-    border: none;
-    color: #888;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .btn-back:hover {
-    color: var(--maroon-600);
+  color: var(--maroon-600);
 }
 
 .demo-hint {
-    margin-top: 1rem;
-    font-size: 0.75rem;
-    color: #aaa;
-    background: #f8f5f2;
-    padding: 0.4rem 1rem;
-    border-radius: 40px;
-    display: inline-block;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: #aaa;
+  background: #f8f5f2;
+  padding: 0.4rem 1rem;
+  border-radius: 40px;
+  display: inline-block;
 }
 
+/* Account-specific login and registration */
+.role-chevron {
+  color: #ccc !important;
+  font-size: 0.8rem !important;
+  width: auto !important;
+}
+
+.reader-role-toggle {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 280px);
+  margin: 0 auto 0.9rem;
+  padding: 0.3rem;
+  border: 1px solid var(--maroon-200);
+  border-radius: 999px;
+  background: #f7f2ef;
+  box-shadow: inset 0 1px 3px rgba(74, 17, 28, 0.08);
+}
+
+.admin-registration-policy {
+  margin: 1rem auto 0;
+  max-width: 320px;
+  color: #7a7370;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.reader-role-toggle::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0.3rem;
+  width: calc(50% - 0.3rem);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--maroon-500), var(--maroon-700));
+  box-shadow: 0 5px 14px rgba(74, 17, 28, 0.24);
+  transform: translateX(0);
+  transition:
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+}
+
+.reader-role-toggle.teacher-selected::before {
+  transform: translateX(100%);
+}
+
+.role-selection-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0 0.55rem;
+  color: #766d69;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.role-selection-note i,
+.role-selection-note svg {
+  display: none !important;
+}
+
+.toggle-btn {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  color: var(--maroon-700);
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.28s ease,
+    transform 0.28s ease;
+}
+
+.toggle-btn:hover {
+  color: var(--maroon-900);
+  transform: translateY(-1px);
+}
+
+.toggle-btn.active {
+  color: #fff;
+}
+
+.toggle-btn:focus-visible {
+  outline: 3px solid rgba(176, 58, 79, 0.3);
+  outline-offset: 3px;
+}
+
+.role-content-updated {
+  animation: roleContentIn 0.34s ease both;
+}
+
+@keyframes roleContentIn {
+  from {
+    opacity: 0.55;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-role-toggle::before,
+  .toggle-btn {
+    transition: none;
+  }
+
+  .role-content-updated {
+    animation: none;
+  }
+}
+
+/* hide the old account registration section if still present */
+.register-options {
+  display: none;
+}
+
+.register-options p {
+  margin-bottom: 0.65rem;
+  color: #777;
+  font-size: 0.82rem;
+}
+
+.register-option-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.register-option-buttons button {
+  border: 1px solid var(--maroon-200);
+  border-radius: 12px;
+  background: var(--maroon-50);
+  color: var(--maroon-700);
+  padding: 0.6rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.register-option-buttons button:hover {
+  border-color: var(--maroon-400);
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.login-card .brand-icon.administrator-icon {
+  background: var(--maroon-500);
+  color: #fff;
+}
+
+.login-card .brand-icon.reader-icon {
+  background: var(--gold);
+  color: var(--maroon-900);
+}
+
+.account-type-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.7rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 40px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.administrator-account {
+  background: var(--maroon-50);
+  color: var(--maroon-700);
+}
+
+.reader-account {
+  background: #fff8df;
+  color: #806b16;
+}
+
+.form-helper {
+  display: block;
+  margin-top: 0.35rem;
+  color: #888;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.form-group .form-control:not(:placeholder-shown):invalid {
+  border-color: #dc3545;
+  background: #fff9f9;
+}
+
+.form-group .form-control:not(:placeholder-shown):valid {
+  border-color: #6b9b72;
+}
+
+.auth-switch {
+  margin: 1rem 0 0;
+  color: #777;
+  font-size: 0.78rem;
+}
+
+.auth-switch a {
+  color: var(--maroon-500);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  color: var(--maroon-700);
+  text-decoration: underline;
+}
+
+.register-card {
+  max-width: 540px;
+  padding-top: 3rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.form-row .form-group {
+  min-width: 0;
+}
 /* Responsive */
 @media (max-width: 480px) {
-    .login-card {
-        padding: 2rem 1.5rem;
-    }
-    
-    .login-card h1 {
-        font-size: 1.6rem;
-    }
-    
-    .login-card h2 {
-        font-size: 1.3rem;
-    }
-    
-    .role-btn {
-        font-size: 0.9rem;
-        padding: 0.8rem 1rem;
-    }
-    
-    .btn-back {
-        position: static;
-        margin-bottom: 0.5rem;
-    }
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-card h1 {
+    font-size: 1.6rem;
+  }
+
+  .login-card h2 {
+    font-size: 1.3rem;
+  }
+
+  .role-btn {
+    font-size: 0.9rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .register-option-buttons,
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .register-card {
+    max-width: 440px;
+  }
+  .btn-back {
+    position: static;
+    margin-bottom: 0.5rem;
+  }
 }

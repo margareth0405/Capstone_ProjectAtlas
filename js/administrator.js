@@ -1,18 +1,172 @@
-// ===== TEACHER-SPECIFIC FUNCTIONS =====
-// Teacher: View, Download, Add, Delete (No Edit)
+// ===== ADMINISTRATOR-SPECIFIC FUNCTIONS =====
+// Administrator: View, Download, Add, Delete (No Edit)
 
 let sortColumn = "title";
 let sortDirection = "asc";
 
-console.log("📚 Loading Teacher Module...");
+console.log("📚 Loading Administrator Module...");
 
-function initTeacher() {
-  console.log("✅ Teacher mode initialized");
+function initAdministrator() {
+  console.log("✅ Administrator mode initialized");
   updateStatsUI();
 }
 
+function ensureAuthorizedAdministratorAction() {
+  if (typeof getAuthorizedAdministratorSession !== "function") return null;
+  const administrator = getAuthorizedAdministratorSession();
+  if (administrator) return administrator;
+
+  showToast("Administrator authorization is required.");
+  setTimeout(() => {
+    window.location.href = "admin.html";
+  }, 500);
+  return null;
+}
+
+function toggleAdminRegistrationPanel(triggerButton = null) {
+  if (!ensureAuthorizedAdministratorAction()) return;
+
+  const panel = document.getElementById("adminRegistrationPanel");
+  if (!panel) return;
+
+  const shouldOpen = panel.hidden;
+  panel.hidden = !shouldOpen;
+
+  const registerButton =
+    triggerButton ||
+    document.querySelector(
+      '.btn-register-admin[aria-controls="adminRegistrationPanel"]',
+    );
+  if (registerButton) {
+    registerButton.setAttribute("aria-expanded", String(shouldOpen));
+  }
+
+  if (shouldOpen) {
+    document.getElementById("newAdminFullName")?.focus();
+  } else {
+    document.getElementById("adminAccountRegister")?.reset();
+  }
+}
+
+function handleAdminAccountRegister(event) {
+  event.preventDefault();
+  if (!ensureAuthorizedAdministratorAction()) return;
+
+  const result = registerAdministratorAccount({
+    fullName: document.getElementById("newAdminFullName").value,
+    email: document.getElementById("newAdminEmail").value,
+    password: document.getElementById("newAdminPassword").value,
+    confirmPassword: document.getElementById("newAdminConfirmPassword").value,
+    currentAdminPassword: document.getElementById(
+      "currentAdminPassword",
+    ).value,
+  });
+
+  if (!result.ok) {
+    showToast(result.message);
+    return;
+  }
+
+  showToast(
+    "Administrator account created for " + result.administrator.fullName + ".",
+  );
+  document.getElementById("adminAccountRegister").reset();
+  toggleAdminRegistrationPanel();
+  updateUserMonitoringUI();
+}
+
+function setUserStatValue(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = String(value);
+}
+
+function updateUserMonitoringUI() {
+  if (!ensureAuthorizedAdministratorAction()) return;
+
+  if (
+    typeof getUserUsageStats !== "function" ||
+    typeof getUniqueRegisteredUsers !== "function"
+  ) {
+    return;
+  }
+
+  const stats = getUserUsageStats();
+  const users = getUniqueRegisteredUsers().sort((a, b) => {
+    const aDate = Date.parse(a.lastLoginAt || a.createdAt || 0) || 0;
+    const bDate = Date.parse(b.lastLoginAt || b.createdAt || 0) || 0;
+    return bDate - aDate;
+  });
+
+  setUserStatValue("totalRegisteredUsers", stats.totalUsers);
+  setUserStatValue("totalStudentUsers", stats.studentUsers);
+  setUserStatValue("totalTeacherUsers", stats.teacherUsers);
+  setUserStatValue("uniqueLoggedInUsers", stats.uniqueLoggedInUsers);
+  setUserStatValue("totalSuccessfulLogins", stats.totalSuccessfulLogins);
+  setUserStatValue("uniqueUserCounter", stats.totalUsers);
+
+  const tableBody = document.getElementById("userActivityTableBody");
+  if (tableBody) {
+    if (!users.length) {
+      tableBody.innerHTML =
+        '<tr><td colspan="6" class="empty-user-row">No registered accounts yet.</td></tr>';
+    } else {
+      tableBody.innerHTML = users
+        .map((user) => {
+          const roleLabel = getAccountRoleLabel(user.role);
+          const roleClass =
+            user.role === "administrator"
+              ? "administrator"
+              : user.role === "teacher"
+                ? "teacher"
+                : "student";
+
+          return [
+            "<tr>",
+            "<td><strong>" + escapeUserText(user.fullName) + "</strong></td>",
+            "<td>" + escapeUserText(user.email) + "</td>",
+            '<td><span class="user-role-badge ' +
+              roleClass +
+              '">' +
+              escapeUserText(roleLabel) +
+              "</span></td>",
+            "<td>" + formatUserActivityDate(user.createdAt) + "</td>",
+            "<td>" + formatUserActivityDate(user.lastLoginAt) + "</td>",
+            '<td><span class="login-count-badge">' +
+              (Number(user.loginCount) || 0) +
+              "</span></td>",
+            "</tr>",
+          ].join("");
+        })
+        .join("");
+    }
+  }
+
+  const updatedAt = document.getElementById("userActivityUpdatedAt");
+  if (updatedAt) {
+    updatedAt.textContent =
+      "Updated " +
+      new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+  }
+}
+
+window.addEventListener("storage", (event) => {
+  if (event.key === "users") updateUserMonitoringUI();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) updateUserMonitoringUI();
+});
+
+setTimeout(updateUserMonitoringUI, 0);
+
 // ===== ADD LIBRARY ITEM =====
 function addLibraryItem() {
+  if (!ensureAuthorizedAdministratorAction()) return;
+
   const title = document.getElementById("newTitle").value.trim();
   const author = document.getElementById("newAuthor").value.trim();
   const collection = document.getElementById("newCollection").value;
@@ -44,10 +198,13 @@ function addLibraryItem() {
   filterLibrary();
   updateStatsUI();
   saveLibraryData();
+  recordLibraryActivity("added", newItem);
 }
 
 // ===== DELETE LIBRARY ITEM =====
 function deleteItem(id) {
+  if (!ensureAuthorizedAdministratorAction()) return;
+
   const item = libraryData.find((d) => d.id === id);
   if (!item) return;
 
@@ -62,6 +219,7 @@ function deleteItem(id) {
     filterLibrary();
     updateStatsUI();
     saveLibraryData();
+    recordLibraryActivity("removed", item);
   }
 }
 
@@ -165,7 +323,7 @@ function performGlobalSearch() {
   filterLibrary();
 }
 
-// ===== RENDER LIBRARY TABLE (Teacher) =====
+// ===== RENDER LIBRARY TABLE (Administrator) =====
 function renderLibraryTable(data) {
   const tbody = document.getElementById("libraryTableBody");
   if (!data || data.length === 0) {
@@ -251,6 +409,9 @@ window.performGlobalSearch = performGlobalSearch;
 window.toggleSort = toggleSort;
 window.sortColumn = sortColumn;
 window.sortDirection = sortDirection;
-window.initTeacher = initTeacher;
+window.initAdministrator = initAdministrator;
+window.updateUserMonitoringUI = updateUserMonitoringUI;
+window.toggleAdminRegistrationPanel = toggleAdminRegistrationPanel;
+window.handleAdminAccountRegister = handleAdminAccountRegister;
 
-console.log("✅ Teacher module ready");
+console.log("✅ Administrator module ready");

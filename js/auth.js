@@ -1,59 +1,679 @@
 // ===== AUTHENTICATION SYSTEM WITH REGISTRATION CONFIRMATION =====
 
-// Default demo accounts
-const defaultUsers = [
+class User {
+  constructor({
+    id,
+    fullName,
+    email,
+    password,
+    role,
+    verified = true,
+    createdAt = null,
+    firstLoginAt = null,
+    lastLoginAt = null,
+    loginCount = 0,
+    adminAuthorized = false,
+    createdByAdmin = null,
+  }) {
+    this.id = id;
+    this.fullName = fullName;
+    this.email = User.normalizeLegacyEmail(email);
+    this.password = password;
+    this.adminAuthorized = Boolean(
+      adminAuthorized || this.email === "admin@atlas.edu",
+    );
+    this.role = User.normalizeStoredRole(
+      role,
+      this.email,
+      this.adminAuthorized,
+    );
+    if (this.role !== "administrator") this.adminAuthorized = false;
+    this.createdByAdmin = createdByAdmin;
+    this.verified = verified;
+    this.createdAt = createdAt || new Date().toISOString();
+    this.firstLoginAt = firstLoginAt;
+    this.lastLoginAt = lastLoginAt;
+    this.loginCount = Math.max(0, Number(loginCount) || 0);
+  }
+
+  static normalizeEmail(email) {
+    return String(email || "")
+      .trim()
+      .toLowerCase();
+  }
+
+  static normalizeRole(role) {
+    if (role === "teacher") return "teacher";
+    if (role === "student") return "reader";
+    return role;
+  }
+
+  static normalizeLegacyEmail(email) {
+    const normalized = User.normalizeEmail(email);
+    const legacyMap = {
+      "teacher@school.edu": "teacher@atlas.edu",
+      "administrator@school.edu": "admin@atlas.edu",
+      "administrator@deped.gov.ph": "admin@atlas.edu",
+      "student@school.edu": "student@atlas.edu",
+      "reader@school.edu": "student@atlas.edu",
+      "reader@gmail.com": "student@atlas.edu",
+    };
+    return legacyMap[normalized] || normalized;
+  }
+
+  static normalizeStoredRole(role, email, adminAuthorized = false) {
+    const normalizedRole = User.normalizeRole(role);
+
+    // Older teacher registrations were incorrectly saved as administrators.
+    // The built-in administrator is the only legacy administrator account.
+    if (
+      normalizedRole === "administrator" &&
+      email !== "admin@atlas.edu" &&
+      !adminAuthorized
+    ) {
+      return "teacher";
+    }
+
+    return normalizedRole;
+  }
+
+  static create(payload) {
+    return new User({
+      id: payload.id,
+      fullName: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      role: payload.role,
+      verified: payload.verified !== undefined ? payload.verified : true,
+      createdAt: payload.createdAt,
+      firstLoginAt: payload.firstLoginAt,
+      lastLoginAt: payload.lastLoginAt,
+      loginCount: payload.loginCount,
+      adminAuthorized: payload.adminAuthorized,
+      createdByAdmin: payload.createdByAdmin,
+    });
+  }
+}
+
+class UserStore {
+  constructor(defaultUsers) {
+    this.storageKey = "users";
+    this.defaultUsers = defaultUsers.map((user) => User.create(user));
+  }
+
+  loadUsers() {
+    const stored = localStorage.getItem(this.storageKey);
+    if (!stored) {
+      this.saveUsers(this.defaultUsers);
+      return [...this.defaultUsers];
+    }
+
+    try {
+      const parsedUsers = JSON.parse(stored);
+      if (!Array.isArray(parsedUsers)) return [...this.defaultUsers];
+
+      const normalizedUsers = this.deduplicateUsers([
+        ...parsedUsers,
+        ...this.defaultUsers,
+      ]);
+      if (JSON.stringify(normalizedUsers) !== JSON.stringify(parsedUsers)) {
+        this.saveUsers(normalizedUsers);
+      }
+      return normalizedUsers;
+    } catch (e) {
+      return [...this.defaultUsers];
+    }
+  }
+
+  saveUsers(users) {
+    const uniqueUsers = this.deduplicateUsers(users);
+    localStorage.setItem(this.storageKey, JSON.stringify(uniqueUsers));
+  }
+
+  deduplicateUsers(users) {
+    const uniqueUsers = new Map();
+
+    (Array.isArray(users) ? users : []).forEach((payload) => {
+      const user = User.create(payload);
+      const key = User.normalizeEmail(user.email);
+      if (!key) return;
+
+      const existing = uniqueUsers.get(key);
+      if (!existing) {
+        uniqueUsers.set(key, user);
+        return;
+      }
+
+      const createdDates = [existing.createdAt, user.createdAt]
+        .filter(Boolean)
+        .sort();
+      const firstLoginDates = [existing.firstLoginAt, user.firstLoginAt]
+        .filter(Boolean)
+        .sort();
+      const lastLoginDates = [existing.lastLoginAt, user.lastLoginAt]
+        .filter(Boolean)
+        .sort();
+
+      existing.createdAt = createdDates[0] || existing.createdAt;
+      existing.firstLoginAt = firstLoginDates[0] || null;
+      existing.lastLoginAt = lastLoginDates[lastLoginDates.length - 1] || null;
+      existing.loginCount = Math.max(existing.loginCount, user.loginCount);
+      existing.verified = existing.verified || user.verified;
+      if (user.adminAuthorized && user.role === "administrator") {
+        existing.adminAuthorized = true;
+        existing.role = "administrator";
+      }
+      existing.createdByAdmin =
+        existing.createdByAdmin || user.createdByAdmin || null;
+    });
+
+    return Array.from(uniqueUsers.values());
+  }
+
+  findUserByEmail(email) {
+    const normalized = User.normalizeEmail(email);
+    return this.loadUsers().find(
+      (user) => User.normalizeEmail(user.email) === normalized,
+    );
+  }
+
+  findUserByEmailAndPassword(email, password) {
+    const normalized = User.normalizeEmail(email);
+    return this.loadUsers().find(
+      (user) =>
+        User.normalizeEmail(user.email) === normalized &&
+        user.password === password,
+    );
+  }
+
+  addUser(userData) {
+    const currentUsers = this.loadUsers();
+    if (this.findUserByEmail(userData.email)) return null;
+
+    const id = currentUsers.length
+      ? Math.max(...currentUsers.map((u) => u.id)) + 1
+      : 1;
+    const user = new User({ ...userData, id });
+    currentUsers.push(user);
+    this.saveUsers(currentUsers);
+    return user;
+  }
+
+  isEmailAllowedForRole(email, role) {
+    const allowedRoles = ["administrator", "teacher", "reader"];
+    if (!allowedRoles.includes(User.normalizeRole(role))) return false;
+    const normalized = User.normalizeEmail(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  }
+
+  recordSuccessfulLogin(userData) {
+    const users = this.loadUsers();
+    const normalizedEmail = User.normalizeEmail(userData.email);
+    const user = users.find(
+      (candidate) => User.normalizeEmail(candidate.email) === normalizedEmail,
+    );
+    if (!user) return null;
+
+    const timestamp = new Date().toISOString();
+    user.firstLoginAt = user.firstLoginAt || timestamp;
+    user.lastLoginAt = timestamp;
+    user.loginCount = (Number(user.loginCount) || 0) + 1;
+    this.saveUsers(users);
+    return User.create(user);
+  }
+}
+
+class SessionManager {
+  constructor(userStore) {
+    this.userStore = userStore;
+    this.storageKey = "currentUser";
+    this.currentUser = null;
+  }
+
+  loadSession() {
+    const saved = localStorage.getItem(this.storageKey);
+    if (!saved) return null;
+
+    try {
+      const userData = JSON.parse(saved);
+      const sessionUser = User.create(userData);
+
+      if (sessionUser.role === "guest") {
+        this.currentUser = sessionUser;
+        return sessionUser;
+      }
+
+      const storedUser = this.userStore.findUserByEmail(sessionUser.email);
+      const sessionMatchesStoredAccount =
+        storedUser &&
+        storedUser.id === sessionUser.id &&
+        storedUser.password === sessionUser.password &&
+        storedUser.role === sessionUser.role &&
+        storedUser.verified !== false;
+
+      if (
+        !sessionMatchesStoredAccount ||
+        (storedUser.role === "administrator" &&
+          storedUser.adminAuthorized !== true)
+      ) {
+        this.clearSession();
+        return null;
+      }
+
+      this.currentUser = storedUser;
+      localStorage.setItem(this.storageKey, JSON.stringify(storedUser));
+      return storedUser;
+    } catch (e) {
+      localStorage.removeItem(this.storageKey);
+      return null;
+    }
+  }
+
+  saveSession(user) {
+    const normalized = User.create(user);
+    this.currentUser = normalized;
+    localStorage.setItem(this.storageKey, JSON.stringify(normalized));
+  }
+
+  clearSession() {
+    this.currentUser = null;
+    localStorage.removeItem(this.storageKey);
+  }
+
+  isAdministrator() {
+    return (
+      this.currentUser?.role === "administrator" &&
+      this.currentUser?.adminAuthorized === true
+    );
+  }
+
+  isReader() {
+    return this.currentUser?.role === "reader";
+  }
+
+  isGuest() {
+    return this.currentUser?.role === "guest";
+  }
+}
+
+class AuthManager {
+  constructor(userStore, sessionManager) {
+    this.userStore = userStore;
+    this.sessionManager = sessionManager;
+    this.pendingRegistration = null;
+    this.verificationCode = null;
+    this.currentReaderAuthRole = "reader";
+  }
+
+  generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  setReaderAuthRole(role) {
+    this.currentReaderAuthRole = role;
+  }
+
+  getReaderAuthRole() {
+    return this.currentReaderAuthRole;
+  }
+
+  getUserByEmail(email) {
+    return this.userStore.findUserByEmail(email);
+  }
+
+  getUserByEmailAndPassword(email, password) {
+    return this.userStore.findUserByEmailAndPassword(email, password);
+  }
+
+  registerPending(fullName, email, password, role) {
+    this.pendingRegistration = { fullName, email, password, role };
+    this.verificationCode = this.generateVerificationCode();
+    return this.verificationCode;
+  }
+
+  verifyRegistrationCode(code) {
+    return code === this.verificationCode;
+  }
+
+  completeRegistration() {
+    if (!this.pendingRegistration) return null;
+    const { fullName, email, password, role } = this.pendingRegistration;
+    if (this.getUserByEmail(email)) return null;
+
+    const user = this.userStore.addUser({
+      fullName,
+      email,
+      password,
+      role,
+      verified: true,
+    });
+
+    this.pendingRegistration = null;
+    this.verificationCode = null;
+
+    return user;
+  }
+
+  resetPendingRegistration() {
+    this.pendingRegistration = null;
+    this.verificationCode = null;
+  }
+
+  loginUser(user) {
+    const normalized = User.create(user);
+    this.sessionManager.saveSession(normalized);
+    return normalized;
+  }
+
+  logout() {
+    this.sessionManager.clearSession();
+  }
+}
+
+const userStore = new UserStore([
   {
     id: 1,
     fullName: "Dr. Smith",
-    email: "teacher@school.edu",
+    email: "admin@atlas.edu",
     password: "password123",
-    role: "teacher",
+    role: "administrator",
     verified: true,
+    adminAuthorized: true,
   },
   {
     id: 2,
     fullName: "John Doe",
-    email: "student@school.edu",
+    email: "student@atlas.edu",
     password: "password123",
-    role: "student",
+    role: "reader",
     verified: true,
   },
-];
+  {
+    id: 3,
+    fullName: "Maria Santos",
+    email: "teacher@atlas.edu",
+    password: "password123",
+    role: "teacher",
+    verified: true,
+  },
+]);
+
+const sessionManager = new SessionManager(userStore);
+const authManager = new AuthManager(userStore, sessionManager);
 
 let currentUser = null;
 let toastInstance = null;
 let pendingRegistration = null;
 let verificationCode = null;
 
-// ===== USER STORAGE =====
-function getUsers() {
-  const stored = localStorage.getItem("users");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      return defaultUsers;
-    }
-  }
-  localStorage.setItem("users", JSON.stringify(defaultUsers));
-  return defaultUsers;
+// ===== GLOBAL AUTH HELPERS =====
+function normalizeEmail(email) {
+  return User.normalizeEmail(email);
 }
 
-function saveUsers(users) {
-  localStorage.setItem("users", JSON.stringify(users));
+function normalizeUser(user) {
+  return User.create(user);
 }
 
 function findUserByEmail(email) {
-  const users = getUsers();
-  return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  return userStore.findUserByEmail(email);
 }
 
 function findUserByEmailAndPassword(email, password) {
-  const users = getUsers();
-  return users.find(
-    (u) =>
-      u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+  return userStore.findUserByEmailAndPassword(email, password);
+}
+
+function isEmailAllowedForRole(email, role) {
+  return userStore.isEmailAllowedForRole(email, role);
+}
+
+function getUsers() {
+  return userStore.loadUsers();
+}
+
+function saveUsers(users) {
+  userStore.saveUsers(users);
+}
+
+function getAuthorizedAdministratorSession() {
+  const sessionUser = sessionManager.loadSession();
+  if (!sessionUser || sessionUser.role !== "administrator") {
+    if (sessionUser?.role === "administrator") sessionManager.clearSession();
+    return null;
+  }
+
+  const storedAdministrator = findUserByEmail(sessionUser.email);
+  const isAuthorized =
+    storedAdministrator &&
+    storedAdministrator.id === sessionUser.id &&
+    storedAdministrator.password === sessionUser.password &&
+    storedAdministrator.role === "administrator" &&
+    storedAdministrator.adminAuthorized === true &&
+    storedAdministrator.verified !== false;
+
+  if (!isAuthorized) {
+    sessionManager.clearSession();
+    currentUser = null;
+    return null;
+  }
+
+  currentUser = storedAdministrator;
+  return storedAdministrator;
+}
+
+function registerAdministratorAccount({
+  fullName,
+  email,
+  password,
+  confirmPassword,
+  currentAdminPassword,
+}) {
+  const authorizingAdministrator = getAuthorizedAdministratorSession();
+  if (!authorizingAdministrator) {
+    return {
+      ok: false,
+      message: "Your administrator session is not authorized.",
+    };
+  }
+
+  const reauthenticatedAdministrator = findUserByEmailAndPassword(
+    authorizingAdministrator.email,
+    currentAdminPassword,
   );
+  if (
+    !reauthenticatedAdministrator ||
+    reauthenticatedAdministrator.adminAuthorized !== true
+  ) {
+    return {
+      ok: false,
+      message: "The current administrator password is incorrect.",
+    };
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+  if (!fullName.trim() || !isEmailAllowedForRole(normalizedEmail, "administrator")) {
+    return { ok: false, message: "Enter a name and a valid email address." };
+  }
+  if (findUserByEmail(normalizedEmail)) {
+    return { ok: false, message: "This email is already registered." };
+  }
+  if (password.length < 12) {
+    return {
+      ok: false,
+      message: "Administrator passwords must be at least 12 characters.",
+    };
+  }
+  if (password !== confirmPassword) {
+    return { ok: false, message: "The new passwords do not match." };
+  }
+
+  const administrator = userStore.addUser({
+    fullName: fullName.trim(),
+    email: normalizedEmail,
+    password,
+    role: "administrator",
+    verified: true,
+    adminAuthorized: true,
+    createdAt: new Date().toISOString(),
+    createdByAdmin: authorizingAdministrator.email,
+  });
+
+  if (!administrator || administrator.role !== "administrator") {
+    return {
+      ok: false,
+      message: "The administrator account could not be created.",
+    };
+  }
+
+  return { ok: true, administrator };
+}
+
+function getUniqueRegisteredUsers() {
+  return getUsers().filter((user) => user.role !== "guest");
+}
+
+function getUserUsageStats() {
+  const users = getUniqueRegisteredUsers();
+  return {
+    totalUsers: users.length,
+    studentUsers: users.filter((user) => user.role === "reader").length,
+    teacherUsers: users.filter((user) => user.role === "teacher").length,
+    administratorUsers: users.filter((user) => user.role === "administrator")
+      .length,
+    uniqueLoggedInUsers: users.filter((user) => Number(user.loginCount) > 0)
+      .length,
+    totalSuccessfulLogins: users.reduce(
+      (total, user) => total + (Number(user.loginCount) || 0),
+      0,
+    ),
+  };
+}
+
+function getAccountRoleLabel(role) {
+  const labels = {
+    reader: "Student",
+    teacher: "Teacher",
+    administrator: "Administrator",
+  };
+  return labels[role] || "User";
+}
+
+function escapeUserText(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatUserActivityDate(value) {
+  if (!value) return "Not yet";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not yet";
+  return date.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function showRoleEmailError(role) {
+  showToast("Please enter a valid email address.");
+}
+
+function setReaderAuthRole(role, mode = "login") {
+  authManager.setReaderAuthRole(role);
+  updateReaderAuthUI(mode);
+}
+
+function updateReaderAuthUI(mode) {
+  const role = authManager.getReaderAuthRole();
+  const isTeacher = role === "teacher";
+  const roleLabel = isTeacher ? "Teacher" : "Student";
+  const accountLabel = isTeacher ? "Teacher account" : "Student account";
+  const actionLabel = mode === "register" ? "Register" : "Sign In";
+
+  const badge = document.getElementById(
+    mode === "register" ? "readerRegBadge" : "readerLoginBadge",
+  );
+  const title = document.getElementById(
+    mode === "register" ? "readerRegTitle" : "readerLoginTitle",
+  );
+  const subtitle = document.getElementById(
+    mode === "register" ? "readerRegSubtitle" : "readerLoginSubtitle",
+  );
+  const emailLabel = document.getElementById(
+    mode === "register" ? "readerRegEmailLabel" : "readerLoginEmailLabel",
+  );
+  const emailInput = document.getElementById(
+    mode === "register" ? "readerRegEmail" : "readerEmail",
+  );
+  const button = document.getElementById(
+    mode === "register" ? "readerRegisterButton" : "readerLoginButton",
+  );
+  const demoHint = document.getElementById("readerLoginDemoHint");
+  const roleToggle = document.getElementById(
+    mode === "register"
+      ? "readerRegisterRoleToggle"
+      : "readerLoginRoleToggle",
+  );
+  const studentButton = document.getElementById(
+    mode === "register" ? "readerRegStudentBtn" : "readerLoginStudentBtn",
+  );
+  const teacherButton = document.getElementById(
+    mode === "register" ? "readerRegTeacherBtn" : "readerLoginTeacherBtn",
+  );
+  const authCard = document.getElementById(
+    mode === "register" ? "readerRegisterForm" : "readerLoginForm",
+  );
+
+  if (roleToggle) {
+    roleToggle.classList.toggle("teacher-selected", isTeacher);
+  }
+  if (studentButton) {
+    studentButton.classList.toggle("active", !isTeacher);
+    studentButton.setAttribute("aria-pressed", String(!isTeacher));
+  }
+  if (teacherButton) {
+    teacherButton.classList.toggle("active", isTeacher);
+    teacherButton.setAttribute("aria-pressed", String(isTeacher));
+  }
+
+  if (badge) badge.textContent = `${accountLabel}`;
+  if (title)
+    title.textContent =
+      roleLabel + " " + (mode === "register" ? "Registration" : "Login");
+  if (subtitle)
+    subtitle.textContent =
+      mode === "register"
+        ? "Create your " + roleLabel.toLowerCase() + " reading account"
+        : "Access the " + roleLabel.toLowerCase() + " reading dashboard";
+  if (emailLabel)
+    emailLabel.innerHTML = '<i class="fas fa-envelope"></i> Email';
+  if (emailInput) {
+    emailInput.placeholder = isTeacher
+      ? "teacher@example.com"
+      : "student@example.com";
+    emailInput.removeAttribute("title");
+    emailInput.removeAttribute("pattern");
+  }
+  if (button)
+    button.innerHTML =
+      actionLabel + " as " + roleLabel + ' <i class="fas fa-arrow-right"></i>';
+  if (demoHint)
+    demoHint.textContent =
+      "Demo: " +
+      (isTeacher ? "teacher" : "student") +
+      "@atlas.edu / password123";
+
+  if (authCard) {
+    authCard.classList.remove("role-content-updated");
+    void authCard.offsetWidth;
+    authCard.classList.add("role-content-updated");
+  }
 }
 
 // ===== TOAST SYSTEM =====
@@ -318,19 +938,19 @@ function completeRegistration() {
     return;
   }
 
-  const users = getUsers();
-  const newUser = {
-    id: users.length + 1,
+  const newUser = userStore.addUser({
     fullName: fullName,
     email: email,
     password: password,
     role: role,
     verified: true,
     createdAt: new Date().toISOString(),
-  };
+  });
 
-  users.push(newUser);
-  saveUsers(users);
+  if (!newUser) {
+    showToast("This email is already registered.");
+    return;
+  }
 
   const modal = document.getElementById("customVerificationModal");
   if (modal) {
@@ -346,58 +966,101 @@ function completeRegistration() {
   loginUser(newUser);
 }
 
-// ===== ROLE SELECTION =====
+// ===== ROLE-SPECIFIC AUTHENTICATION =====
+const authCardIds = [
+  "roleSelection",
+  "administratorLoginForm",
+  "readerLoginForm",
+  "administratorRegisterForm",
+  "readerRegisterForm",
+];
+
+function showAuthCard(cardId) {
+  authCardIds.forEach((id) => {
+    const card = document.getElementById(id);
+    if (card) card.style.display = id === cardId ? "block" : "none";
+  });
+}
+
+function resetPendingRegistration() {
+  pendingRegistration = null;
+  verificationCode = null;
+}
+
 function showRoleSelection() {
-  const roleSelection = document.getElementById("roleSelection");
-  const teacherLogin = document.getElementById("teacherLoginForm");
-  const studentLogin = document.getElementById("studentLoginForm");
-  const registerForm = document.getElementById("registerForm");
-
-  if (roleSelection) roleSelection.style.display = "block";
-  if (teacherLogin) teacherLogin.style.display = "none";
-  if (studentLogin) studentLogin.style.display = "none";
-  if (registerForm) registerForm.style.display = "none";
-
-  pendingRegistration = null;
-  verificationCode = null;
+  showAuthCard("roleSelection");
+  resetPendingRegistration();
 }
 
-function showTeacherLogin() {
-  document.getElementById("roleSelection").style.display = "none";
-  document.getElementById("teacherLoginForm").style.display = "block";
-  document.getElementById("studentLoginForm").style.display = "none";
-  document.getElementById("registerForm").style.display = "none";
+function showAdministratorLogin() {
+  showAuthCard("administratorLoginForm");
 }
 
-function showStudentLogin() {
-  document.getElementById("roleSelection").style.display = "none";
-  document.getElementById("teacherLoginForm").style.display = "none";
-  document.getElementById("studentLoginForm").style.display = "block";
-  document.getElementById("registerForm").style.display = "none";
+function showReaderLogin() {
+  showAuthCard("readerLoginForm");
+  updateReaderAuthUI("login");
 }
 
-function showRegisterForm() {
-  document.getElementById("roleSelection").style.display = "none";
-  document.getElementById("teacherLoginForm").style.display = "none";
-  document.getElementById("studentLoginForm").style.display = "none";
-  document.getElementById("registerForm").style.display = "block";
-  pendingRegistration = null;
-  verificationCode = null;
+function showAdministratorRegister() {
+  showAuthCard("administratorRegisterForm");
+  resetPendingRegistration();
 }
 
-// ===== REGISTRATION =====
-function handleRegister(event) {
+function showReaderRegister() {
+  showAuthCard("readerRegisterForm");
+  updateReaderAuthUI("register");
+  resetPendingRegistration();
+}
+
+// Kept for guest links and older inline calls; Reader is the safe default.
+function showRegisterForm(role = "reader") {
+  if (role === "administrator") {
+    showAdministratorRegister();
+  } else {
+    showReaderRegister();
+  }
+}
+
+function getRegistrationFields(role) {
+  const prefix = role === "administrator" ? "administratorReg" : "readerReg";
+  return {
+    fullName: document.getElementById(`${prefix}FullName`).value.trim(),
+    email: normalizeEmail(document.getElementById(`${prefix}Email`).value),
+    password: document.getElementById(`${prefix}Password`).value,
+    confirmPassword: document.getElementById(`${prefix}ConfirmPassword`).value,
+  };
+}
+
+function getReaderRegistrationFields() {
+  return {
+    fullName: document.getElementById("readerRegFullName").value.trim(),
+    email: normalizeEmail(document.getElementById("readerRegEmail").value),
+    password: document.getElementById("readerRegPassword").value,
+    confirmPassword: document.getElementById("readerRegConfirmPassword").value,
+  };
+}
+
+function handleRoleRegister(event, role) {
   event.preventDefault();
   event.stopPropagation();
 
-  const fullName = document.getElementById("regFullName").value.trim();
-  const email = document.getElementById("regEmail").value.trim();
-  const password = document.getElementById("regPassword").value;
-  const confirmPassword = document.getElementById("regConfirmPassword").value;
-  const role = document.getElementById("regRole").value;
+  const originalRole = role;
+  if (role === "reader") {
+    role = authManager.getReaderAuthRole();
+  }
 
-  if (!fullName || !email || !password) {
+  const { fullName, email, password, confirmPassword } =
+    originalRole === "reader"
+      ? getReaderRegistrationFields()
+      : getRegistrationFields(role);
+
+  if (!fullName || !email || !password || !confirmPassword) {
     showToast("⚠️ Please fill in all fields.");
+    return;
+  }
+
+  if (!isEmailAllowedForRole(email, role)) {
+    showRoleEmailError(role);
     return;
   }
 
@@ -419,51 +1082,136 @@ function handleRegister(event) {
   pendingRegistration = { fullName, email, password, role };
   const code = generateVerificationCode();
   verificationCode = code;
-
   showVerificationModal(code, email, fullName);
 }
 
+function handleAdministratorRegister(event) {
+  handleRoleRegister(event, "administrator");
+}
+
+function handleReaderRegister(event) {
+  handleRoleRegister(event, "reader");
+}
+
+const ADMIN_LOGIN_GUARD_KEY = "adminLoginGuard";
+const ADMIN_LOGIN_MAX_FAILURES = 5;
+const ADMIN_LOGIN_LOCK_MS = 5 * 60 * 1000;
+
+function getAdminLoginGuard() {
+  try {
+    const guard = JSON.parse(localStorage.getItem(ADMIN_LOGIN_GUARD_KEY));
+    return {
+      failures: Math.max(0, Number(guard?.failures) || 0),
+      lockUntil: Math.max(0, Number(guard?.lockUntil) || 0),
+    };
+  } catch (error) {
+    return { failures: 0, lockUntil: 0 };
+  }
+}
+
+function getAdminLoginLockSeconds() {
+  const remaining = getAdminLoginGuard().lockUntil - Date.now();
+  return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+}
+
+function recordAdminLoginFailure() {
+  const guard = getAdminLoginGuard();
+  guard.failures += 1;
+  if (guard.failures >= ADMIN_LOGIN_MAX_FAILURES) {
+    guard.failures = 0;
+    guard.lockUntil = Date.now() + ADMIN_LOGIN_LOCK_MS;
+  }
+  localStorage.setItem(ADMIN_LOGIN_GUARD_KEY, JSON.stringify(guard));
+}
+
+function clearAdminLoginFailures() {
+  localStorage.removeItem(ADMIN_LOGIN_GUARD_KEY);
+}
+
 // ===== LOGIN HANDLERS =====
-function handleTeacherLogin(event) {
+function handleAdministratorLogin(event) {
   event.preventDefault();
-  const email = document.getElementById("teacherEmail").value.trim();
-  const password = document.getElementById("teacherPassword").value.trim();
+
+  const lockSeconds = getAdminLoginLockSeconds();
+  if (lockSeconds > 0) {
+    showToast(
+      "Too many failed attempts. Try again in " + lockSeconds + " seconds.",
+    );
+    return;
+  }
+
+  const email = normalizeEmail(
+    document.getElementById("administratorEmail").value,
+  );
+  const password = document
+    .getElementById("administratorPassword")
+    .value.trim();
+
+  if (!isEmailAllowedForRole(email, "administrator")) {
+    recordAdminLoginFailure();
+    showRoleEmailError("administrator");
+    return;
+  }
 
   const user = findUserByEmailAndPassword(email, password);
-  if (user && user.role === "teacher") {
+  if (
+    user &&
+    user.role === "administrator" &&
+    user.adminAuthorized === true
+  ) {
     if (user.verified === false) {
       showToast("⚠️ Please verify your email first.");
       return;
     }
     loginUser(user);
   } else {
-    showToast("❌ Invalid email or password for Teacher.");
+    recordAdminLoginFailure();
+    showToast("Invalid email or password for Administrator.");
   }
 }
 
-function handleStudentLogin(event) {
+function handleReaderLogin(event) {
   event.preventDefault();
-  const email = document.getElementById("studentEmail").value.trim();
-  const password = document.getElementById("studentPassword").value.trim();
+  const email = normalizeEmail(document.getElementById("readerEmail").value);
+  const password = document.getElementById("readerPassword").value.trim();
+
+  const role = authManager.getReaderAuthRole();
+  if (!isEmailAllowedForRole(email, role)) {
+    showRoleEmailError(role);
+    return;
+  }
 
   const user = findUserByEmailAndPassword(email, password);
-  if (user && user.role === "student") {
+  if (user && user.role === role) {
     if (user.verified === false) {
       showToast("⚠️ Please verify your email first.");
       return;
     }
     loginUser(user);
   } else {
-    showToast("❌ Invalid email or password for Student.");
+    showToast(
+      "Invalid email or password for " +
+        (role === "teacher" ? "Teacher" : "Student") +
+        ".",
+    );
   }
 }
-
 // ===== LOGIN USER =====
 function loginUser(user) {
+  user = userStore.recordSuccessfulLogin(user) || normalizeUser(user);
+  if (user.role === "administrator") clearAdminLoginFailures();
   currentUser = user;
-  localStorage.setItem("currentUser", JSON.stringify(user));
+  sessionManager.saveSession(user);
 
   showToast(`👋 Welcome, ${user.fullName}!`);
+
+  // Administrators should use the separate admin portal
+  if (user.role === "administrator") {
+    // Ensure session is saved then redirect
+    sessionManager.saveSession(user);
+    setTimeout(() => (window.location.href = "admin.html"), 300);
+    return;
+  }
 
   const loginScreen = document.getElementById("loginScreen");
   const dashboard = document.getElementById("dashboard");
@@ -489,7 +1237,7 @@ function loginAsGuest() {
     email: "guest@library.edu",
     role: "guest",
   };
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  authManager.sessionManager.saveSession(currentUser);
 
   showToast("👋 Welcome, Guest!");
 
@@ -511,11 +1259,12 @@ function loginAsGuest() {
 
 // ===== LOGOUT =====
 function logout() {
+  authManager.logout();
   currentUser = null;
-  localStorage.removeItem("currentUser");
 
   const dashboard = document.getElementById("dashboard");
   const loginScreen = document.getElementById("loginScreen");
+  const adminLoginScreen = document.getElementById("adminLoginScreen");
 
   if (dashboard) {
     dashboard.classList.remove("active");
@@ -524,9 +1273,17 @@ function logout() {
   if (loginScreen) {
     loginScreen.classList.remove("hidden");
     loginScreen.classList.add("active");
+    showRoleSelection();
+  }
+  if (adminLoginScreen) {
+    adminLoginScreen.classList.add("active");
+    adminLoginScreen.classList.remove("hidden");
   }
 
-  showRoleSelection();
+  if (!loginScreen && adminLoginScreen) {
+    window.location.href = "admin.html";
+  }
+
   showToast("👋 Logged out successfully");
 }
 
@@ -544,10 +1301,12 @@ function loadDashboard(role) {
   loadRoleCSS(role);
 
   let html = "";
-  if (role === "teacher") {
+  if (role === "administrator") {
+    html = getAdministratorDashboard();
+  } else if (role === "teacher") {
     html = getTeacherDashboard();
-  } else if (role === "student") {
-    html = getStudentDashboard();
+  } else if (role === "reader") {
+    html = getReaderDashboard();
   } else {
     html = getGuestDashboard();
   }
@@ -570,8 +1329,9 @@ function loadRoleCSS(role) {
   document.querySelectorAll("link[data-role]").forEach((el) => el.remove());
 
   const link = document.createElement("link");
+  const styleRole = role === "teacher" ? "reader" : role;
   link.rel = "stylesheet";
-  link.href = `css/${role}.css?v=${Date.now()}`;
+  link.href = `css/${styleRole}.css?v=${Date.now()}`;
   link.dataset.role = role;
   document.head.appendChild(link);
 }
@@ -581,15 +1341,19 @@ function loadRoleJS(role) {
   document.querySelectorAll("script[data-role]").forEach((el) => el.remove());
 
   const script = document.createElement("script");
-  script.src = `js/${role}.js?v=${Date.now()}`;
+  const scriptRole = role === "teacher" ? "reader" : role;
+  script.src = `js/${scriptRole}.js?v=${Date.now()}`;
   script.dataset.role = role;
   script.onload = function () {
-    console.log(`✅ ${role}.js loaded successfully`);
+    console.log(`✅ ${scriptRole}.js loaded successfully`);
 
-    if (role === "teacher" && typeof initTeacher === "function") {
-      initTeacher();
-    } else if (role === "student" && typeof initStudent === "function") {
-      initStudent();
+    if (role === "administrator" && typeof initAdministrator === "function") {
+      initAdministrator();
+    } else if (
+      (role === "reader" || role === "teacher") &&
+      typeof initReader === "function"
+    ) {
+      initReader();
     } else if (role === "guest" && typeof initGuest === "function") {
       initGuest();
     }
@@ -608,37 +1372,94 @@ function loadRoleJS(role) {
 
 // ===== CHECK SESSION =====
 function checkSession() {
-  const savedUser = localStorage.getItem("currentUser");
-  if (savedUser) {
-    try {
-      const user = JSON.parse(savedUser);
-      currentUser = user;
+  const user = sessionManager.loadSession();
+  if (user) {
+    currentUser = user;
 
-      const loginScreen = document.getElementById("loginScreen");
-      const dashboard = document.getElementById("dashboard");
+    const loginScreen = document.getElementById("loginScreen");
+    const dashboard = document.getElementById("dashboard");
 
-      if (loginScreen) {
-        loginScreen.classList.remove("active");
-        loginScreen.classList.add("hidden");
-      }
-      if (dashboard) {
-        dashboard.classList.remove("hidden");
-        dashboard.classList.add("active");
-      }
-
-      loadLibraryData();
-      loadDashboard(user.role);
-      return true;
-    } catch (e) {
-      localStorage.removeItem("currentUser");
+    if (loginScreen) {
+      loginScreen.classList.remove("active");
+      loginScreen.classList.add("hidden");
     }
+    if (dashboard) {
+      dashboard.classList.remove("hidden");
+      dashboard.classList.add("active");
+    }
+
+    loadLibraryData();
+    loadDashboard(user.role);
+    return true;
   }
   return false;
 }
 
+let libraryDashboardSyncTimer = null;
+let pendingLibraryUpdateNotice = false;
+
+function refreshLibraryDashboard(showUpdateNotice = false) {
+  if (!currentUser || typeof loadLibraryData !== "function") return;
+
+  loadLibraryData();
+
+  const homeView = document.getElementById("homeView");
+  if (homeView) homeView.innerHTML = getHomeView();
+
+  document.querySelectorAll("[data-library-count]").forEach((counter) => {
+    counter.textContent = String(libraryData.length);
+  });
+
+  if (
+    typeof filterLibrary === "function" &&
+    document.getElementById("librarySearch")
+  ) {
+    filterLibrary();
+  } else if (typeof renderLibraryTable === "function") {
+    renderLibraryTable(libraryData);
+  }
+
+  if (typeof renderFavoritesList === "function") renderFavoritesList();
+  if (typeof updateStatsUI === "function") updateStatsUI();
+
+  if (
+    showUpdateNotice &&
+    ["reader", "teacher", "guest"].includes(currentUser.role)
+  ) {
+    showToast("The library was updated by an administrator.");
+  }
+}
+
+function scheduleLibraryDashboardSync(showUpdateNotice = false) {
+  pendingLibraryUpdateNotice =
+    pendingLibraryUpdateNotice || showUpdateNotice;
+  clearTimeout(libraryDashboardSyncTimer);
+  libraryDashboardSyncTimer = setTimeout(() => {
+    refreshLibraryDashboard(pendingLibraryUpdateNotice);
+    pendingLibraryUpdateNotice = false;
+  }, 60);
+}
+
+window.addEventListener("storage", (event) => {
+  if (
+    event.key === "libraryData" ||
+    event.key === "nextId" ||
+    event.key === LIBRARY_ACTIVITY_STORAGE_KEY
+  ) {
+    scheduleLibraryDashboardSync(
+      event.key === LIBRARY_ACTIVITY_STORAGE_KEY,
+    );
+  }
+});
+
+window.addEventListener("libraryActivityChanged", () => {
+  scheduleLibraryDashboardSync(false);
+});
+
 // ===== DASHBOARD TEMPLATES =====
-function getTeacherDashboard() {
+function getAdministratorDashboard() {
   const stats = getLibraryStats();
+  const userStats = getUserUsageStats();
 
   return `
         <div class="d-flex" style="height: 100vh; overflow: hidden;">
@@ -653,7 +1474,11 @@ function getTeacherDashboard() {
                     </a>
                     <a href="#" onclick="navigateTo('library'); return false;">
                         <i class="fas fa-book"></i> LIBRARY
-                        <span class="item-counter">${stats.totalItems}</span>
+                        <span class="item-counter" data-library-count>${stats.totalItems}</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('users'); return false;">
+                        <i class="fas fa-users"></i> USERS
+                        <span class="item-counter" id="uniqueUserCounter">${userStats.totalUsers}</span>
                     </a>
                     <a href="#" onclick="navigateTo('announcements'); return false;">
                         <i class="fas fa-bullhorn"></i> ANNOUNCEMENTS
@@ -672,9 +1497,9 @@ function getTeacherDashboard() {
                         <i class="fas fa-search" onclick="performGlobalSearch()"></i>
                     </div>
                     <div class="user-greeting" id="userGreeting">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <span>Welcome, ${currentUser ? currentUser.fullName : "Teacher"}</span>
-                        <span class="badge ms-2 teacher-badge">TEACHER</span>
+                        <i class="fas fa-user-cog"></i>
+                        <span>Welcome, ${currentUser ? currentUser.fullName : "Administrator"}</span>
+                        <span class="badge ms-2 administrator-badge">ADMINISTRATOR</span>
                         <button class="btn btn-sm btn-outline-danger ms-2" onclick="logout()" style="border-radius: 30px; padding: 0.1rem 0.8rem; font-size: 0.7rem;">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </button>
@@ -691,7 +1516,8 @@ function getTeacherDashboard() {
                 </div>
                 
                 <section class="view active" id="homeView">${getHomeView()}</section>
-                <section class="view" id="libraryView">${getLibraryView("teacher")}</section>
+                <section class="view" id="libraryView">${getLibraryView("administrator")}</section>
+                <section class="view" id="usersView">${getUserMonitoringView()}</section>
                 <section class="view" id="announcementsView">${getAnnouncementsViewHTML()}</section>
                 <section class="view" id="contactView">${getContactView()}</section>
             </main>
@@ -699,8 +1525,190 @@ function getTeacherDashboard() {
     `;
 }
 
-function getStudentDashboard() {
+function getUserMonitoringView() {
+  return `
+    <div class="user-monitoring">
+      <div class="user-monitoring-header">
+        <div>
+          <span class="section-kicker">Account activity</span>
+          <h3><i class="fas fa-users"></i> Website Users</h3>
+          <p>Monitor unique registered accounts and successful sign-ins.</p>
+        </div>
+        <div class="admin-user-actions">
+          <button
+            class="btn-register-admin"
+            type="button"
+            aria-controls="adminRegistrationPanel"
+            aria-expanded="false"
+            onclick="toggleAdminRegistrationPanel(this)"
+          >
+            <i class="fas fa-user-shield"></i> Register administrator
+          </button>
+          <button class="btn-refresh-users" type="button" onclick="updateUserMonitoringUI()">
+            <i class="fas fa-rotate"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="usage-count-note" role="status">
+        <i class="fas fa-circle-info"></i>
+        Accounts are counted once by normalized email. Repeated sign-ins update the
+        account's sign-in total without creating duplicate users.
+      </div>
+
+      <section class="admin-registration-panel" id="adminRegistrationPanel" hidden>
+        <div class="admin-registration-heading">
+          <div>
+            <span class="section-kicker">Restricted action</span>
+            <h4>Register another administrator</h4>
+            <p>
+              Confirm your current administrator password before creating this
+              privileged account.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close-admin-registration"
+            aria-label="Close administrator registration"
+            onclick="toggleAdminRegistrationPanel()"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="adminAccountRegister" onsubmit="handleAdminAccountRegister(event)">
+          <div class="admin-registration-grid">
+            <div class="form-group">
+              <label for="newAdminFullName">Full name</label>
+              <input
+                type="text"
+                id="newAdminFullName"
+                class="form-control"
+                placeholder="Administrator name"
+                autocomplete="name"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="newAdminEmail">Email</label>
+              <input
+                type="email"
+                id="newAdminEmail"
+                class="form-control"
+                placeholder="administrator@example.com"
+                autocomplete="email"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="newAdminPassword">New password</label>
+              <input
+                type="password"
+                id="newAdminPassword"
+                class="form-control"
+                placeholder="At least 12 characters"
+                minlength="12"
+                autocomplete="new-password"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="newAdminConfirmPassword">Confirm new password</label>
+              <input
+                type="password"
+                id="newAdminConfirmPassword"
+                class="form-control"
+                placeholder="Repeat the new password"
+                minlength="12"
+                autocomplete="new-password"
+                required
+              />
+            </div>
+            <div class="form-group admin-confirmation-field">
+              <label for="currentAdminPassword">
+                Your current administrator password
+              </label>
+              <input
+                type="password"
+                id="currentAdminPassword"
+                class="form-control"
+                placeholder="Confirm your password"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+          </div>
+          <div class="admin-registration-footer">
+            <p>
+              <i class="fas fa-lock"></i>
+              Only an authorized administrator can complete this action.
+            </p>
+            <button type="submit" class="btn-create-admin">
+              Create administrator account
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <div class="user-stat-grid">
+        <article class="user-stat-card">
+          <span class="user-stat-icon"><i class="fas fa-address-card"></i></span>
+          <strong id="totalRegisteredUsers">0</strong>
+          <span>Unique accounts</span>
+        </article>
+        <article class="user-stat-card">
+          <span class="user-stat-icon"><i class="fas fa-user-graduate"></i></span>
+          <strong id="totalStudentUsers">0</strong>
+          <span>Students</span>
+        </article>
+        <article class="user-stat-card">
+          <span class="user-stat-icon"><i class="fas fa-chalkboard-user"></i></span>
+          <strong id="totalTeacherUsers">0</strong>
+          <span>Teachers</span>
+        </article>
+        <article class="user-stat-card">
+          <span class="user-stat-icon"><i class="fas fa-user-check"></i></span>
+          <strong id="uniqueLoggedInUsers">0</strong>
+          <span>Unique users signed in</span>
+        </article>
+        <article class="user-stat-card">
+          <span class="user-stat-icon"><i class="fas fa-right-to-bracket"></i></span>
+          <strong id="totalSuccessfulLogins">0</strong>
+          <span>Successful sign-ins</span>
+        </article>
+      </div>
+
+      <div class="user-table-card">
+        <div class="user-table-heading">
+          <div>
+            <h4>Registered account directory</h4>
+            <p>Passwords and verification codes are never shown here.</p>
+          </div>
+          <span id="userActivityUpdatedAt">Waiting for account data</span>
+        </div>
+        <div class="table-responsive">
+          <table class="user-activity-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Account type</th>
+                <th>Registered</th>
+                <th>Last sign-in</th>
+                <th>Sign-ins</th>
+              </tr>
+            </thead>
+            <tbody id="userActivityTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function getReaderDashboard(role = "reader") {
   const stats = getLibraryStats();
+  const roleLabel = role === "teacher" ? "Teacher" : "Student";
 
   return `
         <div class="d-flex" style="height: 100vh; overflow: hidden;">
@@ -715,7 +1723,7 @@ function getStudentDashboard() {
                     </a>
                     <a href="#" onclick="navigateTo('library'); return false;">
                         <i class="fas fa-book"></i> LIBRARY
-                        <span class="item-counter">${stats.totalItems}</span>
+                        <span class="item-counter" data-library-count>${stats.totalItems}</span>
                     </a>
                     <a href="#" onclick="navigateTo('announcements'); return false;">
                         <i class="fas fa-bullhorn"></i> ANNOUNCEMENTS
@@ -735,8 +1743,8 @@ function getStudentDashboard() {
                     </div>
                     <div class="user-greeting" id="userGreeting">
                         <i class="fas fa-user-graduate"></i>
-                        <span>Welcome, ${currentUser ? currentUser.fullName : "Student"}</span>
-                        <span class="badge ms-2 student-badge">STUDENT</span>
+                        <span>Welcome, ${currentUser ? currentUser.fullName : roleLabel}</span>
+                        <span class="badge ms-2 reader-badge">${roleLabel.toUpperCase()}</span>
                         <button class="btn btn-sm btn-outline-danger ms-2" onclick="logout()" style="border-radius: 30px; padding: 0.1rem 0.8rem; font-size: 0.7rem;">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </button>
@@ -753,12 +1761,16 @@ function getStudentDashboard() {
                 </div>
                 
                 <section class="view active" id="homeView">${getHomeView()}</section>
-                <section class="view" id="libraryView">${getLibraryView("student")}</section>
+                <section class="view" id="libraryView">${getLibraryView(role)}</section>
                 <section class="view" id="announcementsView">${getAnnouncementsViewHTML()}</section>
                 <section class="view" id="contactView">${getContactView()}</section>
             </main>
         </div>
     `;
+}
+
+function getTeacherDashboard() {
+  return getReaderDashboard("teacher");
 }
 
 function getGuestDashboard() {
@@ -777,7 +1789,7 @@ function getGuestDashboard() {
                     </a>
                     <a href="#" onclick="navigateTo('library'); return false;">
                         <i class="fas fa-book"></i> LIBRARY
-                        <span class="item-counter">${stats.totalItems}</span>
+                        <span class="item-counter" data-library-count>${stats.totalItems}</span>
                     </a>
                     <a href="#" onclick="navigateTo('announcements'); return false;">
                         <i class="fas fa-bullhorn"></i> ANNOUNCEMENTS
@@ -825,9 +1837,66 @@ function getGuestDashboard() {
 
 // ===== VIEW GENERATORS =====
 
+function getLibraryActivityHTML() {
+  const visibleRoles = ["reader", "teacher", "guest"];
+  if (!visibleRoles.includes(currentUser?.role)) return "";
+
+  const activity =
+    typeof getLibraryActivity === "function" ? getLibraryActivity(5) : [];
+  if (!activity.length) return "";
+
+  const activityRows = activity
+    .map((entry) => {
+      const isRemoval = entry.action === "removed";
+      const actionLabel = isRemoval ? "Removed" : "Added";
+      const actionDescription = isRemoval
+        ? "was removed from the library"
+        : "is now available in the library";
+
+      return (
+        '<article class="library-update-item ' +
+        (isRemoval ? "removed" : "added") +
+        '">' +
+        '<span class="library-update-action">' +
+        actionLabel +
+        "</span>" +
+        '<div class="library-update-copy">' +
+        "<strong>" +
+        escapeUserText(entry.title) +
+        "</strong>" +
+        "<p>" +
+        escapeUserText(entry.collection) +
+        " " +
+        actionDescription +
+        ".</p>" +
+        "</div>" +
+        '<time datetime="' +
+        escapeUserText(entry.createdAt) +
+        '">' +
+        timeAgo(entry.createdAt) +
+        "</time>" +
+        "</article>"
+      );
+    })
+    .join("");
+
+  return (
+    '<section class="library-updates-section" aria-live="polite">' +
+    '<div class="section-header">' +
+    '<h4><i class="fas fa-bell"></i> Latest Library Updates</h4>' +
+    '<span>Administrator activity</span>' +
+    "</div>" +
+    '<div class="library-updates-list">' +
+    activityRows +
+    "</div>" +
+    "</section>"
+  );
+}
+
 function getHomeView() {
   const recentItems = getRecentItems(6);
   const stats = getLibraryStats();
+  const libraryActivityHtml = getLibraryActivityHTML();
 
   let recentItemsHtml = "";
   if (recentItems.length > 0) {
@@ -896,19 +1965,20 @@ function getHomeView() {
                 </button>
             </div>
             ${recentItemsHtml}
+            ${libraryActivityHtml}
         </div>
     `;
 }
 
 function getLibraryView(role) {
-  const isTeacher = role === "teacher";
-  const isStudent = role === "student";
+  const isAdministrator = role === "administrator";
+  const isReader = role === "reader" || role === "teacher";
   const isGuest = role === "guest";
 
   let uploadSection = "";
-  if (isTeacher) {
+  if (isAdministrator) {
     uploadSection = `
-            <div class="teacher-upload-section">
+            <div class="administrator-upload-section">
                 <h5><i class="fas fa-upload"></i> Add New Item</h5>
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -950,9 +2020,9 @@ function getLibraryView(role) {
   }
 
   let favoritesSection = "";
-  if (isStudent) {
+  if (isReader) {
     favoritesSection = `
-            <div class="student-favorites-section">
+            <div class="reader-favorites-section">
                 <div class="favorites-header">
                     <h5><i class="fas fa-star" style="color: #ffd700;"></i> Your Favorites</h5>
                     <span class="favorite-count" id="favoritesCount">⭐ ${favorites.length} items</span>
@@ -968,11 +2038,11 @@ function getLibraryView(role) {
   }
 
   let viewOnlyIndicator = "";
-  if (isStudent) {
+  if (isReader) {
     viewOnlyIndicator = `
-            <div class="student-view-only">
+            <div class="reader-view-only">
                 <i class="fas fa-eye"></i>
-                <span>Student - View, Download &amp; Favorite items</span>
+                <span>Student / Teacher - View, Download &amp; Favorite items</span>
             </div>
         `;
   } else if (isGuest) {
@@ -982,11 +2052,11 @@ function getLibraryView(role) {
                 <span>Guest - View only</span>
             </div>
         `;
-  } else if (isTeacher) {
+  } else if (isAdministrator) {
     viewOnlyIndicator = `
-            <div class="teacher-view-only">
+            <div class="administrator-view-only">
                 <i class="fas fa-user-cog"></i>
-                <span>Teacher - Manage library (Add &amp; Delete items)</span>
+                <span>Administrator - Manage library (Add &amp; Delete items)</span>
             </div>
         `;
   }
@@ -999,7 +2069,7 @@ function getLibraryView(role) {
                 <h5>Library is empty</h5>
                 <p>No items have been added to the library yet.</p>
                 ${
-                  isTeacher
+                  isAdministrator
                     ? `
                     <div class="empty-action">
                         <button class="btn btn-primary" onclick="document.getElementById('newTitle').focus()" style="border-radius: 60px; background: var(--maroon-600); border-color: var(--maroon-600);">
@@ -1191,7 +2261,7 @@ const announcements = [
     icon: "🏆",
     title: "Library User of the Month: June 2026",
     content:
-      "Congratulations to our Student of the Month! Your dedication to research and learning inspires us. Keep using the library resources to achieve your academic goals.",
+      "Congratulations to our Reader of the Month! Your dedication to research and learning inspires us. Keep using the library resources to achieve your academic goals.",
     category: "Award",
     color: "var(--gold)",
     author: "Library Team",
@@ -1219,7 +2289,7 @@ const announcements = [
     icon: "💡",
     title: "New Study Space Opening",
     content:
-      "We're opening a new 24/7 study space with collaborative zones, quiet areas, and state-of-the-art equipment. Accessible to all registered students and faculty members.",
+      "We're opening a new 24/7 study space with collaborative zones, quiet areas, and state-of-the-art equipment. Accessible to all registered readers and faculty members.",
     category: "Announcement",
     color: "var(--maroon-300)",
     author: "Facilities Team",
@@ -1879,7 +2949,12 @@ function navigateTo(page) {
     .forEach((l) => l.classList.remove("active"));
   document.querySelectorAll(".sidebar-nav a").forEach((link) => {
     const text = link.textContent.trim().toLowerCase().replace(/\s/g, "");
-    if (text === page || text === page.replace(/\s/g, "")) {
+    const action = link.getAttribute("onclick") || "";
+    if (
+      text === page ||
+      text === page.replace(/\s/g, "") ||
+      action.includes("navigateTo('" + page + "')")
+    ) {
       link.classList.add("active");
     }
   });
@@ -1889,6 +2964,7 @@ function navigateTo(page) {
     const pageNames = {
       home: "Home",
       library: "Library",
+      users: "Website Users",
       announcements: "Announcements",
       contact: "Contact Us",
     };
@@ -1902,6 +2978,10 @@ function navigateTo(page) {
   let target = document.getElementById(page + "View");
   if (!target) target = document.getElementById("homeView");
   if (target) target.classList.add("active");
+
+  if (page === "users" && typeof updateUserMonitoringUI === "function") {
+    updateUserMonitoringUI();
+  }
 
   if (window.innerWidth <= 820) closeSidebar();
 }
@@ -1971,12 +3051,15 @@ function addMobileToggle() {
 
 // ===== EXPOSE GLOBALLY =====
 window.showRoleSelection = showRoleSelection;
-window.showTeacherLogin = showTeacherLogin;
-window.showStudentLogin = showStudentLogin;
+window.showAdministratorLogin = showAdministratorLogin;
+window.showReaderLogin = showReaderLogin;
 window.showRegisterForm = showRegisterForm;
-window.handleRegister = handleRegister;
-window.handleTeacherLogin = handleTeacherLogin;
-window.handleStudentLogin = handleStudentLogin;
+window.showAdministratorRegister = showAdministratorRegister;
+window.showReaderRegister = showReaderRegister;
+window.handleAdministratorRegister = handleAdministratorRegister;
+window.handleReaderRegister = handleReaderRegister;
+window.handleAdministratorLogin = handleAdministratorLogin;
+window.handleReaderLogin = handleReaderLogin;
 window.loginAsGuest = loginAsGuest;
 window.loginUser = loginUser;
 window.logout = logout;
@@ -1987,6 +3070,11 @@ window.resendVerificationCode = resendVerificationCode;
 window.showToast = showToast;
 window.checkSession = checkSession;
 window.loadDashboard = loadDashboard;
+window.setReaderAuthRole = setReaderAuthRole;
+window.updateReaderAuthUI = updateReaderAuthUI;
+window.getAuthorizedAdministratorSession =
+  getAuthorizedAdministratorSession;
+window.registerAdministratorAccount = registerAdministratorAccount;
 
 // Announcements Exports
 window.announcements = announcements;
