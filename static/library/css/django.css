@@ -1,0 +1,493 @@
+/* Server-rendered Django integration layer for the existing ATLAS theme. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Let the browser window own vertical scrolling across every Django page. */
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body.atlas-sidebar-open {
+  overflow: hidden;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10000;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--maroon-800);
+  font-weight: 700;
+  transform: translateY(-150%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+a.role-btn,
+.sidebar-brand,
+.btn-filter,
+.btn-add-item,
+.btn-details,
+.btn-download,
+.btn-edit,
+.staff-panel-footer-link {
+  text-decoration: none;
+}
+
+.atlas-auth-page {
+  min-height: 100vh;
+  background: linear-gradient(145deg, #fdfaf7 0%, var(--maroon-50) 100%);
+}
+
+.landing-container,
+.register-container {
+  padding-block: 2rem;
+}
+
+.landing-card {
+  max-width: 610px;
+}
+
+.landing-role-grid,
+.role-form,
+.role-form .role-btn {
+  width: 100%;
+}
+
+.eyebrow,
+.section-kicker {
+  color: var(--maroon-500);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.landing-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.4rem;
+  font-size: 0.82rem;
+}
+
+.landing-actions p {
+  margin: 0;
+}
+
+.landing-actions a,
+.staff-login-link {
+  color: var(--maroon-600);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.privacy-summary,
+.verification-note {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #ede5df;
+  color: #706662;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 3rem;
+}
+
+.atlas-admin-login-card .form-group input {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1.5px solid #e0dcd8;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.atlas-admin-login-card .form-group input:focus {
+  border-color: var(--maroon-400);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(176, 58, 79, 0.1);
+}
+
+.atlas-admin-login-card .password-field input {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #7d7370;
+}
+
+.form-alert {
+  display: flex;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #efb9bd;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #842029;
+  font-size: 0.82rem;
+}
+
+.form-alert p {
+  margin: 0;
+}
+
+.consent-errors {
+  margin: -0.65rem 0 0.85rem;
+}
+
+.atlas-messages {
+  z-index: 10020;
+}
+
+.atlas-message {
+  margin-top: 0.65rem;
+  background: var(--maroon-800);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(39, 13, 20, 0.22);
+}
+
+.atlas-message[data-level="success"] { background: #24623d; }
+.atlas-message[data-level="warning"] { background: #7b5812; }
+.atlas-message[data-level="error"] { background: #8c2434; }
+.atlas-message .toast-body { display: flex; gap: 0.55rem; align-items: center; }
+.atlas-message .toast-body i { color: var(--gold); }
+
+.atlas-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
+}
+
+.sidebar-brand {
+  color: #fff;
+}
+
+.sidebar-brand:hover {
+  color: #fff;
+}
+
+.django-view {
+  flex: 1;
+  overflow: visible;
+}
+
+.main-content {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+.user-monitoring {
+  height: auto;
+  overflow-y: visible;
+}
+
+/* This beats the later role-specific stylesheet loaded by the staff portal. */
+.staff-portal .user-monitoring {
+  height: auto;
+  overflow-y: visible;
+}
+
+.topbar .search-box button {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem;
+}
+
+.logout-form,
+.inline-action-form,
+.card-top form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.atlas-role-badge {
+  background: var(--maroon-600);
+  color: #fff;
+}
+
+.role-guest .atlas-role-badge { background: #747474; }
+.role-teacher .atlas-role-badge { background: #5c477a; }
+
+.dashboard-body,
+.staff-portal,
+.contact-page,
+.admin-form-page,
+.resource-detail-card,
+.django-favorites-page,
+.announcements-list {
+  padding: 1.5rem 3.5rem 3rem;
+}
+
+.dashboard-actions,
+.staff-header-actions,
+.resource-detail-actions,
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.atlas-primary-action,
+.atlas-secondary-action,
+.atlas-outline-action {
+  border-radius: 60px;
+  padding: 0.6rem 1.6rem;
+}
+
+.atlas-primary-action {
+  background: var(--maroon-800);
+  border-color: var(--maroon-800);
+}
+
+.atlas-secondary-action {
+  background: var(--maroon-400);
+  color: #fff;
+}
+
+.section-header h2,
+.django-page-header h1,
+.staff-panel h2,
+.contact-form-card h2,
+.resource-description h2 {
+  margin: 0;
+  color: var(--maroon-800);
+  font-weight: 700;
+}
+
+.section-header h2,
+.staff-panel h2,
+.contact-form-card h2,
+.resource-description h2 {
+  font-size: 1.15rem;
+}
+
+.django-resource-card {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.django-resource-card h3 {
+  margin-top: 0.75rem;
+  color: var(--maroon-800);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.compact-empty-state { padding: 2rem; }
+
+.django-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.django-page-header h1 {
+  font-size: 2rem;
+}
+
+.atlas-pale-badge {
+  background: var(--maroon-50);
+  color: var(--maroon-700);
+}
+
+.filter-search-group { flex: 2; }
+.filter-sort-group { max-width: 190px; }
+
+.call-number {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #f5f0ec;
+  color: var(--maroon-700);
+  white-space: nowrap;
+}
+
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.atlas-pagination { margin-top: 1.5rem; }
+.atlas-pagination .page-link { color: var(--maroon-700); }
+
+.resource-detail-card,
+.contact-form-card,
+.staff-panel,
+.admin-object-form {
+  margin: 1rem 3.5rem 3rem;
+  border: 1px solid #ede8e2;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(74, 17, 28, 0.04);
+}
+
+.resource-detail-card {
+  padding: 2rem;
+}
+
+.resource-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  margin: 1.5rem 0;
+}
+
+.resource-detail-header h1 { margin: 0.7rem 0 0.25rem; color: var(--maroon-800); }
+.resource-byline { color: #706763; }
+.resource-format-icon { color: var(--maroon-300); font-size: 4rem; }
+
+.resource-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: var(--maroon-50);
+}
+
+.resource-metadata div { min-width: 0; }
+.resource-metadata dt { color: #807672; font-size: 0.68rem; text-transform: uppercase; }
+.resource-metadata dd { margin: 0.2rem 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.resource-description { margin: 1.5rem 0; }
+.detail-download { display: inline-flex; align-items: center; }
+
+.django-favorites-page { margin: 1rem 3.5rem 3rem; }
+.django-favorites-grid { margin-top: 1.5rem; }
+.favorites-page-empty { padding: 4rem 1rem; text-align: center; }
+.favorites-page-empty h2 { color: var(--maroon-800); }
+
+.django-announcements-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 2.5rem 3.5rem;
+  background: linear-gradient(135deg, var(--maroon-800), var(--maroon-600));
+  color: #fff;
+}
+
+.django-announcements-hero h1 { margin: 0.5rem 0; font-size: 2.5rem; }
+.announcement-header-actions { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.announcement-total { padding: 0.4rem 1rem; border-radius: 40px; background: rgba(255,255,255,.15); }
+
+.announcement-filters {
+  display: flex;
+  align-items: end;
+  gap: 0.7rem;
+  padding: 1.2rem 3.5rem;
+  background: #f8f5f2;
+}
+
+.announcement-filters label { align-self: center; color: #6c625e; font-size: 0.8rem; font-weight: 700; }
+.announcement-filters select { max-width: 230px; }
+.django-featured-announcement { margin: 1.5rem auto; max-width: 900px; }
+.featured-mark { display: inline-block; margin-bottom: 0.8rem; padding: 0.18rem 0.7rem; border-radius: 30px; background: var(--maroon-500); color: #fff; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
+.announcement-card-heading { display: flex; align-items: flex-start; gap: 0.9rem; }
+.announcement-icon { font-size: 2rem; }
+.announcement-title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
+.announcement-title-line h3, .django-featured-announcement h2 { margin: 0; color: var(--maroon-800); }
+.announcement-title-line h3 { font-size: 1.05rem; }
+.announcement-meta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.25rem; color: #837975; font-size: 0.74rem; }
+.announcement-category { padding: 0.08rem 0.55rem; border-radius: 30px; background: var(--maroon-50); color: var(--maroon-600); font-weight: 700; }
+.announcement-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+.announcement-actions button, .announcement-actions a { border: 1px solid #e6dfda; border-radius: 30px; background: transparent; color: #716763; padding: 0.25rem 0.8rem; font-size: 0.72rem; text-decoration: none; }
+
+.contact-methods {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.contact-method-card { padding: 1.5rem; border: 1px solid #ede8e2; border-radius: 16px; background: #fff; text-align: center; }
+.contact-method-card > i { color: var(--maroon-500); font-size: 1.8rem; }
+.contact-method-card h2 { margin: 0.7rem 0 0.3rem; color: var(--maroon-800); font-size: 1rem; }
+.contact-method-card a { color: var(--maroon-600); overflow-wrap: anywhere; }
+.contact-form-card { margin: 0; padding: 2rem; }
+.contact-form-grid, .admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.contact-subject-field, .contact-message-field, .admin-full-field { grid-column: 1 / -1; }
+
+.staff-stat-grid { margin: 1.5rem 0; }
+.staff-management-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1rem; }
+.staff-panel { margin: 0; padding: 1.25rem; min-width: 0; }
+.staff-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.staff-compact-table { width: 100%; font-size: 0.8rem; }
+.staff-compact-table th, .staff-compact-table td { padding: 0.7rem; border-bottom: 1px solid #eee8e4; text-align: left; }
+.staff-compact-table small, .staff-record-list small { display: block; color: #8a817d; }
+.staff-record-list article { display: flex; justify-content: space-between; gap: 1rem; padding: 0.85rem 0; border-bottom: 1px solid #eee8e4; }
+.staff-empty-copy { color: #867d79; }
+.staff-panel-footer-link { display: inline-block; margin-top: 1rem; color: var(--maroon-600); font-weight: 700; }
+
+.admin-form-page { max-width: 1050px; margin-inline: auto; }
+.admin-object-form { margin: 1.2rem 0 0; padding: 1.5rem; }
+.admin-object-form input:not([type="checkbox"]):not([type="radio"]),
+.admin-object-form select,
+.admin-object-form textarea {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #ddd5d0;
+  border-radius: 10px;
+  background: #fff;
+}
+.admin-object-form input:focus, .admin-object-form select:focus, .admin-object-form textarea:focus { outline: 0; border-color: var(--maroon-400); box-shadow: 0 0 0 3px rgba(176,58,79,.12); }
+.admin-form-actions { justify-content: flex-end; margin-top: 1.5rem; }
+
+@media (max-width: 900px) {
+  .dashboard-body, .staff-portal, .contact-page, .admin-form-page, .announcements-list { padding: 1.5rem; }
+  .resource-detail-card, .django-favorites-page { margin: 1rem 1.5rem 2rem; }
+  .contact-methods, .staff-management-grid { grid-template-columns: 1fr; }
+  .django-announcements-hero { padding: 2rem 1.5rem; }
+  .announcement-filters { padding-inline: 1.5rem; flex-wrap: wrap; }
+  .greeting-name { display: none; }
+}
+
+@media (max-width: 620px) {
+  .landing-actions, .django-page-header, .django-announcements-hero, .resource-detail-header { flex-direction: column; }
+  .contact-form-grid, .admin-form-grid { grid-template-columns: 1fr; }
+  .contact-subject-field, .contact-message-field, .admin-full-field { grid-column: auto; }
+  .announcement-filters { align-items: stretch; flex-direction: column; }
+  .announcement-filters label { align-self: auto; }
+  .announcement-filters select { max-width: none; }
+  .resource-format-icon { display: none; }
+  .topbar .user-greeting { margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

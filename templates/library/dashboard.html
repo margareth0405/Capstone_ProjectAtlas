@@ -1,0 +1,111 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}ATLAS · Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:staff_item_create' as staff_item_create_url %}
+
+  <div class="hero dashboard-hero">
+    <span class="hero-tag"><i class="fas fa-book-open" aria-hidden="true"></i> DISCOVER · READ · LEARN</span>
+    <h1>Welcome to <br><span class="highlight">ATLAS RESEARCH HUB</span></h1>
+    <p>Your digital gateway to academic knowledge. Browse e-books, journals, research papers, curriculum guides, and activity sheets.</p>
+
+    <div class="quick-stats" aria-label="Library summary">
+      <div class="stat-item">
+        <span class="number">{{ stats.total_items|default:resource_count|default:0 }}</span>
+        <span class="label">Digital Items</span>
+      </div>
+      <div class="stat-item">
+        <span class="number">{{ stats.unique_types|default:0 }}</span>
+        <span class="label">Collection Types</span>
+      </div>
+      <div class="stat-item">
+        <span class="number">{{ stats.total_pages|default:0 }}</span>
+        <span class="label">Total Pages</span>
+      </div>
+      <div class="stat-item">
+        <span class="number">{{ stats.unique_authors|default:0 }}</span>
+        <span class="label">Unique Authors</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-body">
+    <div class="dashboard-actions" aria-label="Quick actions">
+      <a class="btn btn-primary atlas-primary-action" href="{{ catalog_url|default:'#' }}">
+        <i class="fas fa-search" aria-hidden="true"></i> Browse Library
+      </a>
+      <a class="btn atlas-secondary-action" href="{{ catalog_url|default:'#' }}?sort=newest">
+        <i class="fas fa-plus-circle" aria-hidden="true"></i> New Arrivals
+      </a>
+      {% if active_role == "administrator" or request.user.is_staff %}
+        <a class="btn btn-outline-secondary atlas-outline-action" href="{{ staff_item_create_url|default:'#' }}">
+          <i class="fas fa-upload" aria-hidden="true"></i> Add Resource
+        </a>
+      {% else %}
+        <a class="btn btn-outline-secondary atlas-outline-action" href="{{ catalog_url|default:'#' }}?recommended=1">
+          <i class="fas fa-star" aria-hidden="true"></i> Recommendations
+        </a>
+      {% endif %}
+    </div>
+
+    {% with recent_list=recent_items %}
+      <section class="recent-items-section" aria-labelledby="recentHeading">
+        <div class="section-header">
+          <h2 id="recentHeading"><i class="fas fa-clock" aria-hidden="true"></i> Recently Added</h2>
+          <a class="btn btn-sm btn-outline-secondary rounded-pill" href="{{ catalog_url|default:'#' }}?sort=newest">
+            View all <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        {% if recent_list %}
+          <div class="row g-3">
+            {% for item in recent_list %}
+              {% url 'library:item_detail' item.pk as item_url %}
+              <div class="col-xl-2 col-md-4 col-sm-6">
+                <a class="recent-item-card django-resource-card" href="{{ item_url|default:catalog_url|default:'#' }}">
+                  <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
+                  <h3>{{ item.title }}</h3>
+                  <div class="card-author">{{ item.author }}</div>
+                  <time class="card-time" datetime="{{ item.created_at|date:'c' }}">
+                    <i class="far fa-clock" aria-hidden="true"></i>
+                    {{ item.created_at|timesince }}{% if item.created_at %} ago{% endif %}
+                  </time>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state compact-empty-state">
+            <i class="fas fa-book" aria-hidden="true"></i>
+            <h3>No resources yet</h3>
+            <p>Newly added resources will appear here.</p>
+          </div>
+        {% endif %}
+      </section>
+    {% endwith %}
+
+    {% if library_activity and active_role != "administrator" %}
+      <section class="library-updates-section" aria-labelledby="updatesHeading">
+        <div class="section-header">
+          <h2 id="updatesHeading"><i class="fas fa-bell" aria-hidden="true"></i> Latest Library Updates</h2>
+          <span>Administrator activity</span>
+        </div>
+        <div class="library-updates-list">
+          {% for entry in library_activity %}
+            <article class="library-update-item {{ entry.action|default:'added' }}">
+              <span class="library-update-action">{{ entry.action|default:'Added'|title }}</span>
+              <div class="library-update-copy">
+                <strong>{{ entry.item.title|default:entry.title }}</strong>
+                <p>{{ entry.item.get_collection_display|default:entry.collection }} was {{ entry.action|default:'added' }} in the library.</p>
+              </div>
+              <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|timesince }} ago</time>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}ATLAS · Contact{% endblock %}
+{% block breadcrumb %}Contact Us{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:contact' as contact_url %}
+
+  <div class="contact-page">
+    <header class="contact-hero">
+      <span class="section-kicker">Support</span>
+      <h1><span class="highlight">Contact Us</span></h1>
+      <p>Our library team is here to help with access, account, and resource questions.</p>
+    </header>
+
+    <section class="contact-methods" aria-label="Contact methods">
+      <article class="contact-method-card">
+        <i class="fas fa-envelope" aria-hidden="true"></i>
+        <h2>Email</h2>
+        <a href="mailto:{{ support_email|default:'support@researchhub.edu' }}">{{ support_email|default:'support@researchhub.edu' }}</a>
+      </article>
+      <article class="contact-method-card">
+        <i class="fas fa-phone" aria-hidden="true"></i>
+        <h2>Phone</h2>
+        <a href="tel:{{ support_phone_uri|default:'+15551234567' }}">{{ support_phone|default:'+1 (555) 123-4567' }}</a>
+      </article>
+      <article class="contact-method-card">
+        <i class="fas fa-clock" aria-hidden="true"></i>
+        <h2>Support hours</h2>
+        <p>{{ support_hours|default:'Monday–Friday, 9:00 AM–5:00 PM' }}</p>
+      </article>
+    </section>
+
+    <section class="contact-form-card" aria-labelledby="contactFormHeading">
+      <div class="contact-form-intro">
+        <span class="section-kicker">Send a message</span>
+        <h2 id="contactFormHeading">How can we help?</h2>
+        <p>Provide enough detail for the library team to respond. Do not include passwords or other sensitive information.</p>
+      </div>
+
+      <form action="{{ contact_url|default:'' }}" method="post" novalidate>
+        {% csrf_token %}
+        {{ form.website }}
+        {% include "library/includes/form_errors.html" with form=form %}
+        <div class="contact-form-grid">
+          <div class="form-group">
+            <label for="id_name">Name</label>
+            <input type="text" name="name" id="id_name" class="form-control{% if form.name.errors %} is-invalid{% endif %}" value="{{ form.name.value|default:contact_name|default_if_none:'' }}" autocomplete="name" required>
+            {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="id_contact_email">Email</label>
+            <input type="email" name="email" id="id_contact_email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" value="{{ form.email.value|default:contact_email|default_if_none:'' }}" autocomplete="email" required>
+            {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <div class="form-group contact-subject-field">
+            <label for="id_subject">Subject</label>
+            <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" required>
+            {% if form.subject.errors %}<div class="invalid-feedback d-block">{% for error in form.subject.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <div class="form-group contact-message-field">
+            <label for="id_message">Message</label>
+            <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" required>{{ form.message.value|default_if_none:'' }}</textarea>
+            {% if form.message.errors %}<div class="invalid-feedback d-block">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary atlas-primary-action"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send message</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

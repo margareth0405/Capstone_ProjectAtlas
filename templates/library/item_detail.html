@@ -1,0 +1,68 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}{{ item.title }} · ATLAS{% endblock %}
+{% block breadcrumb %}Resource details{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:download' item.pk as download_url %}
+  {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
+  {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
+
+  <article class="resource-detail-card">
+    <a class="btn-back inline-back" href="{{ catalog_url|default:'#' }}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to library
+    </a>
+
+    <header class="resource-detail-header">
+      <div>
+        <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
+        <h1>{{ item.title }}</h1>
+        <p class="resource-byline">by {{ item.author }}</p>
+      </div>
+      <div class="resource-format-icon" aria-hidden="true">
+        <i class="fas fa-file-pdf"></i>
+      </div>
+    </header>
+
+    <dl class="resource-metadata">
+      <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>
+      <div><dt>Format</dt><dd>{{ item.file_type|default:'PDF' }}</dd></div>
+      <div><dt>File size</dt><dd>{{ item.file_size|default:'—' }}</dd></div>
+      <div><dt>Pages</dt><dd>{{ item.pages|default:'—' }}</dd></div>
+      {% if item.created_at %}<div><dt>Added</dt><dd>{{ item.created_at|date:'F j, Y' }}</dd></div>{% endif %}
+    </dl>
+
+    <section class="resource-description" aria-labelledby="descriptionHeading">
+      <h2 id="descriptionHeading">About this resource</h2>
+      <p>{{ item.description|default:item.details|default:'No description is available for this resource.'|linebreaksbr }}</p>
+    </section>
+
+    <div class="resource-detail-actions">
+      {% if active_role == "guest" %}
+        {% url 'library:login' as login_url %}
+        <a class="btn btn-primary atlas-primary-action" href="{{ login_url|default:'/login/' }}">
+          <i class="fas fa-lock" aria-hidden="true"></i> Sign in to download
+        </a>
+      {% else %}
+        <a class="btn-download detail-download" href="{{ download_url|default:'#' }}">
+          <i class="fas fa-download" aria-hidden="true"></i> Download resource
+        </a>
+      {% endif %}
+
+      {% if active_role == "student" or active_role == "teacher" %}
+        <form action="{{ favorite_toggle_url|default:'' }}" method="post" class="inline-action-form">
+          {% csrf_token %}
+          <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit">
+            <i class="fas fa-star" aria-hidden="true"></i>
+            {% if is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}
+          </button>
+        </form>
+      {% endif %}
+
+      {% if active_role == "administrator" or request.user.is_staff %}
+        <a class="btn-edit" href="{{ staff_item_edit_url|default:'#' }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>
+      {% endif %}
+    </div>
+  </article>
+{% endblock %}

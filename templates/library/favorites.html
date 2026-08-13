@@ -1,0 +1,59 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}ATLAS · Favorites{% endblock %}
+{% block breadcrumb %}Favorites{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:catalog' as catalog_url %}
+
+  <div class="reader-favorites-section django-favorites-page">
+    <header class="favorites-header django-page-header">
+      <div>
+        <span class="section-kicker">Your reading list</span>
+        <h1><i class="fas fa-star" aria-hidden="true"></i> Favorites</h1>
+        <p>Keep useful library resources together for quick access.</p>
+      </div>
+      <span class="favorite-count"><i class="fas fa-star" aria-hidden="true"></i> {{ favorite_count|default:0 }} items</span>
+    </header>
+
+    {% if favorites %}
+      <div class="favorites-grid django-favorites-grid">
+        {% for favorite in favorites %}
+          {% with item=favorite.item %}
+            {% url 'library:item_detail' item.pk as item_detail_url %}
+            {% url 'library:download' item.pk as download_url %}
+            {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
+            <article class="favorite-card">
+              <div class="card-top">
+                <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
+                <form action="{{ favorite_toggle_url|default:'' }}" method="post">
+                  {% csrf_token %}
+                  <button class="btn-remove-favorite" type="submit" aria-label="Remove {{ item.title }} from favorites">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                  </button>
+                </form>
+              </div>
+              <h2 class="card-title">{{ item.title }}</h2>
+              <p class="card-author">{{ item.author }}</p>
+              <p class="card-copies"><i class="fas fa-file" aria-hidden="true"></i> {{ item.file_type|default:'PDF' }}</p>
+              <div class="card-actions">
+                <a class="btn-details" href="{{ item_detail_url|default:'#' }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
+                <a class="btn-download" href="{{ download_url|default:'#' }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>
+              </div>
+            </article>
+          {% endwith %}
+        {% endfor %}
+      </div>
+      {% include "library/includes/pagination.html" %}
+    {% else %}
+      <div class="favorites-empty favorites-page-empty">
+        <i class="fas fa-star" aria-hidden="true"></i>
+        <h2>No favorites yet</h2>
+        <p>Choose “Favorite” beside any library item to save it here.</p>
+        <a class="btn btn-primary atlas-primary-action" href="{{ catalog_url|default:'#' }}">
+          <i class="fas fa-book-open" aria-hidden="true"></i> Browse the library
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

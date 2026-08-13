@@ -1,0 +1,128 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">{% endblock %}
+{% block title %}ATLAS · Staff Portal{% endblock %}
+{% block breadcrumb %}Staff Portal{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:staff_item_create' as staff_item_create_url %}
+  {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
+  {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:announcements' as announcements_url %}
+  {% url 'admin:index' as django_admin_url %}
+
+  <div class="staff-portal">
+    <header class="staff-portal-header django-page-header">
+      <div>
+        <span class="section-kicker">Archive management</span>
+        <h1><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator Portal</h1>
+        <p>Manage ATLAS resources, announcements, and authorized accounts.</p>
+      </div>
+      <div class="staff-header-actions">
+        <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ django_admin_url|default:'/django-admin/' }}"><i class="fas fa-gears" aria-hidden="true"></i> Django admin</a>
+      </div>
+    </header>
+
+    <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Library resources</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-download" aria-hidden="true"></i></span><strong>{{ download_count|default:0 }}</strong><span>Downloads recorded</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open support messages</span></article>
+    </section>
+
+    <div class="staff-management-grid">
+      <section class="staff-panel" aria-labelledby="resourceManagementHeading">
+        <div class="staff-panel-heading">
+          <div><span class="section-kicker">Collection</span><h2 id="resourceManagementHeading">Recent resources</h2></div>
+          <a href="{{ catalog_url|default:'#' }}">View all</a>
+        </div>
+        {% if items %}
+          <div class="table-responsive">
+            <table class="staff-compact-table">
+              <thead><tr><th>Title</th><th>Type</th><th>Added</th><th>Actions</th></tr></thead>
+              <tbody>
+                {% for item in items|slice:":8" %}
+                  {% url 'library:staff_item_edit' item.pk as edit_url %}
+                  {% url 'library:staff_item_delete' item.pk as delete_url %}
+                  <tr>
+                    <td><strong>{{ item.title }}</strong><small>{{ item.author }}</small></td>
+                    <td>{{ item.get_collection_display|default:item.collection }}</td>
+                    <td>{{ item.created_at|date:'M j, Y' }}</td>
+                    <td class="resource-actions">
+                      <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                      <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">
+                        {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ item.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}<p class="staff-empty-copy">No library resources are available.</p>{% endif %}
+      </section>
+
+      <section class="staff-panel" aria-labelledby="announcementManagementHeading">
+        <div class="staff-panel-heading">
+          <div><span class="section-kicker">Communication</span><h2 id="announcementManagementHeading">Announcements</h2></div>
+          <a class="btn-register-admin" href="{{ staff_announcement_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Create</a>
+        </div>
+        {% if announcements %}
+          <div class="staff-record-list">
+            {% for announcement in announcements|slice:":6" %}
+              {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
+              {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
+              <article>
+                <div><strong>{{ announcement.title }}</strong><small>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display|default:announcement.category }}</small></div>
+                <div class="resource-actions">
+                  <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                  <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’?">
+                    {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ announcement.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                  </form>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+          <a class="staff-panel-footer-link" href="{{ announcements_url|default:'#' }}">Manage all announcements</a>
+        {% else %}<p class="staff-empty-copy">No announcements are available.</p>{% endif %}
+      </section>
+    </div>
+
+    <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
+      <div class="user-monitoring-header">
+        <div><span class="section-kicker">Account activity</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2><p>Review registered accounts without exposing passwords or verification codes.</p></div>
+        <a class="btn-register-admin" href="{{ staff_user_create_url|default:'#' }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
+      </div>
+      <div class="usage-count-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i> Each normalized email is counted once. Sign-ins update the existing account record.</div>
+      <div class="user-table-card">
+        <div class="table-responsive">
+          <table class="user-activity-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Registered</th><th>Last sign-in</th><th>Downloads</th></tr></thead>
+            <tbody>
+              {% for account in users %}
+                <tr>
+                  <td><strong>{{ account.get_full_name|default:account.username|default:'Unnamed user' }}</strong></td>
+                  <td>{{ account.email }}</td>
+                  <td>
+                    {% if account.is_staff or account.is_superuser %}
+                      <span class="user-role-badge administrator">Administrator</span>
+                    {% else %}
+                      <span class="user-role-badge {{ account.profile.role|default:'student' }}">{{ account.profile.get_role_display|default:'Student' }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ account.date_joined|date:'M j, Y' }}</td>
+                  <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
+                  <td><span class="login-count-badge">{{ account.download_events.count|default:0 }}</span></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="6" class="empty-user-row">No registered accounts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock %}

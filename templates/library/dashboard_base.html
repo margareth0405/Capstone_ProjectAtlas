@@ -1,0 +1,185 @@
+{% extends "library/base.html" %}
+{% load static %}
+
+{% block role_css %}
+  {% if active_role == "administrator" or request.user.is_staff %}
+    <link rel="stylesheet" href="{% static 'css/administrator.css' %}">
+  {% elif active_role == "guest" %}
+    <link rel="stylesheet" href="{% static 'css/guest.css' %}">
+  {% else %}
+    <link rel="stylesheet" href="{% static 'css/reader.css' %}">
+  {% endif %}
+{% endblock %}
+
+{% block body_class %}atlas-dashboard role-{{ active_role|default:'student' }}{% endblock %}
+
+{% block body %}
+  {% url 'library:dashboard' as dashboard_url %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:favorites' as favorites_url %}
+  {% url 'library:announcements' as announcements_url %}
+  {% url 'library:contact' as contact_url %}
+  {% url 'library:logout' as logout_url %}
+  {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:login' as login_url %}
+
+  <div class="d-flex atlas-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <a
+        class="sidebar-brand"
+        href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url|default:dashboard_url|default:'/' }}{% else %}{{ dashboard_url|default:'/' }}{% endif %}"
+        aria-label="ATLAS dashboard"
+      >
+        <i class="fas fa-flask" aria-hidden="true"></i>
+        <span class="brand-text">ATLAS <span>e-Library</span></span>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a
+          href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url|default:dashboard_url|default:'/' }}{% else %}{{ dashboard_url|default:'/' }}{% endif %}"
+          {% if active_page == 'home' %}class="active" aria-current="page"{% endif %}
+        >
+          <i class="fas fa-home" aria-hidden="true"></i> HOME
+        </a>
+        <a
+          href="{{ catalog_url|default:'#' }}"
+          {% if active_page == 'catalog' %}class="active" aria-current="page"{% endif %}
+        >
+          <i class="fas fa-book" aria-hidden="true"></i> LIBRARY
+          <span class="item-counter">{{ stats.total_items|default:resource_count|default:0 }}</span>
+        </a>
+
+        {% if active_role == "student" or active_role == "teacher" %}
+          <a
+            href="{{ favorites_url|default:'#' }}"
+            {% if active_page == 'favorites' %}class="active" aria-current="page"{% endif %}
+          >
+            <i class="fas fa-star" aria-hidden="true"></i> FAVORITES
+            {% if favorite_count is not None %}
+              <span class="item-counter">{{ favorite_count }}</span>
+            {% endif %}
+          </a>
+        {% endif %}
+
+        {% if active_role == "administrator" or request.user.is_staff %}
+          <a
+            href="{{ staff_portal_url|default:'#' }}#users"
+            {% if active_page == 'users' %}class="active" aria-current="page"{% endif %}
+          >
+            <i class="fas fa-users" aria-hidden="true"></i> USERS
+            {% if user_count is not None %}
+              <span class="item-counter">{{ user_count }}</span>
+            {% endif %}
+          </a>
+        {% endif %}
+
+        <a
+          href="{{ announcements_url|default:'#' }}"
+          {% if active_page == 'announcements' %}class="active" aria-current="page"{% endif %}
+        >
+          <i class="fas fa-bullhorn" aria-hidden="true"></i> ANNOUNCEMENTS
+        </a>
+        <a
+          href="{{ contact_url|default:'#' }}"
+          {% if active_page == 'contact' %}class="active" aria-current="page"{% endif %}
+        >
+          <i class="fas fa-envelope" aria-hidden="true"></i> CONTACT
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+        knowledge for everyone
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+    <main class="main-content" id="mainContent" tabindex="-1">
+      <header class="topbar">
+        <button
+          class="mobile-toggle"
+          id="mobileToggle"
+          type="button"
+          aria-controls="sidebar"
+          aria-expanded="false"
+        >
+          <i class="fas fa-bars" aria-hidden="true"></i>
+          <span>MENU</span>
+        </button>
+
+        <form class="search-box" action="{{ catalog_url|default:'' }}" method="get" role="search">
+          <label class="visually-hidden" for="globalSearch">Search the library</label>
+          <input
+            type="search"
+            name="q"
+            id="globalSearch"
+            value="{{ request.GET.q|default:'' }}"
+            placeholder="Search books, journals, articles…"
+          >
+          <button type="submit" aria-label="Search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+          </button>
+        </form>
+
+        <div class="user-greeting">
+          {% if active_role == "administrator" or request.user.is_staff %}
+            <i class="fas fa-user-shield" aria-hidden="true"></i>
+          {% elif active_role == "guest" %}
+            <i class="fas fa-user-friends" aria-hidden="true"></i>
+          {% else %}
+            <i class="fas fa-user-graduate" aria-hidden="true"></i>
+          {% endif %}
+          <span class="greeting-name">
+            Welcome,
+            {{ display_name|default:'Guest' }}
+          </span>
+          <span class="badge atlas-role-badge">
+            {% if active_role == "administrator" or request.user.is_staff %}
+              ADMINISTRATOR
+            {% elif active_role == "teacher" %}
+              TEACHER
+            {% elif active_role == "guest" %}
+              GUEST
+            {% else %}
+              STUDENT
+            {% endif %}
+          </span>
+
+          {% if request.user.is_authenticated or active_role == "guest" %}
+            <form action="{{ logout_url|default:landing_url|default:'/' }}" method="post" class="logout-form">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger" type="submit">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                Logout
+              </button>
+            </form>
+          {% else %}
+            <a class="btn btn-sm btn-outline-danger" href="{{ login_url|default:'/' }}">Sign in</a>
+          {% endif %}
+        </div>
+      </header>
+
+      <div class="breadcrumb-container">
+        <nav aria-label="Breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a href="{{ dashboard_url|default:'/' }}">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+              {% block breadcrumb %}Dashboard{% endblock %}
+            </li>
+          </ol>
+        </nav>
+      </div>
+
+      <section class="django-view">
+        {% block dashboard_content %}{% endblock %}
+      </section>
+    </main>
+  </div>
+
+  <button id="scrollTopBtn" class="scroll-top" type="button" aria-label="Scroll to top">
+    <i class="fas fa-arrow-up" aria-hidden="true"></i>
+  </button>
+{% endblock %}

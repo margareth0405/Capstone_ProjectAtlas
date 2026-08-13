@@ -1,0 +1,131 @@
+{% extends "library/base.html" %}
+
+{% block title %}ATLAS · Create account{% endblock %}
+{% block body_class %}atlas-auth-page{% endblock %}
+
+{% block body %}
+  {% url 'library:landing' as landing_url %}
+  {% url 'library:login' as login_url %}
+  {% url 'library:register' as register_url %}
+  {% with auth_role=selected_role|default:'student' %}
+
+  <main class="login-container register-container" id="mainContent" tabindex="-1">
+    <section class="login-card register-card" aria-labelledby="registerTitle">
+      <a class="btn-back" href="{{ login_url|default:'/login/' }}?role={{ auth_role }}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to login
+      </a>
+
+      <div class="brand-icon reader-icon" aria-hidden="true">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <span class="account-type-badge reader-account">
+        {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account
+      </span>
+      <h1 id="registerTitle">
+        {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} Registration
+      </h1>
+      <p class="sub">Create your secure ATLAS reading account.</p>
+
+      <form action="{{ register_url|default:'' }}" method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="role" value="{{ auth_role }}">
+        {% include "library/includes/form_errors.html" with form=form %}
+
+        <div class="form-group">
+          <label for="id_full_name"><i class="fas fa-user" aria-hidden="true"></i> Full name</label>
+          <input
+            type="text"
+            name="full_name"
+            id="id_full_name"
+            class="form-control{% if form.full_name.errors %} is-invalid{% endif %}"
+            value="{{ form.full_name.value|default_if_none:'' }}"
+            placeholder="Juan Dela Cruz"
+            autocomplete="name"
+            required
+            autofocus
+          >
+          {% if form.full_name.errors %}<div class="invalid-feedback d-block">{% for error in form.full_name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_email"><i class="fas fa-envelope" aria-hidden="true"></i> Email</label>
+          <input
+            type="email"
+            name="email"
+            id="id_email"
+            class="form-control{% if form.email.errors %} is-invalid{% endif %}"
+            value="{{ form.email.value|default_if_none:'' }}"
+            placeholder="{% if auth_role == 'teacher' %}teacher@deped.gov.ph{% else %}student@gmail.com{% endif %}"
+            autocomplete="email"
+            required
+          >
+          <small class="form-helper">
+            {% if auth_role == "teacher" %}Use a Gmail or deped.gov.ph address.{% else %}Students use a Gmail address.{% endif %}
+          </small>
+          {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_password1"><i class="fas fa-lock" aria-hidden="true"></i> Password</label>
+            <div class="password-field">
+              <input
+                type="password"
+                name="password1"
+                id="id_password1"
+                class="form-control{% if form.password1.errors %} is-invalid{% endif %}"
+                placeholder="At least 8 characters"
+                minlength="8"
+                autocomplete="new-password"
+                required
+              >
+              <button class="password-toggle" type="button" data-password-toggle="id_password1" aria-label="Show password">
+                <i class="fas fa-eye" aria-hidden="true"></i>
+              </button>
+            </div>
+            {% if form.password1.errors %}<div class="invalid-feedback d-block">{% for error in form.password1.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="id_password2"><i class="fas fa-check-circle" aria-hidden="true"></i> Confirm</label>
+            <input
+              type="password"
+              name="password2"
+              id="id_password2"
+              class="form-control{% if form.password2.errors %} is-invalid{% endif %}"
+              placeholder="Repeat password"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            >
+            {% if form.password2.errors %}<div class="invalid-feedback d-block">{% for error in form.password2.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="consent-field">
+          <input
+            type="checkbox"
+            name="privacy_consent"
+            id="id_privacy_consent"
+            class="consent-checkbox{% if form.privacy_consent.errors %} is-invalid{% endif %}"
+            value="1"
+            {% if form.privacy_consent.value %}checked{% endif %}
+            required
+          >
+          <label for="id_privacy_consent">
+            I agree to keep the information I access through ATLAS private. I understand that the personal information I provide will be used only for this website.
+          </label>
+        </div>
+        {% if form.privacy_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.privacy_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
+
+        <button class="btn-login reader-btn" type="submit">
+          Register as {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %}
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </button>
+      </form>
+
+      <p class="auth-switch">Already registered? <a href="{{ login_url|default:'/login/' }}?role={{ auth_role }}">Sign in</a></p>
+      <p class="verification-note"><i class="fas fa-envelope-circle-check" aria-hidden="true"></i> You may be asked to verify your email after registration.</p>
+    </section>
+  </main>
+  {% endwith %}
+{% endblock %}

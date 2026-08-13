@@ -1,0 +1,1 @@
+"""ATLAS Django project package."""

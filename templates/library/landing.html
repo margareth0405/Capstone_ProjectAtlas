@@ -1,0 +1,62 @@
+{% extends "library/base.html" %}
+
+{% block title %}ATLAS · Academic e-Library{% endblock %}
+{% block body_class %}atlas-auth-page{% endblock %}
+
+{% block body %}
+  {% url 'library:login' as login_url %}
+  {% url 'library:register' as register_url %}
+  {% url 'library:guest_login' as guest_login_url %}
+  {% url 'library:staff_portal' as staff_portal_url %}
+
+  <main class="login-container landing-container" id="mainContent" tabindex="-1">
+    <section class="login-card landing-card" aria-labelledby="atlasTitle">
+      <div class="brand-icon" aria-hidden="true">
+        <i class="fas fa-flask"></i>
+      </div>
+      <p class="eyebrow">Academic e-Library</p>
+      <h1 id="atlasTitle">ATLAS</h1>
+      <p class="tagline">Academic Teaching, Learning, and Archival System</p>
+      <p class="sub">Choose how you would like to continue.</p>
+
+      <div class="role-buttons landing-role-grid">
+        <a class="role-btn" href="{{ login_url|default:'/login/' }}?role=student">
+          <i class="fas fa-user-graduate" aria-hidden="true"></i>
+          <span class="role-label">Student</span>
+          <i class="fas fa-chevron-right role-chevron" aria-hidden="true"></i>
+        </a>
+
+        <a class="role-btn" href="{{ login_url|default:'/login/' }}?role=teacher">
+          <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+          <span class="role-label">Teacher</span>
+          <i class="fas fa-chevron-right role-chevron" aria-hidden="true"></i>
+        </a>
+
+        <form action="{{ guest_login_url|default:'/guest/' }}" method="post" class="role-form">
+          {% csrf_token %}
+          <button class="role-btn" type="submit">
+            <i class="fas fa-user-friends" aria-hidden="true"></i>
+            <span class="role-label">Guest</span>
+            <i class="fas fa-chevron-right role-chevron" aria-hidden="true"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="landing-actions">
+        <p>
+          New to ATLAS?
+          <a href="{{ register_url|default:'/register/' }}">Create an account</a>
+        </p>
+        <a class="staff-login-link" href="{{ staff_portal_url|default:'/staff/' }}">
+          <i class="fas fa-user-shield" aria-hidden="true"></i>
+          Administrator sign in
+        </a>
+      </div>
+
+      <p class="privacy-summary">
+        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+        ATLAS asks registered users to accept its privacy and confidentiality statement before access.
+      </p>
+    </section>
+  </main>
+{% endblock %}

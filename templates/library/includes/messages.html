@@ -1,0 +1,37 @@
+{% if messages %}
+  <div
+    class="atlas-messages toast-container position-fixed bottom-0 end-0 p-3"
+    aria-live="polite"
+    aria-atomic="false"
+  >
+    {% for message in messages %}
+      <div
+        class="atlas-message toast show border-0"
+        role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+        data-level="{{ message.tags|default:'info' }}"
+        data-auto-dismiss="true"
+      >
+        <div class="d-flex align-items-center">
+          <div class="toast-body">
+            {% if message.tags == 'error' %}
+              <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            {% elif message.tags == 'warning' %}
+              <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            {% elif message.tags == 'success' %}
+              <i class="fas fa-circle-check" aria-hidden="true"></i>
+            {% else %}
+              <i class="fas fa-circle-info" aria-hidden="true"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+          </div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2"
+            data-bs-dismiss="toast"
+            aria-label="Dismiss notification"
+          ></button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

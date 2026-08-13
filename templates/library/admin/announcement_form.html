@@ -1,0 +1,27 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement · ATLAS{% endblock %}
+{% block breadcrumb %}{% if form.instance.pk %}Edit Announcement{% else %}New Announcement{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:announcements' as announcements_url %}
+  <div class="admin-form-page">
+    <header class="django-page-header"><div><span class="section-kicker">Communication</span><h1>{% if form.instance.pk %}Edit announcement{% else %}Create an announcement{% endif %}</h1><p>Publish clear updates for students, teachers, and guests.</p></div></header>
+    <form method="post" class="admin-object-form" novalidate>
+      {% csrf_token %}
+      {% include "library/includes/form_errors.html" with form=form %}
+      <div class="admin-form-grid">
+        {% for field in form %}
+          <div class="form-group field-{{ field.name }}{% if field.name == 'body' %} admin-full-field{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ announcements_url|default:'#' }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-bullhorn" aria-hidden="true"></i> Save announcement</button></div>
+    </form>
+  </div>
+{% endblock %}

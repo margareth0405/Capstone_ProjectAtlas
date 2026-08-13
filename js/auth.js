@@ -1,5 +1,7 @@
 // ===== AUTHENTICATION SYSTEM WITH REGISTRATION CONFIRMATION =====
 
+const PRIVACY_CONSENT_VERSION = "2026-08-11";
+
 class User {
   constructor({
     id,
@@ -14,6 +16,8 @@ class User {
     loginCount = 0,
     adminAuthorized = false,
     createdByAdmin = null,
+    privacyConsentAcceptedAt = null,
+    privacyConsentVersion = null,
   }) {
     this.id = id;
     this.fullName = fullName;
@@ -34,6 +38,8 @@ class User {
     this.firstLoginAt = firstLoginAt;
     this.lastLoginAt = lastLoginAt;
     this.loginCount = Math.max(0, Number(loginCount) || 0);
+    this.privacyConsentAcceptedAt = privacyConsentAcceptedAt;
+    this.privacyConsentVersion = privacyConsentVersion;
   }
 
   static normalizeEmail(email) {
@@ -91,6 +97,8 @@ class User {
       loginCount: payload.loginCount,
       adminAuthorized: payload.adminAuthorized,
       createdByAdmin: payload.createdByAdmin,
+      privacyConsentAcceptedAt: payload.privacyConsentAcceptedAt,
+      privacyConsentVersion: payload.privacyConsentVersion,
     });
   }
 }
@@ -165,6 +173,14 @@ class UserStore {
       }
       existing.createdByAdmin =
         existing.createdByAdmin || user.createdByAdmin || null;
+      if (
+        user.privacyConsentAcceptedAt &&
+        (!existing.privacyConsentAcceptedAt ||
+          user.privacyConsentAcceptedAt > existing.privacyConsentAcceptedAt)
+      ) {
+        existing.privacyConsentAcceptedAt = user.privacyConsentAcceptedAt;
+        existing.privacyConsentVersion = user.privacyConsentVersion;
+      }
     });
 
     return Array.from(uniqueUsers.values());
@@ -242,6 +258,20 @@ class UserStore {
     this.saveUsers(users);
     return User.create(user);
   }
+
+  recordPrivacyConsent(userData) {
+    const users = this.loadUsers();
+    const normalizedEmail = User.normalizeEmail(userData.email);
+    const user = users.find(
+      (candidate) => User.normalizeEmail(candidate.email) === normalizedEmail,
+    );
+    if (!user) return null;
+
+    user.privacyConsentAcceptedAt = new Date().toISOString();
+    user.privacyConsentVersion = PRIVACY_CONSENT_VERSION;
+    this.saveUsers(users);
+    return User.create(user);
+  }
 }
 
 class SessionManager {
@@ -270,7 +300,8 @@ class SessionManager {
         storedUser.id === sessionUser.id &&
         storedUser.password === sessionUser.password &&
         storedUser.role === sessionUser.role &&
-        storedUser.verified !== false;
+        storedUser.verified !== false &&
+        hasCurrentPrivacyConsent(storedUser);
 
       if (
         !sessionMatchesStoredAccount ||
@@ -434,6 +465,23 @@ function normalizeEmail(email) {
 
 function normalizeUser(user) {
   return User.create(user);
+}
+
+function hasCurrentPrivacyConsent(user) {
+  return Boolean(
+    user?.privacyConsentAcceptedAt &&
+      user.privacyConsentVersion === PRIVACY_CONSENT_VERSION,
+  );
+}
+
+function isConsentChecked(checkboxId) {
+  return document.getElementById(checkboxId)?.checked === true;
+}
+
+function showPrivacyConsentError() {
+  showToast(
+    "Please agree to the privacy and confidentiality statement to continue.",
+  );
 }
 
 function findUserByEmail(email) {
@@ -989,7 +1037,23 @@ function completeRegistration() {
     return;
   }
 
-  const { fullName, email, password, role } = pendingRegistration;
+  const {
+    fullName,
+    email,
+    password,
+    role,
+    privacyConsentAcceptedAt,
+    privacyConsentVersion,
+  } = pendingRegistration;
+
+  if (
+    !privacyConsentAcceptedAt ||
+    privacyConsentVersion !== PRIVACY_CONSENT_VERSION
+  ) {
+    showPrivacyConsentError();
+    cancelRegistration();
+    return;
+  }
 
   if (findUserByEmail(email)) {
     showToast("⚠️ This email is already registered.");
@@ -1006,6 +1070,8 @@ function completeRegistration() {
     role: role,
     verified: true,
     createdAt: new Date().toISOString(),
+    privacyConsentAcceptedAt,
+    privacyConsentVersion,
   });
 
   if (!newUser) {
@@ -1114,9 +1180,18 @@ function handleRoleRegister(event, role) {
     originalRole === "reader"
       ? getReaderRegistrationFields()
       : getRegistrationFields(role);
+  const consentCheckboxId =
+    originalRole === "reader"
+      ? "readerRegisterPrivacyConsent"
+      : "administratorRegisterPrivacyConsent";
 
   if (!fullName || !email || !password || !confirmPassword) {
     showToast("⚠️ Please fill in all fields.");
+    return;
+  }
+
+  if (!isConsentChecked(consentCheckboxId)) {
+    showPrivacyConsentError();
     return;
   }
 
@@ -1140,7 +1215,14 @@ function handleRoleRegister(event, role) {
     return;
   }
 
-  pendingRegistration = { fullName, email, password, role };
+  pendingRegistration = {
+    fullName,
+    email,
+    password,
+    role,
+    privacyConsentAcceptedAt: new Date().toISOString(),
+    privacyConsentVersion: PRIVACY_CONSENT_VERSION,
+  };
   const code = generateVerificationCode();
   verificationCode = code;
   showVerificationModal(code, email, fullName);
@@ -1193,6 +1275,11 @@ function clearAdminLoginFailures() {
 function handleAdministratorLogin(event) {
   event.preventDefault();
 
+  if (!isConsentChecked("administratorLoginPrivacyConsent")) {
+    showPrivacyConsentError();
+    return;
+  }
+
   const lockSeconds = getAdminLoginLockSeconds();
   if (lockSeconds > 0) {
     showToast(
@@ -1224,7 +1311,7 @@ function handleAdministratorLogin(event) {
       showToast("⚠️ Please verify your email first.");
       return;
     }
-    loginUser(user);
+    loginUser(user, { privacyConsentConfirmed: true });
   } else {
     recordAdminLoginFailure();
     showToast("Invalid email or password for Administrator.");
@@ -1233,6 +1320,12 @@ function handleAdministratorLogin(event) {
 
 function handleReaderLogin(event) {
   event.preventDefault();
+
+  if (!isConsentChecked("readerLoginPrivacyConsent")) {
+    showPrivacyConsentError();
+    return;
+  }
+
   const email = normalizeEmail(document.getElementById("readerEmail").value);
   const password = document.getElementById("readerPassword").value.trim();
 
@@ -1248,7 +1341,7 @@ function handleReaderLogin(event) {
       showToast("⚠️ Please verify your email first.");
       return;
     }
-    loginUser(user);
+    loginUser(user, { privacyConsentConfirmed: true });
   } else {
     showToast(
       "Invalid email or password for " +
@@ -1258,7 +1351,17 @@ function handleReaderLogin(event) {
   }
 }
 // ===== LOGIN USER =====
-function loginUser(user) {
+function loginUser(user, { privacyConsentConfirmed = false } = {}) {
+  if (user.role !== "guest" && privacyConsentConfirmed) {
+    user = userStore.recordPrivacyConsent(user) || normalizeUser(user);
+  }
+
+  if (user.role !== "guest" && !hasCurrentPrivacyConsent(user)) {
+    sessionManager.clearSession();
+    showPrivacyConsentError();
+    return false;
+  }
+
   user = userStore.recordSuccessfulLogin(user) || normalizeUser(user);
   if (user.role === "administrator") clearAdminLoginFailures();
   currentUser = user;
@@ -1288,6 +1391,7 @@ function loginUser(user) {
 
   loadLibraryData();
   loadDashboard(user.role);
+  return true;
 }
 
 // ===== LOGIN AS GUEST =====

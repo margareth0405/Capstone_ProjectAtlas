@@ -156,6 +156,40 @@
   box-shadow: 0 0 0 3px rgba(176, 58, 79, 0.1);
 }
 
+.consent-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.7rem;
+  margin: 0.2rem 0 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #e7dfd8;
+  border-radius: 12px;
+  background: #fbf8f5;
+  text-align: left;
+}
+
+.consent-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--maroon-600);
+  cursor: pointer;
+}
+
+.consent-checkbox:focus-visible {
+  outline: 3px solid rgba(176, 58, 79, 0.25);
+  outline-offset: 2px;
+}
+
+.consent-field label {
+  margin: 0;
+  color: #5f5652;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
 .btn-login {
   width: 100%;
   padding: 0.8rem;
