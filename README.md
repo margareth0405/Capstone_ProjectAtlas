@@ -32,6 +32,16 @@ python manage.py runserver
 Open <http://127.0.0.1:8000/>. PostgreSQL must be running and `DATABASE_URL`
 must contain a valid PostgreSQL connection before running Django commands.
 
+## Start from VS Code
+
+The repository includes a VS Code launch configuration and tasks. Press F5 and
+choose **ATLAS: Start Django**, or press Ctrl+Shift+B to run it as the default
+build task. Ctrl+Shift+P still opens the Command Palette; choose **Tasks: Run
+Task** to select **ATLAS: Start Django** or **ATLAS: Check Database**.
+
+VS Code repository settings cannot safely replace the user-level Ctrl+Shift+P
+keybinding. F5 and Ctrl+Shift+B start Django without a typed terminal command.
+
 The optional `python manage.py seed_atlas` command is idempotent and creates 33 catalog records, eight
 announcements, and these development accounts:
 
@@ -73,6 +83,7 @@ python manage.py migrate
 
 ```powershell
 python manage.py check
+python manage.py check_database
 python manage.py makemigrations --check --dry-run
 python manage.py test
 python manage.py collectstatic --noinput

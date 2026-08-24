@@ -127,6 +127,36 @@ class ReaderAuthPresentationTests(LibraryTestCase):
 
 
 class AtlasAdminLoginTests(LibraryTestCase):
+    def test_public_pages_do_not_expose_administrator_entry_points(self):
+        public_requests = (
+            (reverse("library:landing"), None),
+            (reverse("library:login"), {"role": "administrator"}),
+            (reverse("library:register"), {"role": "administrator"}),
+            (reverse("library:catalog"), None),
+            (reverse("library:announcements"), None),
+            (reverse("library:contact"), None),
+        )
+
+        for url, query in public_requests:
+            with self.subTest(url=url):
+                response = self.client.get(url, query or {})
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, reverse("admin:login"))
+                self.assertNotContains(response, reverse("library:staff_portal"))
+
+    def test_public_login_cannot_select_administrator_role(self):
+        response = self.client.get(
+            reverse("library:login"), {"role": "administrator"}
+        )
+
+        self.assertContains(response, "Student Login")
+        self.assertNotContains(response, "Administrator")
+        self.assertContains(
+            response,
+            '<input type="hidden" name="role" value="student">',
+            html=True,
+        )
+
     def test_landing_does_not_expose_administrator_login(self):
         response = self.client.get(reverse("library:landing"))
 
@@ -151,6 +181,13 @@ class AtlasAdminLoginTests(LibraryTestCase):
         self.assertContains(response, "login-container")
         self.assertContains(response, "login-card")
         self.assertContains(response, "Administrator Login")
+        self.assertContains(
+            response,
+            '<meta name="robots" content="noindex, nofollow">',
+            html=True,
+        )
+        self.assertContains(response, "Skip to main content")
+        self.assertContains(response, "Email or username")
 
     def test_staff_user_can_sign_in_through_django_admin_login(self):
         staff = self.create_user(email="staff-login@example.com", is_staff=True)

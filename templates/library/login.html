@@ -15,27 +15,17 @@
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
       </a>
 
-      <div class="brand-icon {% if auth_role == 'administrator' %}administrator-icon{% else %}reader-icon{% endif %}" aria-hidden="true">
-        {% if auth_role == "administrator" %}
-          <i class="fas fa-user-shield"></i>
-        {% else %}
-          <i class="fas fa-user-graduate"></i>
-        {% endif %}
+      <div class="brand-icon reader-icon" aria-hidden="true">
+        <i class="fas fa-user-graduate"></i>
       </div>
 
-      <span class="account-type-badge {% if auth_role == 'administrator' %}administrator-account{% else %}reader-account{% endif %}">
-        {% if auth_role == "administrator" %}Administrator{% elif auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account
+      <span class="account-type-badge reader-account">
+        {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account
       </span>
       <h1 id="loginTitle">
-        {% if auth_role == "administrator" %}Administrator{% elif auth_role == "teacher" %}Teacher{% else %}Student{% endif %} Login
+        {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} Login
       </h1>
-      <p class="sub">
-        {% if auth_role == "administrator" %}
-          Access the protected archive management portal
-        {% else %}
-          Access your ATLAS reading dashboard
-        {% endif %}
-      </p>
+      <p class="sub">Access your ATLAS reading dashboard</p>
 
       <form action="{{ login_url|default:'' }}" method="post" novalidate>
         {% csrf_token %}
@@ -50,7 +40,7 @@
             id="id_email"
             class="form-control{% if form.email.errors %} is-invalid{% endif %}"
             value="{{ form.email.value|default_if_none:'' }}"
-            placeholder="{% if auth_role == 'teacher' %}teacher@deped.gov.ph{% elif auth_role == 'administrator' %}administrator@example.com{% else %}student@gmail.com{% endif %}"
+            placeholder="{% if auth_role == 'teacher' %}teacher@deped.gov.ph{% else %}student@gmail.com{% endif %}"
             autocomplete="email"
             aria-describedby="{% if form.email.errors %}emailErrors{% endif %}"
             required
@@ -108,20 +98,16 @@
         {% endif %}
 
         {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-        <button class="btn-login {% if auth_role == 'administrator' %}administrator-btn{% else %}reader-btn{% endif %}" type="submit">
-          Sign in as {% if auth_role == "administrator" %}Administrator{% elif auth_role == "teacher" %}Teacher{% else %}Student{% endif %}
+        <button class="btn-login reader-btn" type="submit">
+          Sign in as {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %}
           <i class="fas fa-arrow-right" aria-hidden="true"></i>
         </button>
       </form>
 
-      {% if auth_role != "administrator" %}
-        <p class="auth-switch">
-          New student or teacher?
-          <a href="{{ register_url|default:'/register/' }}?role={{ auth_role }}">Create an account</a>
-        </p>
-      {% else %}
-        <p class="admin-registration-policy">New administrator accounts must be created by an authorized staff member.</p>
-      {% endif %}
+      <p class="auth-switch">
+        New student or teacher?
+        <a href="{{ register_url|default:'/register/' }}?role={{ auth_role }}">Create an account</a>
+      </p>
 
       {% if demo_credentials %}<p class="demo-hint">{{ demo_credentials }}</p>{% endif %}
     </section>
