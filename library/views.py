@@ -32,7 +32,7 @@ User = get_user_model()
 @require_GET
 def robots_txt(request):
     return HttpResponse(
-        'User-agent: *\nDisallow: /staff/\nDisallow: /django-admin/\n',
+        'User-agent: *\nDisallow: /staff/\n',
         content_type='text/plain',
     )
 

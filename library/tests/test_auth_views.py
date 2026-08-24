@@ -1,8 +1,11 @@
 """Registration, login, session, and consent behavior."""
 
+from io import StringIO
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.core.management import call_command
 from django.urls import reverse
 
 from library.models import Profile
@@ -73,6 +76,16 @@ class RegistrationTests(LibraryTestCase):
         self.assertFalse(
             get_user_model().objects.filter(email="jamie@gmail.com").exists()
         )
+
+
+class SeedCommandTests(LibraryTestCase):
+    def test_seed_command_never_creates_an_administrator(self):
+        call_command("seed_atlas", stdout=StringIO())
+
+        users = get_user_model().objects.all()
+        self.assertFalse(users.filter(is_staff=True).exists())
+        self.assertFalse(users.filter(is_superuser=True).exists())
+        self.assertTrue(users.filter(email="teacher@deped.gov.ph").exists())
 
 
 class LoginAndSessionTests(LibraryTestCase):

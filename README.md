@@ -7,13 +7,13 @@ HTML, CSS, and presentation-only JavaScript.
 
 ## Technology
 
-- Python 3.12 and Django
-- Django's built-in `User`, session authentication, password hashing, and Admin
-- PostgreSQL through `DATABASE_URL` (SQLite is the local fallback)
-- Server-rendered Django templates with CSRF-protected forms
-- Existing ATLAS CSS plus a small Django integration stylesheet
-- Plain JavaScript only for menus, password visibility, confirmations, copy,
-  share, messages, and scroll-to-top behavior
+- Frontend: HTML rendered with Django templates, CSS, and JavaScript
+- Backend: Python 3.12 and Django
+- Database: PostgreSQL through the required `DATABASE_URL` setting
+- Authentication: Django's built-in `User`, sessions, and password hashing
+- Administration: Django Admin at the private path configured in `.env`
+- Version control: Git with the GitHub `origin` repository
+- Static file serving: WhiteNoise for deployed CSS and JavaScript assets
 
 Node.js is not required.
 
@@ -24,25 +24,24 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
+# Edit .env with your PostgreSQL username, password, and database name.
 python manage.py migrate
-python manage.py seed_atlas
 python manage.py runserver
 ```
 
-Open <http://127.0.0.1:8000/>. The copied environment file leaves
-`DATABASE_URL` commented, so local development uses SQLite.
+Open <http://127.0.0.1:8000/>. PostgreSQL must be running and `DATABASE_URL`
+must contain a valid PostgreSQL connection before running Django commands.
 
-The optional seed command is idempotent and creates 33 catalog records, eight
+The optional `python manage.py seed_atlas` command is idempotent and creates 33 catalog records, eight
 announcements, and these development accounts:
 
 | Role | Email | Password | Entry point |
 | --- | --- | --- | --- |
 | Student | `student@atlas.edu` | `password123` | `/login/` |
-| Teacher | `teacher@atlas.edu` | `password123` | `/login/` |
-| Administrator | `admin@atlas.edu` | `password123` | `/django-admin/` |
+| Teacher | `teacher@deped.gov.ph` | `password123` | `/login/` |
 
-These are demo credentials only. Change or remove them before deployment. For
-example, run `python manage.py changepassword admin@atlas.edu`.
+The seed command never creates an administrator. Create administrators explicitly
+with `python manage.py createsuperuser` and use a unique password.
 
 ## PostgreSQL setup
 
@@ -59,17 +58,13 @@ For a hosted PostgreSQL service, use its full connection URL and set
 
 ```powershell
 python manage.py migrate
-python manage.py seed_atlas
 ```
-
-Django uses the same models and migrations with SQLite and PostgreSQL, so no
-application code needs to change when switching databases.
 
 ## Administration
 
-- `/django-admin/` is Django's built-in administrative interface.
-- `/staff/` is the ATLAS-branded staff overview for authorized Django staff.
-- Only `is_staff` or superuser accounts can enter staff routes.
+- Django Admin uses the private path configured by `DJANGO_ADMIN_PATH` in `.env`.
+- The public frontend does not display or link to administrator sign-in.
+- `/staff/` and Django Admin require an active Django staff or superuser account.
 - The branded staff account form can create students and teachers only. Create
   administrators with `python manage.py createsuperuser` or Django Admin.
 - Passwords are never stored in browser storage or in plain text.

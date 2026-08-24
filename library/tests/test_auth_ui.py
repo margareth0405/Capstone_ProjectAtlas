@@ -127,10 +127,20 @@ class ReaderAuthPresentationTests(LibraryTestCase):
 
 
 class AtlasAdminLoginTests(LibraryTestCase):
-    def test_landing_administrator_link_targets_staff_portal(self):
+    def test_landing_does_not_expose_administrator_login(self):
         response = self.client.get(reverse("library:landing"))
 
-        self.assertContains(response, f'href="{reverse("library:staff_portal")}"')
+        self.assertNotContains(response, reverse("admin:login"))
+        self.assertNotContains(response, reverse("library:staff_portal"))
+        self.assertNotContains(response, "Administrator sign in")
+
+    def test_django_admin_uses_configured_private_path(self):
+        self.assertEqual(reverse("admin:index"), f"/{settings.ADMIN_URL_PATH}/")
+
+    def test_robots_does_not_disclose_private_admin_path(self):
+        response = self.client.get(reverse("library:robots_txt"))
+
+        self.assertNotContains(response, settings.ADMIN_URL_PATH)
 
     def test_django_admin_login_uses_atlas_auth_page_theme(self):
         response = self.client.get(reverse("admin:login"))

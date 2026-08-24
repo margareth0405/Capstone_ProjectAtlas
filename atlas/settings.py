@@ -1,12 +1,10 @@
-"""Django settings for ATLAS.
-
-SQLite is the safe, zero-configuration development default. Set DATABASE_URL
-to a PostgreSQL URL in deployed environments.
-"""
+"""Django settings for ATLAS using PostgreSQL."""
 
 import os
 from pathlib import Path
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
@@ -26,6 +24,12 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-atlas-development-o
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+ADMIN_URL_PATH = os.getenv("DJANGO_ADMIN_PATH", "").strip().strip("/")
+if not ADMIN_URL_PATH:
+    raise ImproperlyConfigured(
+        "DJANGO_ADMIN_PATH is required. Configure a private admin path in .env."
+    )
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -70,24 +74,19 @@ WSGI_APPLICATION = "atlas.wsgi.application"
 ASGI_APPLICATION = "atlas.asgi.application"
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-if DATABASE_URL:
-    import dj_database_url
+if not DATABASE_URL:
+    raise ImproperlyConfigured(
+        "DATABASE_URL is required. Configure a PostgreSQL connection in .env."
+    )
 
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
-            conn_health_checks=True,
-            ssl_require=env_bool("DB_SSL_REQUIRE", not DEBUG),
-        )
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+DATABASES = {
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
+        conn_health_checks=True,
+        ssl_require=env_bool("DB_SSL_REQUIRE", not DEBUG),
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

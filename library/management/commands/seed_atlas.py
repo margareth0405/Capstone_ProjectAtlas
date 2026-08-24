@@ -60,24 +60,21 @@ ANNOUNCEMENTS = [
 
 
 class Command(BaseCommand):
-    help = "Idempotently seed the ATLAS demo accounts, catalog, and announcements."
+    help = "Idempotently seed demo reader accounts, catalog, and announcements."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        admin = self._upsert_user(
-            "admin@atlas.edu", "Dr.", "Smith", is_staff=True, is_superuser=True
-        )
         self._upsert_user(
             "student@atlas.edu", "John", "Doe", role=Profile.Role.STUDENT
         )
         self._upsert_user(
-            "teacher@atlas.edu", "Maria", "Santos", role=Profile.Role.TEACHER
+            "teacher@deped.gov.ph", "Maria", "Santos", role=Profile.Role.TEACHER
         )
-        item_count = self._seed_items(admin)
-        announcement_count = self._seed_announcements(admin)
+        item_count = self._seed_items(None)
+        announcement_count = self._seed_announcements(None)
         self.stdout.write(
             self.style.SUCCESS(
-                f"ATLAS seed complete: 3 accounts, {item_count} items, "
+                f"ATLAS seed complete: 2 accounts, {item_count} items, "
                 f"{announcement_count} announcements. Existing passwords were preserved."
             )
         )
@@ -126,7 +123,7 @@ class Command(BaseCommand):
             profile.save()
         return user
 
-    def _seed_items(self, admin):
+    def _seed_items(self, created_by):
         seeded_at = timezone.now()
         for collection, call_number, title, author, details, file_type, file_size, pages, age in ITEMS:
             defaults = {
@@ -137,7 +134,7 @@ class Command(BaseCommand):
                 "file_type": file_type,
                 "file_size": file_size,
                 "pages": pages,
-                "created_by": admin,
+                "created_by": created_by,
             }
             item, created = LibraryItem.objects.get_or_create(
                 call_number=call_number,
@@ -149,7 +146,7 @@ class Command(BaseCommand):
                 item.save(update_fields=(*defaults.keys(), "updated_at"))
         return len(ITEMS)
 
-    def _seed_announcements(self, admin):
+    def _seed_announcements(self, created_by):
         for title, body, category, featured, date_parts in ANNOUNCEMENTS:
             published_at = timezone.make_aware(datetime(*date_parts))
             Announcement.objects.update_or_create(
@@ -160,7 +157,7 @@ class Command(BaseCommand):
                     "is_featured": featured,
                     "is_published": True,
                     "published_at": published_at,
-                    "created_by": admin,
+                    "created_by": created_by,
                 },
             )
         return len(ANNOUNCEMENTS)

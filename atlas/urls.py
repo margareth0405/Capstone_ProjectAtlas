@@ -11,7 +11,7 @@ admin.site.site_title = "ATLAS Admin"
 admin.site.index_title = "Library management"
 
 urlpatterns = [
-    path("django-admin/", admin.site.urls),
+    path(f"{settings.ADMIN_URL_PATH}/", admin.site.urls),
     path("", include("library.urls")),
 ]
 

@@ -7,7 +7,6 @@
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
   {% url 'library:guest_login' as guest_login_url %}
-  {% url 'library:staff_portal' as staff_portal_url %}
 
   <main class="login-container landing-container" id="mainContent" tabindex="-1">
     <section class="login-card landing-card" aria-labelledby="atlasTitle">
@@ -47,10 +46,7 @@
           New to ATLAS?
           <a href="{{ register_url|default:'/register/' }}">Create an account</a>
         </p>
-        <a class="staff-login-link" href="{{ staff_portal_url|default:'/staff/' }}">
-          <i class="fas fa-user-shield" aria-hidden="true"></i>
-          Administrator sign in
-        </a>
+
       </div>
 
       <p class="privacy-summary">
