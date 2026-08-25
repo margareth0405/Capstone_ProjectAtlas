@@ -65,6 +65,27 @@ a.role-btn,
   width: 100%;
 }
 
+.landing-role-grid .role-btn {
+  position: relative;
+  justify-content: center;
+  text-align: center;
+}
+
+.landing-role-grid .role-label {
+  flex: none;
+  align-items: center;
+}
+
+.landing-role-grid .role-btn > i:first-child {
+  position: absolute;
+  left: 2rem;
+}
+
+.landing-role-grid .role-chevron {
+  position: absolute;
+  right: 2rem;
+}
+
 .eyebrow,
 .section-kicker {
   color: var(--maroon-500);
@@ -77,10 +98,11 @@ a.role-btn,
 .landing-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
   margin-top: 1.4rem;
   font-size: 0.82rem;
+  text-align: center;
 }
 
 .landing-actions p {
