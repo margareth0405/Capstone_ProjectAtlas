@@ -129,14 +129,6 @@ def register(request):
     )
     if request.method == 'POST' and form.is_valid():
         user = form.save()
-        Profile.objects.update_or_create(
-            user=user,
-            defaults={
-                'role': form.cleaned_data['role'],
-                'privacy_consent_accepted_at': timezone.now(),
-                'privacy_consent_version': settings.PRIVACY_CONSENT_VERSION,
-            },
-        )
         auth_login(request, user)
         request.session.pop('guest_mode', None)
         messages.success(request, 'Your ATLAS account is ready.')

@@ -13,6 +13,10 @@ User = get_user_model()
 class StyledFormMixin:
     """Small presentation helper; validation remains entirely server-side."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
     def _style_fields(self):
         for field in self.fields.values():
             css_class = "form-select" if isinstance(field.widget, forms.Select) else "form-control"
@@ -21,23 +25,16 @@ class StyledFormMixin:
             )
 
 
-class RegistrationForm(StyledFormMixin, UserCreationForm):
+class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
+    """Shared account validation and persistence for reader account forms."""
+
     full_name = forms.CharField(max_length=150)
     email = forms.EmailField()
     role = forms.ChoiceField(choices=Profile.Role.choices)
-    privacy_consent = forms.BooleanField(
-        required=True,
-        label="I agree to the privacy and confidentiality statement.",
-    )
 
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("full_name", "email", "role", "password1", "password2")
-
-    def __init__(self, *args, privacy_consent_version="", **kwargs):
-        self.privacy_consent_version = privacy_consent_version
-        super().__init__(*args, **kwargs)
-        self._style_fields()
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -45,29 +42,44 @@ class RegistrationForm(StyledFormMixin, UserCreationForm):
             raise ValidationError("An account with this email already exists.")
         return email
 
-    def clean(self):
-        return super().clean()
+    def _profile_defaults(self):
+        return {"role": self.cleaned_data["role"]}
 
     def save(self, commit=True):
         user = super().save(commit=False)
         email = self.cleaned_data["email"]
         full_name = " ".join(self.cleaned_data["full_name"].split())
-        first_name, _, last_name = full_name.partition(" ")
+        user.first_name, _, user.last_name = full_name.partition(" ")
         user.username = email
         user.email = email
-        user.first_name = first_name
-        user.last_name = last_name
         if commit:
             user.save()
             Profile.objects.update_or_create(
                 user=user,
-                defaults={
-                    'privacy_consent_accepted_at': timezone.now(),
-                    "role": self.cleaned_data["role"],
-                    "privacy_consent_version": self.privacy_consent_version,
-                },
+                defaults=self._profile_defaults(),
             )
         return user
+
+
+class RegistrationForm(BaseAccountCreationForm):
+    privacy_consent = forms.BooleanField(
+        required=True,
+        label="I agree to the privacy and confidentiality statement.",
+    )
+
+    def __init__(self, *args, privacy_consent_version="", **kwargs):
+        self.privacy_consent_version = privacy_consent_version
+        super().__init__(*args, **kwargs)
+
+    def _profile_defaults(self):
+        defaults = super()._profile_defaults()
+        defaults.update(
+            {
+                "privacy_consent_accepted_at": timezone.now(),
+                "privacy_consent_version": self.privacy_consent_version,
+            }
+        )
+        return defaults
 
 
 class RoleLoginForm(StyledFormMixin, forms.Form):
@@ -80,7 +92,6 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
         self.request = request
         self.user_cache = None
         super().__init__(*args, **kwargs)
-        self._style_fields()
 
     def clean(self):
         cleaned = super().clean()
@@ -123,11 +134,6 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
         )
         widgets = {"details": forms.Textarea(attrs={"rows": 4})}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._style_fields()
-
-
 class AnnouncementForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Announcement
@@ -144,45 +150,10 @@ class AnnouncementForm(StyledFormMixin, forms.ModelForm):
             "published_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._style_fields()
-
-
-class AdminCreatedUserForm(StyledFormMixin, UserCreationForm):
-    full_name = forms.CharField(max_length=150)
-    email = forms.EmailField()
-    role = forms.ChoiceField(
-        choices=Profile.Role.choices
-    )
-
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = ("full_name", "email", "role", "password1", "password2")
-
+class AdminCreatedUserForm(BaseAccountCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
-        self._style_fields()
-
-    def clean_email(self):
-        email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("An account with this email already exists.")
-        return email
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        email = self.cleaned_data["email"]
-        full_name = " ".join(self.cleaned_data["full_name"].split())
-        user.first_name, _, user.last_name = full_name.partition(" ")
-        user.username = email
-        user.email = email
-        role = self.cleaned_data["role"]
-        if commit:
-            user.save()
-            Profile.objects.update_or_create(user=user, defaults={"role": role})
-        return user
 
 
 class ContactForm(StyledFormMixin, forms.ModelForm):
@@ -192,10 +163,6 @@ class ContactForm(StyledFormMixin, forms.ModelForm):
         model = ContactMessage
         fields = ("name", "email", "subject", "message")
         widgets = {"message": forms.Textarea(attrs={"rows": 6})}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._style_fields()
 
     def clean_website(self):
         if self.cleaned_data.get("website"):
