@@ -66,19 +66,18 @@ a.role-btn,
 }
 
 .landing-role-grid .role-btn {
+  display: grid;
+  grid-template-columns: auto auto;
   position: relative;
+  align-items: center;
   justify-content: center;
+  column-gap: 0.8rem;
   text-align: center;
 }
 
 .landing-role-grid .role-label {
   flex: none;
   align-items: center;
-}
-
-.landing-role-grid .role-btn > i:first-child {
-  position: absolute;
-  left: 2rem;
 }
 
 .landing-role-grid .role-chevron {
