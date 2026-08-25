@@ -41,9 +41,13 @@ INSTALLED_APPS = [
     "library.apps.LibraryConfig",
 ]
 
+if DEBUG:
+    INSTALLED_APPS.append('django_browser_reload')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django_browser_reload.middleware.BrowserReloadMiddleware',
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
