@@ -5,12 +5,14 @@
       "name": "ATLAS: Start Django",
       "type": "debugpy",
       "request": "launch",
+      "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
       "program": "${workspaceFolder}\\manage.py",
       "args": [
         "runserver"
       ],
       "django": true,
-      "justMyCode": true
+      "justMyCode": true,
+      "preLaunchTask": "ATLAS: Prepare Environment"
     }
   ]
 }

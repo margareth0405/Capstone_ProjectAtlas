@@ -34,10 +34,22 @@ must contain a valid PostgreSQL connection before running Django commands.
 
 ## Start from VS Code
 
-The repository includes a VS Code launch configuration and tasks. Press F5 and
-choose **ATLAS: Start Django**, or press Ctrl+Shift+B to run it as the default
-build task. Ctrl+Shift+P still opens the Command Palette; choose **Tasks: Run
-Task** to select **ATLAS: Start Django** or **ATLAS: Check Database**.
+The repository includes a one-command Windows startup script and matching VS
+Code tasks. The first run creates `.venv` and installs `requirements.txt`;
+later runs only reinstall dependencies when that file changes. It then activates
+the environment, checks Django's configuration, and starts the development
+server.
+
+- Press Ctrl+Shift+P, choose **Tasks: Run Task**, then choose
+  **ATLAS: Start Django**.
+- Press Ctrl+Shift+B to run the same task as the default build task.
+- Press F5 and choose **ATLAS: Start Django** to prepare the environment and
+  start Django with the debugger.
+- To run it without VS Code, use
+  `powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1`.
+
+The `Bypass` setting applies only to the PowerShell process launched for the
+task; it does not permanently change the computer's execution policy.
 
 VS Code repository settings cannot safely replace the user-level Ctrl+Shift+P
 keybinding. F5 and Ctrl+Shift+B start Django without a typed terminal command.
