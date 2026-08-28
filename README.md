@@ -104,18 +104,35 @@ python manage.py collectstatic --noinput
 ## Project layout
 
 ```text
-atlas/                    Django project settings and root URLs
-library/                  Models, forms, views, Admin, migrations, tests
-templates/library/        Server-rendered HTML templates
-static/library/           Django-specific CSS and presentation JavaScript
-css/                      Existing ATLAS theme loaded through Django staticfiles
-media/                    Uploaded library resources (created at runtime)
+atlas/                          Django configuration and root URLs
+library/
+|-- models.py                  Domain entities and persistence rules
+|-- forms.py                   Validation and form objects
+|-- services/                  Reusable business/query services
+|-- views/                     Class-based views grouped by feature
+|   |-- authentication.py      Registration, login, and sessions
+|   |-- catalog.py             Catalog, favorites, and downloads
+|   |-- public.py              Dashboard, announcements, and contact
+|   `-- staff.py               Staff portal and CRUD workflows
+|-- migrations/                Database schema history
+|-- management/commands/       Administrative CLI commands
+`-- tests/                     Automated behavior tests
+templates/library/             Server-rendered page templates
+library/static/library/        Application CSS and JavaScript
+legacy/prototype/              Archived pre-Django browser prototype
+scripts/                       Local development automation
 ```
 
-The original root `index.html`, `admin.html`, and `js/` prototype files are
-preserved for reference and to protect pre-existing local edits, but Django does
-not load them. The active application is served from `templates/library/` and
-`library/views.py`.
+The application follows Django's OOP conventions: models and forms are classes,
+HTTP behavior uses class-based views, common authorization/context behavior uses
+mixins, and query/navigation logic lives in service objects. Dependencies flow
+from views to services and models; models do not depend on the presentation
+layer.
+
+The original standalone `index.html`, `admin.html`, and browser-only
+JavaScript are preserved under `legacy/prototype/` for reference. Django does
+not load them. The active application is served from `templates/library/`,
+`library/views/`, and `library/static/library/`.
 
 ## Production checklist
 

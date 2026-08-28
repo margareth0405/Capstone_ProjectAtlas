@@ -3,11 +3,11 @@
 
 {% block role_css %}
   {% if active_role == "administrator" or request.user.is_staff %}
-    <link rel="stylesheet" href="{% static 'css/administrator.css' %}">
+    <link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}">
   {% elif active_role == "guest" %}
-    <link rel="stylesheet" href="{% static 'css/guest.css' %}">
+    <link rel="stylesheet" href="{% static 'library/css/theme/guest.css' %}">
   {% else %}
-    <link rel="stylesheet" href="{% static 'css/reader.css' %}">
+    <link rel="stylesheet" href="{% static 'library/css/theme/reader.css' %}">
   {% endif %}
 {% endblock %}
 
