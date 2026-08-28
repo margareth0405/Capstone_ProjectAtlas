@@ -7,6 +7,7 @@
   {% url 'library:landing' as landing_url %}
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
+  {% url 'account_reset_password' as reset_password_url %}
   {% with auth_role=selected_role|default:'student' %}
 
   <main class="login-container" id="mainContent" tabindex="-1">
@@ -104,6 +105,9 @@
         </button>
       </form>
 
+      <p class="auth-switch">
+        <a href="{{ reset_password_url }}">Forgot your password?</a>
+      </p>
       <p class="auth-switch">
         New student or teacher?
         <a href="{{ register_url|default:'/register/' }}?role={{ auth_role }}">Create an account</a>

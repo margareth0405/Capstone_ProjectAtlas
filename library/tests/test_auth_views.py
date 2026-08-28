@@ -3,10 +3,13 @@
 from io import StringIO
 
 from django.conf import settings
+from django.core import mail
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.urls import reverse
+
+from allauth.account.models import EmailAddress
 
 from library.models import Profile
 
@@ -40,6 +43,25 @@ class RegistrationTests(LibraryTestCase):
         self.assertEqual(
             user.profile.privacy_consent_version,
             settings.PRIVACY_CONSENT_VERSION,
+        )
+        email_address = EmailAddress.objects.get(user=user)
+        self.assertEqual(email_address.email, "jamie@gmail.com")
+        self.assertTrue(email_address.primary)
+
+    def test_allauth_signup_cannot_bypass_role_and_privacy_form(self):
+        response = self.client.post(
+            reverse("account_signup"),
+            {
+                "email": "bypass@example.com",
+                "password1": TEST_PASSWORD,
+                "password2": TEST_PASSWORD,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("library:register"))
+        self.assertFalse(
+            get_user_model().objects.filter(email="bypass@example.com").exists()
         )
 
     def test_teacher_registration_records_teacher_role(self):
@@ -132,6 +154,20 @@ class LoginAndSessionTests(LibraryTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("library:login"), response.url)
+
+    def test_allauth_password_reset_is_available(self):
+        response = self.client.get(reverse("account_reset_password"))
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_allauth_password_reset_sends_recovery_email(self):
+        response = self.client.post(
+            reverse("account_reset_password"), {"email": self.user.email}
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.user.email, mail.outbox[0].to)
 
     def test_dashboard_is_available_to_authenticated_users(self):
         self.client.force_login(self.user)

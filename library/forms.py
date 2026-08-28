@@ -99,9 +99,7 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
             return cleaned
         email = cleaned.get("email", "").strip().lower()
         password = cleaned.get("password")
-        user = User.objects.filter(email__iexact=email).first()
-        username = user.get_username() if user else email
-        self.user_cache = authenticate(self.request, username=username, password=password)
+        self.user_cache = authenticate(self.request, email=email, password=password)
         if self.user_cache is None:
             raise ValidationError("Invalid email or password.")
         if not self.user_cache.is_active:

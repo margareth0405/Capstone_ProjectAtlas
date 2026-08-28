@@ -10,7 +10,8 @@ HTML, CSS, and presentation-only JavaScript.
 - Frontend: HTML rendered with Django templates, CSS, and JavaScript
 - Backend: Python 3.12 and Django
 - Database: PostgreSQL through the required `DATABASE_URL` setting
-- Authentication: Django's built-in `User`, sessions, and password hashing
+- Authentication: Django's built-in `User` and sessions with django-allauth
+  for email identity, verification, and password recovery
 - Administration: Django Admin at the private path configured in `.env`
 - Version control: Git with the GitHub `origin` repository
 - Static file serving: WhiteNoise for deployed CSS and JavaScript assets
@@ -28,6 +29,13 @@ Copy-Item .env.example .env
 python manage.py migrate
 python manage.py runserver
 ```
+
+Registration and login remain at `/register/` and `/login/` so ATLAS can
+enforce role selection and privacy consent. django-allauth account recovery and
+email-management endpoints are mounted under `/accounts/`. Email verification
+is optional by default and uses Django's console email backend during local
+development; set `ACCOUNT_EMAIL_VERIFICATION=mandatory` only after configuring
+a production email backend.
 
 Open <http://127.0.0.1:8000/>. PostgreSQL must be running and `DATABASE_URL`
 must contain a valid PostgreSQL connection before running Django commands.

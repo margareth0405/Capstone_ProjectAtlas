@@ -54,6 +54,7 @@ class ReaderAuthPresentationTests(LibraryTestCase):
                     response,
                     f'{reverse("library:register")}?role={role}',
                 )
+                self.assertContains(response, reverse("account_reset_password"))
                 self.assertNotContains(response, "reader-role-toggle")
                 self.assertNotContains(response, "role-selection-note")
                 self.assertNotContains(response, "toggle-btn")

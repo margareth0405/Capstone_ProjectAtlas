@@ -2,11 +2,14 @@
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
+
+from allauth.account import app_settings as allauth_account_settings
+from allauth.account.utils import complete_signup, perform_login, setup_user_email
 
 from library.forms import RegistrationForm, RoleLoginForm
 from library.models import Profile
@@ -54,10 +57,15 @@ class RegisterView(RoleSelectionMixin, View):
         )
         if request.method == "POST" and form.is_valid():
             user = form.save()
-            auth_login(request, user)
+            setup_user_email(request, user, [])
             request.session.pop("guest_mode", None)
             messages.success(request, "Your ATLAS account is ready.")
-            return redirect("library:dashboard")
+            return complete_signup(
+                request,
+                user,
+                email_verification=allauth_account_settings.EMAIL_VERIFICATION,
+                success_url=reverse("library:dashboard"),
+            )
         return render(
             request,
             self.template_name,
@@ -96,11 +104,18 @@ class LoginView(RoleSelectionMixin, View):
                     "updated_at",
                 )
             )
-            auth_login(request, user)
             request.session.pop("guest_mode", None)
             display_name = PageContextBuilder(request).build("home")["display_name"]
             messages.success(request, f"Welcome back, {display_name}.")
-            return redirect(SafeRedirectService.resolve(request, "library:dashboard"))
+            return perform_login(
+                request,
+                user,
+                email_verification=allauth_account_settings.EMAIL_VERIFICATION,
+                redirect_url=SafeRedirectService.resolve(
+                    request, "library:dashboard"
+                ),
+                email=user.email,
+            )
         return render(
             request,
             self.template_name,
