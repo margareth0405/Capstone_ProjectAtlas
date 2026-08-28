@@ -22,6 +22,7 @@
   {% url 'library:logout' as logout_url %}
   {% url 'library:staff_portal' as staff_portal_url %}
   {% url 'library:login' as login_url %}
+  {% url 'account_email' as account_email_url %}
 
   <div class="d-flex atlas-shell">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
@@ -147,6 +148,12 @@
           </span>
 
           {% if request.user.is_authenticated or active_role == "guest" %}
+            {% if request.user.is_authenticated %}
+              <a class="btn btn-sm btn-outline-danger" href="{{ account_email_url }}">
+                <i class="fas fa-user-gear" aria-hidden="true"></i>
+                Account
+              </a>
+            {% endif %}
             <form action="{{ logout_url|default:landing_url|default:'/' }}" method="post" class="logout-form">
               {% csrf_token %}
               <button class="btn btn-sm btn-outline-danger" type="submit">

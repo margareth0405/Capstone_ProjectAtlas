@@ -1,0 +1,22 @@
+{% extends "account/base_atlas.html" %}
+
+{% block title %}ATLAS · Confirm email{% endblock %}
+{% block account_icon %}fa-user-check{% endblock %}
+
+{% block account_content %}
+  <h1 id="accountTitle">Confirm your email</h1>
+  {% if confirmation and can_confirm %}
+    <p class="sub">Confirm <strong>{{ confirmation.email_address.email }}</strong> as the email address for your ATLAS account.</p>
+    <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+      {% csrf_token %}
+      {{ redirect_field }}
+      <button class="btn-login reader-btn" type="submit">Verify email <i class="fas fa-check" aria-hidden="true"></i></button>
+    </form>
+  {% elif confirmation %}
+    <p class="sub">This email address cannot be confirmed because it is already associated with another account.</p>
+    <a class="btn-login reader-btn" href="{% url 'library:login' %}">Return to sign in</a>
+  {% else %}
+    <p class="sub">This verification link is invalid or has expired.</p>
+    <a class="btn-login reader-btn" href="{% url 'library:login' %}">Return to sign in</a>
+  {% endif %}
+{% endblock %}

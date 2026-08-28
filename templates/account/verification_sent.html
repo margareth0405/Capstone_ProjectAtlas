@@ -1,0 +1,10 @@
+{% extends "account/base_atlas.html" %}
+
+{% block title %}ATLAS · Verify your email{% endblock %}
+{% block account_icon %}fa-envelope-circle-check{% endblock %}
+
+{% block account_content %}
+  <h1 id="accountTitle">Verify your email</h1>
+  <p class="sub">ATLAS sent a verification link to your email address. Open it to confirm your account. Check your spam folder if needed.</p>
+  <p class="auth-switch">Already verified? <a href="{% url 'library:login' %}">Sign in</a></p>
+{% endblock %}

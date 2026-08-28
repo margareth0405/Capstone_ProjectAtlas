@@ -1,6 +1,7 @@
 """Registration, login, session, and consent behavior."""
 
 from io import StringIO
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core import mail
@@ -9,7 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.urls import reverse
 
-from allauth.account.models import EmailAddress
+from allauth.account.models import EmailAddress, EmailConfirmationHMAC
 
 from library.models import Profile
 
@@ -63,6 +64,43 @@ class RegistrationTests(LibraryTestCase):
         self.assertFalse(
             get_user_model().objects.filter(email="bypass@example.com").exists()
         )
+
+    def test_registration_sends_and_accepts_email_verification(self):
+        self.client.post(reverse("library:register"), self.registration_payload())
+        email_address = EmailAddress.objects.get(email="jamie@gmail.com")
+        confirmation = EmailConfirmationHMAC(email_address)
+        confirmation_url = reverse(
+            "account_confirm_email", kwargs={"key": confirmation.key}
+        )
+
+        page_response = self.client.get(confirmation_url)
+        self.assertEqual(page_response.status_code, 200)
+        self.assertTemplateUsed(page_response, "account/email_confirm.html")
+        self.assertContains(page_response, "Confirm your email")
+
+        response = self.client.post(confirmation_url)
+        self.assertEqual(response.status_code, 302)
+        email_address.refresh_from_db()
+        self.assertTrue(email_address.verified)
+
+    def test_unverified_user_can_resend_verification_email(self):
+        user = self.create_user(email="unverified@example.com")
+        EmailAddress.objects.create(
+            user=user,
+            email=user.email,
+            primary=True,
+            verified=False,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("account_email"),
+            {"email": user.email, "action_send": ""},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Verify your ATLAS email address", mail.outbox[0].subject)
 
     def test_teacher_registration_records_teacher_role(self):
         response = self.client.post(
@@ -159,6 +197,8 @@ class LoginAndSessionTests(LibraryTestCase):
         response = self.client.get(reverse("account_reset_password"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/password_reset.html")
+        self.assertContains(response, "Reset your password")
 
     def test_allauth_password_reset_sends_recovery_email(self):
         response = self.client.post(
@@ -168,6 +208,33 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(self.user.email, mail.outbox[0].to)
+
+    def test_allauth_password_reset_link_changes_password(self):
+        self.client.post(
+            reverse("account_reset_password"), {"email": self.user.email}
+        )
+        reset_url = next(
+            line.strip()
+            for line in mail.outbox[0].body.splitlines()
+            if "/accounts/password/reset/key/" in line
+        )
+
+        token_response = self.client.get(urlsplit(reset_url).path)
+        self.assertEqual(token_response.status_code, 302)
+        form_response = self.client.get(token_response.url)
+        self.assertEqual(form_response.status_code, 200)
+        self.assertTemplateUsed(
+            form_response, "account/password_reset_from_key.html"
+        )
+
+        new_password = "New-Atlas-Pass-2026!"
+        response = self.client.post(
+            token_response.url,
+            {"password1": new_password, "password2": new_password},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(new_password))
 
     def test_dashboard_is_available_to_authenticated_users(self):
         self.client.force_login(self.user)

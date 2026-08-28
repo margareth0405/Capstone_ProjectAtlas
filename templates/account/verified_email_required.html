@@ -1,0 +1,10 @@
+{% extends "account/base_atlas.html" %}
+
+{% block title %}ATLAS · Verification required{% endblock %}
+{% block account_icon %}fa-envelope-open-text{% endblock %}
+
+{% block account_content %}
+  <h1 id="accountTitle">Email verification required</h1>
+  <p class="sub">Verify your email address before signing in. ATLAS has sent you a new verification link.</p>
+  <p class="auth-switch"><a href="{% url 'library:login' %}">Return to sign in</a></p>
+{% endblock %}

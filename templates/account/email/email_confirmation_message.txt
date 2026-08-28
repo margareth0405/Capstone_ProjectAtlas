@@ -1,0 +1,9 @@
+Hello,
+
+Please verify this email address for your ATLAS account by opening the secure link below:
+
+{{ activate_url }}
+
+If you did not create or update an ATLAS account, you can ignore this message.
+
+ATLAS Library

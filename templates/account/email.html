@@ -1,0 +1,30 @@
+{% extends "account/base_atlas.html" %}
+
+{% block title %}ATLAS · Email verification{% endblock %}
+{% block account_icon %}fa-envelope-circle-check{% endblock %}
+
+{% block account_content %}
+  <h1 id="accountTitle">Email verification</h1>
+  <p class="sub">Review your account email and resend a verification link when needed.</p>
+
+  {% if emailaddresses %}
+    <form method="post" action="{% url 'account_email' %}">
+      {% csrf_token %}
+      {% for radio in emailaddress_radios %}
+        {% with emailaddress=radio.emailaddress %}
+          <div class="consent-field">
+            <input type="radio" name="email" value="{{ emailaddress.email }}" id="{{ radio.id }}"{% if radio.checked %} checked{% endif %}>
+            <label for="{{ radio.id }}">
+              {{ emailaddress.email }} — {% if emailaddress.verified %}Verified{% else %}Not verified{% endif %}{% if emailaddress.primary %} (primary){% endif %}
+            </label>
+          </div>
+        {% endwith %}
+      {% endfor %}
+      <button class="btn-login reader-btn" type="submit" name="action_send">Resend verification email <i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+    </form>
+  {% else %}
+    <p class="sub">No email address is associated with this account.</p>
+  {% endif %}
+
+  <p class="auth-switch"><a href="{% url 'library:dashboard' %}">Return to dashboard</a></p>
+{% endblock %}

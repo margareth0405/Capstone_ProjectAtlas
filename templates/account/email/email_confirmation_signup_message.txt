@@ -1,0 +1,9 @@
+Hello,
+
+Welcome to ATLAS. Verify your email address to finish securing your account:
+
+{{ activate_url }}
+
+If you did not create this account, you can ignore this message.
+
+ATLAS Library

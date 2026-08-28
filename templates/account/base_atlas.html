@@ -1,0 +1,18 @@
+{% extends "library/base.html" %}
+
+{% block body_class %}atlas-auth-page{% endblock %}
+
+{% block body %}
+  {% url 'library:login' as login_url %}
+  <main class="login-container" id="mainContent" tabindex="-1">
+    <section class="login-card" aria-labelledby="accountTitle">
+      <a class="btn-back" href="{{ login_url }}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to sign in
+      </a>
+      <div class="brand-icon reader-icon" aria-hidden="true">
+        <i class="fas {% block account_icon %}fa-shield-halved{% endblock %}"></i>
+      </div>
+      {% block account_content %}{% endblock %}
+    </section>
+  </main>
+{% endblock %}
