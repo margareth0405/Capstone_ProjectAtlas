@@ -1,4 +1,4 @@
-"""Django settings for ATLAS using PostgreSQL."""
+﻿"""Django settings for ATLAS using PostgreSQL."""
 
 import os
 from pathlib import Path

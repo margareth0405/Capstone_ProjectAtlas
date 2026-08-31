@@ -5,6 +5,8 @@
     "allauth",
     "collectstatic",
     "createsuperuser",
+    "dotenv",
+    "forloop",
     "HSTS",
     "makemigrations",
     "navigations",
@@ -12,6 +14,7 @@
     "psycopg",
     "pypdf",
     "runserver",
+    "safetensors",
     "venv",
     "whitenoise"
   ]

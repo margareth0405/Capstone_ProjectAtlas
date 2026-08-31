@@ -44,10 +44,16 @@ saved. Scanned image-only PDFs must go through OCR first.
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The service reports explainable writing-pattern indicators such as vocabulary
-diversity, sentence-length variation, and repeated phrases. It cannot prove who
-or what authored a document and must not be used as the sole basis for an
-academic decision.
+The service runs the local
+`openai-community/roberta-base-openai-detector` model through Hugging Face
+Transformers and reports AI likelihood, human likelihood, model confidence,
+and the number of analyzed text sections. Longer submissions are split into
+250-word sections so the analysis is not limited to the beginning.
+
+This model was trained to distinguish English human writing from output
+created by GPT-2. It is not a universal detector for current AI systems, cannot
+prove authorship, and must not be used as the sole basis for an academic
+decision.
 
 ## Interface behavior
 
@@ -104,6 +110,8 @@ deduplicated.
 - WhiteNoise for deployed static assets
 - pypdf for PDF text extraction
 - python-docx for Word (.docx) text extraction
+- PyTorch for local CPU model inference
+- Hugging Face Transformers for the local RoBERTa detector
 - HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
@@ -120,6 +128,11 @@ python manage.py runserver
 
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
+
+The first AI Detection analysis downloads and caches the public RoBERTa model
+from Hugging Face. Its PyTorch/Safetensors weights are approximately 500 MB, so
+the first analysis can take several minutes. Later analyses use the local cache
+and do not require an API key, account, or per-scan payment.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -256,7 +269,7 @@ library/
 |-- middleware.py                       Thin request/response integration
 |-- services/
 |   |-- activity.py                     ActivityRecorder
-|   |-- ai_detection.py                 WritingPatternAnalyzer
+|   |-- ai_detection.py                 RobertaAIDetector
 |   |-- catalog.py                      CatalogQueryService
 |   |-- contact.py                      ContactEmailService
 |   |-- context.py                      GreetingNameResolver and PageContextBuilder
@@ -376,7 +389,7 @@ Use the project interpreter for every Django command:
 ```
 
 If PowerShell reports No module named django, allauth, docx, pypdf, psycopg,
-whitenoise, or dotenv, the command is using the wrong interpreter or the
+torch, transformers, whitenoise, or dotenv, the command is using the wrong interpreter or the
 requirements were not installed. Run the commands above, or use
 scripts\start_atlas.ps1, which selects .venv automatically. Do not install a
 package named docx; the correct dependency is python-docx.

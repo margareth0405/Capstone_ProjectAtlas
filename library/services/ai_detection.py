@@ -1,70 +1,124 @@
-"""Transparent, local writing-pattern indicators for AI Detection."""
+"""Local RoBERTa service for administrator AI writing analysis."""
 
-import re
-from statistics import pstdev
+from statistics import fmean
+from threading import RLock
 
 
-class WritingPatternAnalyzer:
-    """Calculate explainable writing-pattern indicators for one text sample."""
+class AIDetectionError(RuntimeError):
+    """Raised when the local detector cannot complete an analysis."""
 
-    word_pattern = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
-    sentence_pattern = re.compile(r"[.!?]+")
+
+class RobertaAIDetector:
+    """Analyze bounded text chunks with the local GPT-2 output detector."""
+
+    model_name = "openai-community/roberta-base-openai-detector"
+    words_per_chunk = 250
+    _pipeline = None
+    _pipeline_lock = RLock()
 
     def analyze(self, text):
-        words = self.word_pattern.findall(text.lower())
-        sentences = [
-            segment.strip()
-            for segment in self.sentence_pattern.split(text)
-            if segment.strip()
-        ]
-        sentence_lengths = [
-            len(self.word_pattern.findall(sentence)) for sentence in sentences
-        ]
-        word_count = len(words)
-        lexical_diversity = len(set(words)) / word_count if word_count else 0
-        average_length = (
-            sum(sentence_lengths) / len(sentence_lengths) if sentence_lengths else 0
-        )
-        length_variation = (
-            pstdev(sentence_lengths) / average_length
-            if len(sentence_lengths) > 1 and average_length
-            else 0
-        )
-        trigrams = list(zip(words, words[1:], words[2:]))
-        repeated_phrase_ratio = (
-            1 - (len(set(trigrams)) / len(trigrams)) if trigrams else 0
-        )
-        score = self._score(
-            lexical_diversity=lexical_diversity,
-            length_variation=length_variation,
-            repeated_phrase_ratio=repeated_phrase_ratio,
-        )
-        label, tone = self._classification(score)
+        if not text or not text.strip():
+            raise AIDetectionError("Please provide text before starting the analysis.")
+
+        chunks = self._split_text(text)
+        try:
+            predictions = self._get_pipeline()(
+                chunks,
+                truncation=True,
+                batch_size=4,
+            )
+        except AIDetectionError:
+            raise
+        except Exception as exc:
+            raise AIDetectionError(
+                "The local AI detector could not complete the analysis. "
+                "Confirm that the model was downloaded successfully and try again."
+            ) from exc
+
+        if isinstance(predictions, dict):
+            predictions = [predictions]
+        if len(predictions) != len(chunks):
+            raise AIDetectionError(
+                "The local AI detector returned an incomplete result."
+            )
+
+        ai_scores = [self._ai_score(prediction) for prediction in predictions]
+        ai_probability = round(fmean(ai_scores) * 100, 2)
+        human_probability = round(100 - ai_probability, 2)
+        classification, tone = self._classification(ai_probability)
         return {
-            "score": score,
-            "label": label,
+            "score": ai_probability,
+            "label": classification,
             "tone": tone,
-            "word_count": word_count,
-            "sentence_count": len(sentences),
-            "lexical_diversity": round(lexical_diversity * 100, 1),
-            "sentence_variation": round(length_variation * 100, 1),
-            "repeated_phrase_ratio": round(repeated_phrase_ratio * 100, 1),
+            "ai_probability": ai_probability,
+            "human_probability": human_probability,
+            "confidence": round(max(ai_probability, human_probability), 2),
+            "chunks_analyzed": len(chunks),
+            "model_name": self.model_name,
         }
 
-    @staticmethod
-    def _score(*, lexical_diversity, length_variation, repeated_phrase_ratio):
-        raw_score = (
-            20
-            + (1 - min(lexical_diversity, 1)) * 35
-            + (1 - min(length_variation, 1)) * 25
-            + min(repeated_phrase_ratio, 1) * 20
-        )
-        return max(0, min(100, round(raw_score)))
+    @classmethod
+    def _get_pipeline(cls):
+        if cls._pipeline is not None:
+            return cls._pipeline
+        with cls._pipeline_lock:
+            if cls._pipeline is None:
+                try:
+                    from transformers import pipeline
+                except ImportError as exc:
+                    raise AIDetectionError(
+                        "Local AI Detection is unavailable. "
+                        "Install the project requirements."
+                    ) from exc
+                try:
+                    cls._pipeline = pipeline(
+                        "text-classification",
+                        model=cls.model_name,
+                        tokenizer=cls.model_name,
+                        device=-1,
+                    )
+                except Exception as exc:
+                    raise AIDetectionError(
+                        "ATLAS could not load the local RoBERTa detector. "
+                        "Check the internet connection for the first model download."
+                    ) from exc
+        return cls._pipeline
+
+    @classmethod
+    def _split_text(cls, text):
+        words = text.split()
+        if not words:
+            raise AIDetectionError("Please provide text before starting the analysis.")
+        return [
+            " ".join(words[index : index + cls.words_per_chunk])
+            for index in range(0, len(words), cls.words_per_chunk)
+        ]
 
     @staticmethod
-    def _classification(score):
-        if score >= 70:
-            return "High AI-like indicators", "high"
-        if score >= 40:
-            return "Mixed indicators", "mixed"
-        return "Low AI-like indicators", "low"
+    def _ai_score(prediction):
+        try:
+            label = str(prediction["label"]).strip().lower()
+            confidence = float(prediction["score"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise AIDetectionError(
+                "The local AI detector returned an invalid result."
+            ) from exc
+        if not 0 <= confidence <= 1:
+            raise AIDetectionError(
+                "The local AI detector returned a confidence outside the expected range."
+            )
+        if label == "fake":
+            return confidence
+        if label == "real":
+            return 1 - confidence
+        raise AIDetectionError(
+            "The local AI detector returned an unknown classification."
+        )
+
+    @staticmethod
+    def _classification(ai_probability):
+        if ai_probability >= 70:
+            return "High AI likelihood", "high"
+        if ai_probability >= 40:
+            return "Mixed / uncertain", "mixed"
+        return "Low AI likelihood", "low"

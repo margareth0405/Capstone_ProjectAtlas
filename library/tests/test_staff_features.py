@@ -252,6 +252,19 @@ class AIDetectionServiceTests(LibraryTestCase):
         )
         self.url = reverse("library:staff_ai_detection")
 
+    class StubAnalyzer:
+        def analyze(self, text):
+            return {
+                "score": 76.5,
+                "label": "High AI likelihood",
+                "tone": "high",
+                "ai_probability": 76.5,
+                "human_probability": 23.5,
+                "confidence": 76.5,
+                "chunks_analyzed": 2,
+                "model_name": "openai-community/roberta-base-openai-detector",
+            }
+
     def test_ai_detection_is_restricted_to_staff(self):
         anonymous_response = self.client.get(self.url)
         self.assertEqual(anonymous_response.status_code, 302)
@@ -288,12 +301,22 @@ class AIDetectionServiceTests(LibraryTestCase):
             "readers understand how the evidence supports the final argument."
         )
 
-        response = self.client.post(self.url, {"text": sample})
+        with patch.object(
+            StaffAIDetectionView,
+            "analyzer_class",
+            self.StubAnalyzer,
+        ):
+            response = self.client.post(self.url, {"text": sample})
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("detection_result", response.context)
-        self.assertGreater(response.context["detection_result"]["word_count"], 20)
-        self.assertContains(response, "Vocabulary diversity")
+        self.assertEqual(
+            response.context["detection_result"]["ai_probability"],
+            76.5,
+        )
+        self.assertContains(response, "AI likelihood")
+        self.assertContains(response, "Human likelihood")
+
     def test_staff_can_analyze_word_document_without_saving_it(self):
         self.client.force_login(self.staff)
         document = Document()
@@ -312,7 +335,12 @@ class AIDetectionServiceTests(LibraryTestCase):
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
-        response = self.client.post(self.url, {"document": upload})
+        with patch.object(
+            StaffAIDetectionView,
+            "analyzer_class",
+            self.StubAnalyzer,
+        ):
+            response = self.client.post(self.url, {"document": upload})
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("detection_result", response.context)
@@ -355,6 +383,10 @@ class AIDetectionServiceTests(LibraryTestCase):
             StaffAIDetectionView,
             "extractor_class",
             StubPdfExtractor,
+        ), patch.object(
+            StaffAIDetectionView,
+            "analyzer_class",
+            self.StubAnalyzer,
         ):
             response = self.client.post(self.url, {"document": upload})
 
