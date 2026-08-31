@@ -7,7 +7,7 @@
 {% block dashboard_content %}
   {% url 'library:announcements' as announcements_url %}
   <div class="admin-form-page">
-    <header class="django-page-header"><div><span class="section-kicker">Communication</span><h1>{% if form.instance.pk %}Edit announcement{% else %}Create an announcement{% endif %}</h1><p>Publish clear updates for students, teachers, and guests.</p></div></header>
+    <header class="django-page-header"><div><span class="section-kicker">Communication</span><h1>{% if form.instance.pk %}Edit announcement{% else %}Create an announcement{% endif %}</h1></div></header>
     <form method="post" class="admin-object-form" novalidate>
       {% csrf_token %}
       {% include "library/includes/form_errors.html" with form=form %}

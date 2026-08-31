@@ -1,0 +1,56 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
+{% block title %}AI Detection · ATLAS{% endblock %}
+{% block breadcrumb %}AI Detection{% endblock %}
+
+{% block dashboard_content %}
+  <div class="ai-detection-page">
+    <header class="django-page-header">
+      <div>
+        <span class="section-kicker">Administrator service</span>
+        <h1><i class="fas fa-robot" aria-hidden="true"></i> AI Detection</h1>
+      </div>
+    </header>
+
+    <div class="ai-detection-layout">
+      <section class="ai-detection-form-card" aria-labelledby="aiDetectionFormHeading">
+        <h2 id="aiDetectionFormHeading">Analyze writing</h2>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "library/includes/form_errors.html" with form=form %}
+          <div class="form-group">
+            <label for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+            {{ form.text }}
+            {% if form.text.help_text %}<small class="form-helper">{{ form.text.help_text }}</small>{% endif %}
+            {% if form.text.errors %}<div class="invalid-feedback d-block">{% for error in form.text.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <button class="btn-create-admin" type="submit"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i> Analyze text</button>
+        </form>
+      </section>
+
+      <section class="ai-detection-result-card" aria-live="polite" aria-labelledby="aiDetectionResultHeading">
+        <h2 id="aiDetectionResultHeading">Analysis result</h2>
+        {% if detection_result %}
+          <div class="ai-score {{ detection_result.tone }}">
+            <strong>{{ detection_result.score }}%</strong>
+            <span>{{ detection_result.label }}</span>
+          </div>
+          <dl class="ai-metrics">
+            <div><dt>Words</dt><dd>{{ detection_result.word_count }}</dd></div>
+            <div><dt>Sentences</dt><dd>{{ detection_result.sentence_count }}</dd></div>
+            <div><dt>Vocabulary diversity</dt><dd>{{ detection_result.lexical_diversity }}%</dd></div>
+            <div><dt>Sentence variation</dt><dd>{{ detection_result.sentence_variation }}%</dd></div>
+            <div><dt>Repeated phrases</dt><dd>{{ detection_result.repeated_phrase_ratio }}%</dd></div>
+          </dl>
+        {% else %}
+          <div class="ai-empty-result"><i class="fas fa-file-circle-question" aria-hidden="true"></i><p>Paste at least 100 characters to begin an analysis.</p></div>
+        {% endif %}
+        <div class="ai-detection-notice" role="note">
+          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+          <p>This score measures writing patterns only. It cannot prove whether a person or an AI wrote the text, so it should not be used as the sole basis for academic decisions.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+{% endblock %}

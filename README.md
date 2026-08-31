@@ -1,191 +1,272 @@
 # ATLAS Django e-Library
 
-ATLAS is now a conventional Django application. Django owns authentication,
-sessions, permissions, validation, catalog data, favorites, announcements,
-downloads, contact messages, and administration. The frontend remains regular
-HTML, CSS, and presentation-only JavaScript.
+ATLAS is a role-aware digital library for guests, students, teachers, and
+administrators. Django owns authentication, permissions, validation, catalog
+records, downloads, announcements, contact messages, staff activity history,
+website-usage analytics, and the administrator AI Detection service.
+
+The active interface is server-rendered HTML and CSS with presentation-only
+JavaScript. Node.js is not required.
+
+## Main features
+
+### Guests, students, and teachers
+
+- Browse, search, filter, and sort the library catalog.
+- View published announcements.
+- Submit support messages to atlasttshs@gmail.com.
+- Register and sign in as a student or teacher.
+- Download resources and save favorites when authenticated.
+
+### Administrators
+
+- Create, edit, and delete library resources.
+- Create, edit, publish, and delete announcements.
+- Create student and teacher accounts.
+- Search accounts by name or email.
+- Filter accounts by student, teacher, or administrator.
+- Sort accounts from newest to oldest or oldest to newest.
+- Delete reader accounts while protecting the active administrator and
+  superusers.
+- Review and delete download records.
+- Review a dated audit history of resource, account, announcement, and download
+  actions.
+- Review website usage by role, date, session history, and approximate active
+  time.
+- Analyze pasted writing with the administrator-only AI Detection service.
+
+AI Detection reports explainable writing-pattern indicators such as vocabulary
+diversity, sentence-length variation, and repeated phrases. It cannot prove who
+or what authored a document and must not be used as the sole basis for an
+academic decision.
 
 ## Technology
 
-- Frontend: HTML rendered with Django templates, CSS, and JavaScript
-- Backend: Python 3.12 and Django
-- Database: PostgreSQL through the required `DATABASE_URL` setting
-- Authentication: Django's built-in `User` and sessions with django-allauth
-  for email identity, verification, and password recovery
-- Administration: Django Admin at the private path configured in `.env`
-- Version control: Git with the GitHub `origin` repository
-- Static file serving: WhiteNoise for deployed CSS and JavaScript assets
-
-Node.js is not required.
+- Python 3.12
+- Django
+- PostgreSQL through DATABASE_URL
+- django-allauth for email identity, verification, and password recovery
+- WhiteNoise for deployed static assets
+- HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
 
-```powershell
+~~~powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+..venvScriptsActivate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-# Edit .env with your PostgreSQL username, password, and database name.
+# Edit .env with your PostgreSQL and administrator-path settings.
 python manage.py migrate
 python manage.py runserver
-```
+~~~
 
-Registration and login remain at `/register/` and `/login/` so ATLAS can
-enforce role selection and privacy consent. django-allauth account recovery and
-email-management endpoints are mounted under `/accounts/`. Email verification
-is optional by default and uses Django's console email backend during local
-development; set `ACCOUNT_EMAIL_VERIFICATION=mandatory` only after configuring
-a production email backend.
+Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
+point to an existing database before running Django commands.
 
-Open <http://127.0.0.1:8000/>. PostgreSQL must be running and `DATABASE_URL`
-must contain a valid PostgreSQL connection before running Django commands.
+Registration and role-aware login are available at /register/ and /login/.
+django-allauth account management is mounted under /accounts/.
 
 ## Start from VS Code
 
-The repository includes a one-command Windows startup script and matching VS
-Code tasks. The first run creates `.venv` and installs `requirements.txt`;
-later runs only reinstall dependencies when that file changes. It then activates
-the environment, checks Django's configuration, and starts the development
-server.
+The repository contains a Windows startup script and matching VS Code tasks.
 
-- Press Ctrl+Shift+P, choose **Tasks: Run Task**, then choose
-  **ATLAS: Start Django**.
-- Press Ctrl+Shift+B to run the same task as the default build task.
-- Press F5 and choose **ATLAS: Start Django** to prepare the environment and
-  start Django with the debugger.
-- To run it without VS Code, use
-  `powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1`.
+- Press Ctrl+Shift+P, choose Tasks: Run Task, and select
+  ATLAS: Start Django.
+- Press Ctrl+Shift+B to use the default build task.
+- Press F5 and select ATLAS: Start Django to run with the debugger.
+- Without VS Code, run:
 
-The `Bypass` setting applies only to the PowerShell process launched for the
-task; it does not permanently change the computer's execution policy.
+  ~~~powershell
+  powershell -ExecutionPolicy Bypass -File .scriptsstart_atlas.ps1
+  ~~~
 
-VS Code repository settings cannot safely replace the user-level Ctrl+Shift+P
-keybinding. F5 and Ctrl+Shift+B start Django without a typed terminal command.
+The first run creates .venv and installs dependencies. Later runs reinstall
+only when requirements.txt changes.
 
-The optional `python manage.py seed_atlas` command is idempotent and creates 33 catalog records, eight
-announcements, and these development accounts:
+## Environment configuration
+
+Copy .env.example to .env. Never commit the real .env file or any database
+password, Django secret, or Gmail App Password.
+
+Minimum development settings:
+
+~~~dotenv
+DJANGO_SECRET_KEY=replace-with-a-long-random-secret
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_ADMIN_PATH=replace-with-a-private-admin-path
+DATABASE_URL=postgresql://atlas_user:strong-password@localhost:5432/atlas
+DB_SSL_REQUIRE=False
+~~~
+
+For a hosted PostgreSQL service, use the provider's complete connection URL and
+set DB_SSL_REQUIRE=True when TLS is required.
+
+## Contact email delivery
+
+Contact submissions are addressed to atlasttshs@gmail.com. Each message
+contains the visitor's name, submitted email, authenticated account email when
+available, subject, and message. Reply-To is set to the visitor's submitted
+email.
+
+The console backend is safe for local development but prints messages instead
+of delivering them:
+
+~~~dotenv
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+SUPPORT_EMAIL=atlasttshs@gmail.com
+SUPPORT_HOURS=Monday–Friday, 8:00 AM–5:00 PM
+~~~
+
+For real Gmail delivery, create a Google App Password and use:
+
+~~~dotenv
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+DEFAULT_FROM_EMAIL=ATLAS <atlasttshs@gmail.com>
+SUPPORT_EMAIL=atlasttshs@gmail.com
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=atlasttshs@gmail.com
+EMAIL_HOST_PASSWORD=your-google-app-password
+~~~
+
+Do not use the normal Gmail password. If delivery fails, ATLAS keeps the form
+visible, shows an error, and does not record the message as successfully sent.
+
+## Administrator setup
+
+The administrator login is intentionally absent from public navigation.
+
+1. Set a private DJANGO_ADMIN_PATH value in .env.
+2. Apply migrations and create a superuser:
+
+   ~~~powershell
+   python manage.py migrate
+   python manage.py createsuperuser
+   ~~~
+
+3. Start Django and open:
+
+   ~~~text
+   http://127.0.0.1:8000/<DJANGO_ADMIN_PATH>/
+   ~~~
+
+4. After signing in, open /staff/ for the branded Administrator Portal.
+
+The staff account form creates students and teachers only. Create additional
+administrators through createsuperuser or Django Admin.
+
+## Optional development data
+
+The idempotent command below creates catalog records, announcements, and reader
+accounts:
+
+~~~powershell
+python manage.py seed_atlas
+~~~
 
 | Role | Email | Password | Entry point |
 | --- | --- | --- | --- |
-| Student | `student@atlas.edu` | `password123` | `/login/` |
-| Teacher | `teacher@deped.gov.ph` | `password123` | `/login/` |
+| Student | student@atlas.edu | password123 | /login/ |
+| Teacher | teacher@deped.gov.ph | password123 | /login/ |
 
-The seed command never creates an administrator. Create administrators explicitly
-with `python manage.py createsuperuser` and use a unique password.
+The seed command never creates an administrator. Replace development passwords
+before sharing an environment.
 
-## PostgreSQL setup
+## Object-oriented architecture
 
-Create a PostgreSQL database and account using your preferred administration
-tool, then edit `.env` and uncomment/set:
+ATLAS follows Django's OOP conventions:
 
-```dotenv
-DATABASE_URL=postgresql://atlas_user:strong-password@localhost:5432/atlas
-DB_SSL_REQUIRE=False
-```
+- Models represent persisted domain entities and validation rules.
+- Forms encapsulate input validation and safe persistence.
+- Class-based views coordinate HTTP requests and responses.
+- Mixins provide shared page context and staff authorization.
+- Service classes own reusable business logic and queries.
+- Middleware delegates session tracking to a service object.
+- Views use replaceable service-class attributes for testability.
 
-For a hosted PostgreSQL service, use its full connection URL and set
-`DB_SSL_REQUIRE=True` when the provider requires TLS. Then run:
+Dependencies flow from views and middleware to services and models. Models do
+not import templates or views.
 
-```powershell
-python manage.py migrate
-```
+~~~text
+atlas/
+|-- settings.py                         Environment-based Django configuration
++-- urls.py                             Root routing and private Django Admin
 
-## Administration
+library/
+|-- models.py                           Domain entities and persistence rules
+|-- forms.py                            Authentication, content, contact, and AI forms
+|-- middleware.py                       Thin request/response integration
+|-- services/
+|   |-- activity.py                     ActivityRecorder
+|   |-- ai_detection.py                 WritingPatternAnalyzer
+|   |-- catalog.py                      CatalogQueryService
+|   |-- contact.py                      ContactEmailService
+|   |-- context.py                      PageContextBuilder
+|   |-- navigation.py                   SafeRedirectService
+|   |-- staff_portal.py                 StaffUserDirectory, UsageAnalytics,
+|   |                                    and StaffPortalContextService
+|   +-- usage.py                        WebsiteUsageTracker
+|-- views/
+|   |-- authentication.py               Registration, login, guest, and logout
+|   |-- catalog.py                      Catalog, favorites, and downloads
+|   |-- public.py                       Dashboard, announcements, and contact
+|   |-- mixins.py                       Context and staff permission mixins
+|   |-- staff.py                        Stable administrator-view import facade
+|   |-- staff_dashboard.py              Administrator homepage
+|   |-- staff_crud.py                   Resource and announcement CRUD
+|   |-- staff_accounts.py               Accounts and download records
+|   +-- staff_ai.py                     AI Detection workflow
+|-- migrations/                         Database schema history
+|-- management/commands/                Administrative CLI commands
++-- tests/                              Automated behavior and security tests
 
-The administrator login is intentionally not linked from the public site. To
-create an administrator and sign in locally:
+templates/library/
+|-- admin/                              Administrator forms and AI Detection
+|-- includes/                           Shared template fragments
++-- *.html                              Public and role-aware pages
 
-1. Open `.env` and find `DJANGO_ADMIN_PATH`. Set it to a private path if it is
-   still using the example value. Use only the path segment, without `/` at the
-   beginning or end:
+library/static/library/
+|-- css/                                Shared and role-specific styles
++-- js/app.js                           Presentation-only browser behavior
+~~~
 
-   ```dotenv
-   DJANGO_ADMIN_PATH=your-private-admin-path
-   ```
+library.views.staff re-exports the administrator view classes. This facade keeps
+route imports stable while each implementation lives in its
+responsibility-specific file.
 
-2. With PostgreSQL running and the virtual environment activated, apply the
-   migrations and create a superuser:
+## Usage tracking and audit history
 
-   ```powershell
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
+WebsiteUsageMiddleware delegates to WebsiteUsageTracker. A visit is tracked for
+authenticated users and guest-mode sessions. Requests separated by more than
+15 minutes start a new visit. Reported duration is approximate active browsing
+time, not surveillance of activity outside ATLAS.
 
-   Enter the administrator email and a unique password when prompted. The
-   seeded student and teacher accounts are not administrators.
-
-3. Start Django:
-
-   ```powershell
-   python manage.py runserver
-   ```
-
-4. Replace the final path below with the exact value of `DJANGO_ADMIN_PATH` and
-   open it in a browser:
-
-   ```text
-   http://127.0.0.1:8000/your-private-admin-path/
-   ```
-
-5. Sign in with the superuser credentials. Django Admin opens first. Use the
-   **View site** link and then open <http://127.0.0.1:8000/staff/> for the branded
-   ATLAS Administrator Portal. Once signed in, `/staff/` uses the same session.
-
-Both `/staff/` and Django Admin require an active staff or superuser account.
-The branded staff account form can create students and teachers only; create
-additional administrators with `python manage.py createsuperuser` or Django
-Admin. Keep `DJANGO_ADMIN_PATH` private and use a different value in production.
-Passwords are never stored in browser storage or in plain text.
+ActivityRecorder stores create, update, delete, and download events displayed
+in the administrator history panel. Records created before the audit feature
+was installed are not reconstructed retroactively.
 
 ## Important commands
 
-```powershell
+~~~powershell
 python manage.py check
 python manage.py check_database
 python manage.py makemigrations --check --dry-run
 python manage.py test
 python manage.py collectstatic --noinput
-```
+~~~
 
-## Project layout
+Focused administrator tests:
 
-```text
-atlas/                          Django configuration and root URLs
-library/
-|-- models.py                  Domain entities and persistence rules
-|-- forms.py                   Validation and form objects
-|-- services/                  Reusable business/query services
-|-- views/                     Class-based views grouped by feature
-|   |-- authentication.py      Registration, login, and sessions
-|   |-- catalog.py             Catalog, favorites, and downloads
-|   |-- public.py              Dashboard, announcements, and contact
-|   `-- staff.py               Staff portal and CRUD workflows
-|-- migrations/                Database schema history
-|-- management/commands/       Administrative CLI commands
-`-- tests/                     Automated behavior tests
-templates/library/             Server-rendered page templates
-library/static/library/        Application CSS and JavaScript
-legacy/prototype/              Archived pre-Django browser prototype
-scripts/                       Local development automation
-```
-
-The application follows Django's OOP conventions: models and forms are classes,
-HTTP behavior uses class-based views, common authorization/context behavior uses
-mixins, and query/navigation logic lives in service objects. Dependencies flow
-from views to services and models; models do not depend on the presentation
-layer.
-
-The original standalone `index.html`, `admin.html`, and browser-only
-JavaScript are preserved under `legacy/prototype/` for reference. Django does
-not load them. The active application is served from `templates/library/`,
-`library/views/`, and `library/static/library/`.
+~~~powershell
+python manage.py test library.tests.test_staff_views library.tests.test_staff_features
+~~~
 
 ## Production checklist
 
-Set a unique secret and production host values in the deployment environment:
-
-```dotenv
-DJANGO_SECRET_KEY=use-a-long-random-production-secret
+~~~dotenv
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=library.example.edu
 DJANGO_CSRF_TRUSTED_ORIGINS=https://library.example.edu
@@ -194,8 +275,19 @@ CSRF_COOKIE_SECURE=True
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=True
-```
+DB_SSL_REQUIRE=True
+~~~
 
-Only enable HSTS after HTTPS is working for the domain. Also configure durable
-media storage for uploaded resources, run migrations and `collectstatic`, and
-replace all demo passwords before exposing the site publicly.
+Also:
+
+- Use a unique production DJANGO_SECRET_KEY.
+- Configure real SMTP credentials and test delivery.
+- Use durable media storage for uploaded resources.
+- Run migrations and collectstatic.
+- Replace demonstration passwords.
+- Keep DJANGO_ADMIN_PATH private.
+- Enable HSTS only after HTTPS works correctly.
+
+The archived browser-only prototype remains under legacy/ for reference. Django
+serves the active application from library/, templates/library/, and
+library/static/library/.

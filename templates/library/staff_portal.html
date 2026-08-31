@@ -8,6 +8,7 @@
   {% url 'library:staff_item_create' as staff_item_create_url %}
   {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
   {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
   {% url 'library:catalog' as catalog_url %}
   {% url 'library:announcements' as announcements_url %}
   {% url 'admin:index' as django_admin_url %}
@@ -17,7 +18,6 @@
       <div>
         <span class="section-kicker">Archive management</span>
         <h1><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator Portal</h1>
-        <p>Manage ATLAS resources, announcements, and authorized accounts.</p>
       </div>
       <div class="staff-header-actions">
         <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
@@ -30,6 +30,17 @@
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-download" aria-hidden="true"></i></span><strong>{{ download_count|default:0 }}</strong><span>Downloads recorded</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open support messages</span></article>
+    </section>
+
+
+    <section class="staff-service-card" aria-labelledby="aiDetectionServiceHeading">
+      <span class="staff-service-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+      <div>
+        <span class="section-kicker">Administrator service</span>
+        <h2 id="aiDetectionServiceHeading">AI Detection</h2>
+        <p>Review writing patterns, vocabulary diversity, sentence variation, and repeated phrasing.</p>
+      </div>
+      <a class="btn-register-admin" href="{{ staff_ai_detection_url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i> Open service</a>
     </section>
 
     <div class="staff-management-grid">
@@ -75,7 +86,7 @@
               {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
               {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
               <article>
-                <div><strong>{{ announcement.title }}</strong><small>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display|default:announcement.category }}</small></div>
+                <div><strong>{{ announcement.title }}</strong><small>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display|default:announcement.category }}{% if not announcement.is_published %} · Draft{% endif %}</small></div>
                 <div class="resource-actions">
                   <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
                   <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’?">
@@ -92,16 +103,40 @@
 
     <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
       <div class="user-monitoring-header">
-        <div><span class="section-kicker">Account activity</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2><p>Review registered accounts without exposing passwords or verification codes.</p></div>
+        <div><span class="section-kicker">Accounts</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2></div>
         <a class="btn-register-admin" href="{{ staff_user_create_url|default:'#' }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
       </div>
-      <div class="usage-count-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i> Each normalized email is counted once. Sign-ins update the existing account record.</div>
+
+      <form class="staff-filter-bar" method="get" action="#users">
+        <div class="form-group">
+          <label for="userSearch">Search users</label>
+          <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Name or email">
+        </div>
+        <div class="form-group">
+          <label for="userRole">Account type</label>
+          <select class="form-select" id="userRole" name="user_role">
+            <option value="">All account types</option>
+            {% for value, label in user_role_choices %}<option value="{{ value }}"{% if selected_user_role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="userSort">Created date</label>
+          <select class="form-select" id="userSort" name="user_sort">
+            <option value="newest"{% if selected_user_sort == 'newest' %} selected{% endif %}>Newest to oldest</option>
+            <option value="oldest"{% if selected_user_sort == 'oldest' %} selected{% endif %}>Oldest to newest</option>
+          </select>
+        </div>
+        <button class="btn-register-admin" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Apply</button>
+        {% if selected_user_query or selected_user_role or selected_user_sort == 'oldest' %}<a class="btn btn-outline-secondary" href="{% url 'library:staff_portal' %}#users">Clear</a>{% endif %}
+      </form>
+
       <div class="user-table-card">
         <div class="table-responsive">
           <table class="user-activity-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Registered</th><th>Last sign-in</th><th>Downloads</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Date created</th><th>Last sign-in</th><th>Downloads</th><th>Actions</th></tr></thead>
             <tbody>
               {% for account in users %}
+                {% url 'library:staff_user_delete' account.pk as user_delete_url %}
                 <tr>
                   <td><strong>{{ account.get_full_name|default:account.username|default:'Unnamed user' }}</strong></td>
                   <td>{{ account.email }}</td>
@@ -112,17 +147,98 @@
                       <span class="user-role-badge {{ account.profile.role|default:'student' }}">{{ account.profile.get_role_display|default:'Student' }}</span>
                     {% endif %}
                   </td>
-                  <td>{{ account.date_joined|date:'M j, Y' }}</td>
+                  <td>{{ account.date_joined|date:'M j, Y, g:i a' }}</td>
                   <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
-                  <td><span class="login-count-badge">{{ account.download_events.count|default:0 }}</span></td>
+                  <td><span class="login-count-badge">{{ account.download_total|default:0 }}</span></td>
+                  <td class="resource-actions">
+                    {% if account.pk != request.user.pk and not account.is_superuser %}
+                      <form action="{{ user_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone.">
+                        {% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-user-minus" aria-hidden="true"></i> Delete</button>
+                      </form>
+                    {% else %}<span class="protected-account">Protected</span>{% endif %}
+                  </td>
                 </tr>
               {% empty %}
-                <tr><td colspan="6" class="empty-user-row">No registered accounts yet.</td></tr>
+                <tr><td colspan="7" class="empty-user-row">No accounts match these filters.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
     </section>
+
+    <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
+      <div class="staff-panel-heading">
+        <div><span class="section-kicker">Usage analytics</span><h2 id="usageHeading"><i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage</h2></div>
+        <form class="analytics-date-form" method="get" action="#usage">
+          <label for="analyticsDate">Date</label>
+          <input class="form-control" id="analyticsDate" type="date" name="analytics_date" value="{{ analytics_date }}">
+          <button class="btn-register-admin" type="submit">View</button>
+        </form>
+      </div>
+      <div class="usage-analytics-grid">
+        <div class="usage-chart-wrap">
+          <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
+            <span>Time by<br>account type</span>
+          </div>
+          <ul class="usage-chart-legend">
+            {% for usage in role_usage %}
+              <li><span class="usage-swatch" style="background: {{ usage.color }};"></span><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}%</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="table-responsive">
+          <table class="staff-compact-table">
+            <caption>Visit history for {{ analytics_date }}</caption>
+            <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th></tr></thead>
+            <tbody>
+              {% for visit in visit_history %}
+                <tr>
+                  <td><strong>{{ visit.display_name }}</strong></td>
+                  <td><span class="user-role-badge {{ visit.role }}">{{ visit.get_role_display }}</span></td>
+                  <td>{{ visit.started_at|date:'g:i a' }}</td>
+                  <td>{{ visit.last_seen_at|date:'g:i a' }}</td>
+                  <td>{% widthratio visit.duration_seconds 60 1 %} min</td>
+                </tr>
+              {% empty %}<tr><td colspan="5" class="empty-user-row">No website visits recorded for this date.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="staff-management-grid staff-history-grid">
+      <section class="staff-panel" id="downloads" aria-labelledby="downloadsHeading">
+        <div class="staff-panel-heading"><div><span class="section-kicker">Records</span><h2 id="downloadsHeading">Download history</h2></div></div>
+        <div class="table-responsive">
+          <table class="staff-compact-table">
+            <thead><tr><th>Resource</th><th>User</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for download in downloads %}
+                {% url 'library:staff_download_delete' download.pk as download_delete_url %}
+                <tr>
+                  <td><strong>{{ download.item.title }}</strong></td>
+                  <td>{{ download.user.email|default:'Unknown user' }}</td>
+                  <td>{{ download.downloaded_at|date:'M j, Y, g:i a' }}</td>
+                  <td><form action="{{ download_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete this download record?">{% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete download record"><i class="fas fa-trash" aria-hidden="true"></i></button></form></td>
+                </tr>
+              {% empty %}<tr><td colspan="4" class="empty-user-row">No downloads recorded.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="staff-panel" id="history" aria-labelledby="historyHeading">
+        <div class="staff-panel-heading"><div><span class="section-kicker">Audit trail</span><h2 id="historyHeading">Activity history</h2></div></div>
+        <div class="activity-history-list">
+          {% for entry in activity_history %}
+            <article>
+              <span class="activity-action {{ entry.action }}">{{ entry.get_action_display }}</span>
+              <div><strong>{{ entry.object_type|capfirst }} · {{ entry.description }}</strong><small>{{ entry.actor.get_full_name|default:entry.actor.email|default:'System' }} · {{ entry.occurred_at|date:'M j, Y, g:i a' }}</small></div>
+            </article>
+          {% empty %}<p class="staff-empty-copy">No tracked changes yet.</p>{% endfor %}
+        </div>
+      </section>
+    </div>
   </div>
 {% endblock %}

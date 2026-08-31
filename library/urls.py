@@ -26,6 +26,11 @@ urlpatterns = [
     path("contact/", views.ContactView.as_view(), name="contact"),
     path("staff/", views.StaffPortalView.as_view(), name="staff_portal"),
     path(
+        "staff/ai-detection/",
+        views.StaffAIDetectionView.as_view(),
+        name="staff_ai_detection",
+    ),
+    path(
         "staff/library/add/",
         views.StaffItemCreateView.as_view(),
         name="staff_item_create",
@@ -59,5 +64,15 @@ urlpatterns = [
         "staff/users/add/",
         views.StaffUserCreateView.as_view(),
         name="staff_user_create",
+    ),
+    path(
+        "staff/users/<int:pk>/delete/",
+        views.StaffUserDeleteView.as_view(),
+        name="staff_user_delete",
+    ),
+    path(
+        "staff/downloads/<int:pk>/delete/",
+        views.StaffDownloadDeleteView.as_view(),
+        name="staff_download_delete",
     ),
 ]

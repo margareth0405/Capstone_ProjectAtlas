@@ -11,7 +11,6 @@
     <div>
       <span class="hero-tag"><i class="fas fa-bullhorn" aria-hidden="true"></i> LATEST UPDATES</span>
       <h1>Announcements</h1>
-      <p>Stay informed about ATLAS resources, events, and service news.</p>
     </div>
     <div class="announcement-header-actions">
       <span class="announcement-total"><i class="fas fa-bullhorn" aria-hidden="true"></i> {{ announcements|length }} total</span>
@@ -37,7 +36,7 @@
     <article class="featured-announcement django-featured-announcement">
       <div class="featured-mark"><i class="fas fa-star" aria-hidden="true"></i> Featured</div>
       <div class="announcement-card-heading">
-        <span class="announcement-icon" aria-hidden="true">{{ featured_announcement.icon|default:'📚' }}</span>
+        <span class="announcement-icon" aria-hidden="true">{{ featured_announcement.icon|default:'ðŸ“š' }}</span>
         <div>
           <h2>{{ featured_announcement.title }}</h2>
           <div class="announcement-meta">
@@ -68,7 +67,7 @@
           {% url 'library:staff_announcement_delete' announcement.pk as staff_announcement_delete_url %}
           <article class="announcement-item django-announcement-card">
             <div class="announcement-card-heading">
-              <span class="announcement-icon" aria-hidden="true">{{ announcement.icon|default:'📢' }}</span>
+              <span class="announcement-icon" aria-hidden="true">{{ announcement.icon|default:'ðŸ“¢' }}</span>
               <div>
                 <div class="announcement-title-line">
                   <h3>{{ announcement.title }}</h3>

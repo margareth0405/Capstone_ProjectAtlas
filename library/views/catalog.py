@@ -11,7 +11,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import TemplateView
 
-from library.models import DownloadEvent, Favorite, LibraryItem
+from library.models import ActivityLog, DownloadEvent, Favorite, LibraryItem
+from library.services.activity import ActivityRecorder
 from library.services import CatalogQueryService, SafeRedirectService
 
 from .mixins import PageContextMixin
@@ -110,11 +111,18 @@ class DownloadView(View):
             if forwarded
             else request.META.get("REMOTE_ADDR")
         )
-        DownloadEvent.objects.create(
+        event = DownloadEvent.objects.create(
             user=request.user,
             item=item,
             ip_address=ip_address or None,
             user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+        )
+        ActivityRecorder.record(
+            actor=request.user,
+            action=ActivityLog.Action.DOWNLOAD,
+            object_type="library resource",
+            object_id=item.pk,
+            description=f"{item.title} (download record #{event.pk})",
         )
         if item.resource:
             return FileResponse(

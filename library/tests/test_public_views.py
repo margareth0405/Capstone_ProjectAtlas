@@ -1,6 +1,8 @@
 """Guest pages and member-only catalog actions."""
 
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 
 from library.models import ContactMessage, DownloadEvent, Favorite
@@ -35,6 +37,10 @@ class GuestPageTests(LibraryTestCase):
         self.assertNotContains(response, hidden.title)
 
 
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    SUPPORT_EMAIL="atlasttshs@gmail.com",
+)
 class ContactTests(LibraryTestCase):
     def contact_payload(self):
         return {
@@ -59,6 +65,13 @@ class ContactTests(LibraryTestCase):
         message = ContactMessage.objects.get()
         self.assertEqual(message.email, "visitor@example.com")
         self.assertIsNone(message.user)
+        self.assertEqual(len(mail.outbox), 1)
+        delivered = mail.outbox[0]
+        self.assertEqual(delivered.to, ["atlasttshs@gmail.com"])
+        self.assertEqual(delivered.reply_to, ["visitor@example.com"])
+        self.assertIn("Name: A Library Visitor", delivered.body)
+        self.assertIn("Email: visitor@example.com", delivered.body)
+        self.assertIn("Please help me find a research paper.", delivered.body)
 
     def test_authenticated_contact_message_is_linked_to_user(self):
         user = self.create_user(email="contact-user@example.com")

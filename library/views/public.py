@@ -1,5 +1,7 @@
 """Dashboard, announcements, contact, and machine-readable public views."""
 
+import logging
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
@@ -11,8 +13,11 @@ from django.views.generic import TemplateView
 
 from library.forms import ContactForm
 from library.models import Announcement, LibraryItem
+from library.services.contact import ContactEmailService
 
 from .mixins import PageContextMixin
+
+logger = logging.getLogger(__name__)
 
 
 class RobotsView(View):
@@ -76,6 +81,7 @@ class AnnouncementsView(PageContextMixin, TemplateView):
 class ContactView(PageContextMixin, TemplateView):
     template_name = "library/contact.html"
     active_page = "contact"
+    email_service_class = ContactEmailService
 
     def get_initial(self):
         if self.request.user.is_authenticated:
@@ -96,6 +102,8 @@ class ContactView(PageContextMixin, TemplateView):
                 "contact_email": self.request.user.email
                 if self.request.user.is_authenticated
                 else "",
+                "support_email": settings.SUPPORT_EMAIL,
+                "support_hours": settings.SUPPORT_HOURS,
             }
         )
         return context
@@ -106,7 +114,28 @@ class ContactView(PageContextMixin, TemplateView):
             contact_message = form.save(commit=False)
             if request.user.is_authenticated:
                 contact_message.user = request.user
-            contact_message.save()
-            messages.success(request, "Your message has been sent to the ATLAS team.")
-            return redirect("library:contact")
+
+            account_email = (
+                request.user.email if request.user.is_authenticated else "Guest visitor"
+            )
+            email_service = self.email_service_class()
+            try:
+                email_service.deliver(
+                    contact_message,
+                    account_email=account_email,
+                )
+            except Exception:
+                logger.exception("Unable to deliver an ATLAS contact message.")
+                form.add_error(
+                    None,
+                    "We could not send your message right now. Please email "
+                    f"{settings.SUPPORT_EMAIL} directly.",
+                )
+            else:
+                contact_message.save()
+                messages.success(
+                    request,
+                    f"Your message has been sent to {settings.SUPPORT_EMAIL}.",
+                )
+                return redirect("library:contact")
         return self.render_to_response(self.get_context_data(form=form))

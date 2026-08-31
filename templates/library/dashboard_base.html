@@ -21,6 +21,7 @@
   {% url 'library:contact' as contact_url %}
   {% url 'library:logout' as logout_url %}
   {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
   {% url 'library:login' as login_url %}
   {% url 'account_email' as account_email_url %}
 
@@ -74,6 +75,14 @@
           </a>
         {% endif %}
 
+        {% if active_role == "administrator" or request.user.is_staff %}
+          <a
+            href="{{ staff_ai_detection_url|default:'#' }}"
+            {% if active_page == 'ai_detection' %}class="active" aria-current="page"{% endif %}
+          >
+            <i class="fas fa-robot" aria-hidden="true"></i> AI DETECTION
+          </a>
+        {% endif %}
         <a
           href="{{ announcements_url|default:'#' }}"
           {% if active_page == 'announcements' %}class="active" aria-current="page"{% endif %}

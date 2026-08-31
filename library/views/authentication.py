@@ -12,7 +12,8 @@ from allauth.account import app_settings as allauth_account_settings
 from allauth.account.utils import complete_signup, perform_login, setup_user_email
 
 from library.forms import RegistrationForm, RoleLoginForm
-from library.models import Profile
+from library.models import ActivityLog, Profile
+from library.services.activity import ActivityRecorder
 from library.services import PageContextBuilder, SafeRedirectService
 
 
@@ -57,6 +58,13 @@ class RegisterView(RoleSelectionMixin, View):
         )
         if request.method == "POST" and form.is_valid():
             user = form.save()
+            ActivityRecorder.record(
+                actor=user,
+                action=ActivityLog.Action.CREATE,
+                object_type="user account",
+                object_id=user.pk,
+                description=user.email,
+            )
             setup_user_email(request, user, [])
             request.session.pop("guest_mode", None)
             messages.success(request, "Your ATLAS account is ready.")

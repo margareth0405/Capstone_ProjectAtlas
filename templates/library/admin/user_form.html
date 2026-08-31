@@ -7,7 +7,7 @@
 {% block dashboard_content %}
   {% url 'library:staff_portal' as staff_portal_url %}
   <div class="admin-form-page">
-    <header class="django-page-header"><div><span class="section-kicker">Restricted action</span><h1>Create an authorized account</h1><p>Passwords must meet the server’s configured security requirements.</p></div></header>
+    <header class="django-page-header"><div><span class="section-kicker">Restricted action</span><h1>Create an authorized account</h1></div></header>
     <div class="usage-count-note" role="note"><i class="fas fa-lock" aria-hidden="true"></i> Only an authenticated staff member can use this page. New passwords are securely hashed by Django.</div>
     <form method="post" class="admin-object-form" novalidate>
       {% csrf_token %}

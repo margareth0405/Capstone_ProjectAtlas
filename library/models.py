@@ -200,6 +200,74 @@ class ContactMessage(models.Model):
     def __str__(self):
         return f"{self.subject} — {self.email}"
 
+class ActivityLog(models.Model):
+    """Durable staff-facing history for important ATLAS changes and downloads."""
+
+    class Action(models.TextChoices):
+        CREATE = "create", "Created"
+        UPDATE = "update", "Updated"
+        DELETE = "delete", "Deleted"
+        DOWNLOAD = "download", "Downloaded"
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="atlas_activity",
+    )
+    action = models.CharField(max_length=20, choices=Action.choices, db_index=True)
+    object_type = models.CharField(max_length=40, db_index=True)
+    object_id = models.CharField(max_length=64, blank=True)
+    description = models.CharField(max_length=500)
+    occurred_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-occurred_at", "-id")
+
+    def __str__(self):
+        return f"{self.get_action_display()} {self.object_type}: {self.description}"
+
+
+class WebsiteVisit(models.Model):
+    """Approximate active time for an authenticated user or guest browser session."""
+
+    class Role(models.TextChoices):
+        GUEST = "guest", "Guest"
+        STUDENT = "student", "Student"
+        TEACHER = "teacher", "Teacher"
+        ADMINISTRATOR = "administrator", "Administrator"
+
+    session_key = models.CharField(max_length=40, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="website_visits",
+    )
+    role = models.CharField(max_length=20, choices=Role.choices, db_index=True)
+    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_seen_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-last_seen_at",)
+        indexes = [
+            models.Index(
+                fields=("session_key", "started_at"), name="visit_session_start_idx"
+            )
+        ]
+
+    @property
+    def display_name(self):
+        if self.user:
+            return self.user.get_full_name() or self.user.email or self.user.username
+        return "Guest visitor"
+
+    def __str__(self):
+        return f"{self.display_name} ({self.get_role_display()})"
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def ensure_user_profile(sender, instance, created, **kwargs):

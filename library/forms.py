@@ -154,6 +154,20 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
         self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
 
 
+class AIDetectionForm(StyledFormMixin, forms.Form):
+    text = forms.CharField(
+        min_length=100,
+        max_length=20000,
+        label="Text to analyze",
+        help_text="Paste between 100 and 20,000 characters.",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 14,
+                "placeholder": "Paste an essay, report, or other writing here...",
+            }
+        ),
+    )
+
 class ContactForm(StyledFormMixin, forms.ModelForm):
     website = forms.CharField(required=False, widget=forms.HiddenInput)
 
