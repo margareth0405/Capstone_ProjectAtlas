@@ -48,7 +48,7 @@
       </div>
     {% endif %}
 
-    <form class="library-filters" action="{{ catalog_url|default:'' }}" method="get" role="search">
+    <form class="library-filters" action="{{ catalog_url|default:'' }}" method="get" role="search" data-auto-submit>
       <div class="filter-group">
         <label for="collectionFilter">Collection type</label>
         <select id="collectionFilter" name="collection" class="form-select">
@@ -90,7 +90,6 @@
       </div>
 
       <div class="filter-actions">
-        <button class="btn-filter" type="submit"><i class="fas fa-search" aria-hidden="true"></i> Apply</button>
         <a class="btn-filter btn-filter-outline" href="{{ catalog_url|default:'#' }}"><i class="fas fa-undo" aria-hidden="true"></i> Clear</a>
       </div>
     </form>

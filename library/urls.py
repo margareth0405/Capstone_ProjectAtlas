@@ -13,6 +13,11 @@ urlpatterns = [
     path("guest/", views.GuestLoginView.as_view(), name="guest_login"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
+    path(
+        "usage/heartbeat/",
+        views.UsageHeartbeatView.as_view(),
+        name="usage_heartbeat",
+    ),
     path("library/", views.CatalogView.as_view(), name="catalog"),
     path("library/<int:pk>/", views.ItemDetailView.as_view(), name="item_detail"),
     path(

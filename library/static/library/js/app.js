@@ -112,6 +112,64 @@
     });
   }
 
+
+  function initializeAutomaticFilters() {
+    document.querySelectorAll("form[data-auto-submit]").forEach(function (form) {
+      var timer;
+
+      function submitForm() {
+        if (form.dataset.submitting === "true") return;
+        form.dataset.submitting = "true";
+        form.requestSubmit();
+      }
+
+      form.querySelectorAll("select, input[type='date']").forEach(function (field) {
+        field.addEventListener("change", submitForm);
+      });
+
+      form.querySelectorAll("input[type='search']").forEach(function (field) {
+        field.addEventListener("input", function () {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(submitForm, 450);
+        });
+      });
+    });
+  }
+
+  function initializeUsageHeartbeat() {
+    var shell = document.querySelector("[data-usage-heartbeat-url]");
+    if (!shell) return;
+
+    var url = shell.dataset.usageHeartbeatUrl;
+    var csrfToken = shell.dataset.usageCsrfToken;
+    if (!url || !csrfToken || csrfToken === "NOTPROVIDED") return;
+
+    var lastPingAt = 0;
+
+    function ping() {
+      if (document.visibilityState !== "visible" || !navigator.onLine) return;
+      lastPingAt = Date.now();
+      window.fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      }).catch(function () {});
+    }
+
+    window.setInterval(ping, 45000);
+    document.addEventListener("visibilitychange", function () {
+      if (
+        document.visibilityState === "visible"
+        && Date.now() - lastPingAt > 30000
+      ) {
+        ping();
+      }
+    });
+  }
   document.addEventListener("DOMContentLoaded", function () {
     initializeMessages();
     initializeSidebar();
@@ -119,5 +177,7 @@
     initializePasswordToggles();
     initializeConfirmations();
     initializeCopyAndShare();
+    initializeAutomaticFilters();
+    initializeUsageHeartbeat();
   });
 })();

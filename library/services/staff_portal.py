@@ -123,6 +123,22 @@ class UsageAnalytics:
         }
 
     @staticmethod
+    def summary(visits):
+        totals = visits.aggregate(
+            total_seconds=Sum("duration_seconds"),
+            total_page_views=Sum("page_views"),
+            sessions=Count("id"),
+            signed_in_users=Count("user", distinct=True),
+        )
+        guest_sessions = visits.filter(user__isnull=True).count()
+        return {
+            "minutes": round((totals["total_seconds"] or 0) / 60, 1),
+            "page_views": totals["total_page_views"] or 0,
+            "sessions": totals["sessions"] or 0,
+            "visitors": (totals["signed_in_users"] or 0) + guest_sessions,
+        }
+
+    @staticmethod
     def chart_gradient(role_usage):
         cursor = 0
         stops = []
@@ -160,6 +176,7 @@ class StaffPortalContextService:
         all_users = get_user_model().objects.select_related("profile")
         visits = self.analytics.visits()
         role_usage = self.analytics.role_usage(visits)
+        usage_summary = self.analytics.summary(visits)
         return {
             "staff_stats": self._staff_stats(all_users),
             "items": LibraryItem.objects.order_by("-created_at"),
@@ -174,6 +191,7 @@ class StaffPortalContextService:
             "activity_history": ActivityLog.objects.select_related("actor")[:60],
             "visit_history": visits.order_by("-last_seen_at")[:50],
             "role_usage": role_usage,
+            "usage_summary": usage_summary,
             "usage_chart_gradient": self.analytics.chart_gradient(role_usage),
             "analytics_date": self.analytics.selected_date.isoformat(),
             "selected_user_query": self.directory.query,

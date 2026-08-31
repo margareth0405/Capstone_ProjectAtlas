@@ -8,7 +8,7 @@ from library.models import Profile, WebsiteVisit
 
 
 class WebsiteUsageTracker:
-    """Track approximate active time for an authenticated or guest session."""
+    """Track active time, page views, and the latest page for one session."""
 
     idle_limit = timedelta(minutes=15)
     model = WebsiteVisit
@@ -18,7 +18,7 @@ class WebsiteUsageTracker:
             request.user.is_authenticated or request.session.get("guest_mode")
         ) and not request.path.startswith(("/static/", "/media/"))
 
-    def track(self, request):
+    def track(self, request, *, page_view=False):
         if not self.should_track(request):
             return None
         if not request.session.session_key:
@@ -27,6 +27,7 @@ class WebsiteUsageTracker:
         now = timezone.now()
         user = request.user if request.user.is_authenticated else None
         role = self.role_for(user)
+        path = request.path[:255] if page_view else ""
         visit = (
             self.model.objects.filter(
                 session_key=request.session.session_key,
@@ -41,6 +42,8 @@ class WebsiteUsageTracker:
                 session_key=request.session.session_key,
                 user=user,
                 role=role,
+                page_views=1 if page_view else 0,
+                last_path=path,
                 ip_address=self.ip_address(request),
             )
 
@@ -48,7 +51,12 @@ class WebsiteUsageTracker:
         visit.duration_seconds += min(gap, int(self.idle_limit.total_seconds()))
         visit.last_seen_at = now
         visit.role = role
-        visit.save(update_fields=("duration_seconds", "last_seen_at", "role"))
+        update_fields = ["duration_seconds", "last_seen_at", "role"]
+        if page_view:
+            visit.page_views += 1
+            visit.last_path = path
+            update_fields.extend(("page_views", "last_path"))
+        visit.save(update_fields=update_fields)
         return visit
 
     @staticmethod

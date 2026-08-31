@@ -39,7 +39,7 @@ class GuestPageTests(LibraryTestCase):
 
 @override_settings(
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-    SUPPORT_EMAIL="atlasttshs@gmail.com",
+    SUPPORT_EMAIL="atlastshs@gmail.com",
 )
 class ContactTests(LibraryTestCase):
     def contact_payload(self):
@@ -67,7 +67,7 @@ class ContactTests(LibraryTestCase):
         self.assertIsNone(message.user)
         self.assertEqual(len(mail.outbox), 1)
         delivered = mail.outbox[0]
-        self.assertEqual(delivered.to, ["atlasttshs@gmail.com"])
+        self.assertEqual(delivered.to, ["atlastshs@gmail.com"])
         self.assertEqual(delivered.reply_to, ["visitor@example.com"])
         self.assertIn("Name: A Library Visitor", delivered.body)
         self.assertIn("Email: visitor@example.com", delivered.body)

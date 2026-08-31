@@ -5,6 +5,7 @@ from .ai_detection import WritingPatternAnalyzer
 from .catalog import CatalogQueryService
 from .contact import ContactDeliveryError, ContactEmailService
 from .context import PageContextBuilder
+from .documents import DocumentExtractionError, DocumentTextExtractor
 from .navigation import SafeRedirectService
 from .staff_portal import (
     StaffPortalContextService,
@@ -18,6 +19,8 @@ __all__ = (
     "CatalogQueryService",
     "ContactDeliveryError",
     "ContactEmailService",
+    "DocumentExtractionError",
+    "DocumentTextExtractor",
     "PageContextBuilder",
     "SafeRedirectService",
     "StaffPortalContextService",

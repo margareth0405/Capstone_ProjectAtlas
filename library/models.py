@@ -250,6 +250,8 @@ class WebsiteVisit(models.Model):
     started_at = models.DateTimeField(auto_now_add=True, db_index=True)
     last_seen_at = models.DateTimeField(auto_now_add=True, db_index=True)
     duration_seconds = models.PositiveIntegerField(default=0)
+    page_views = models.PositiveIntegerField(default=0)
+    last_path = models.CharField(max_length=255, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:

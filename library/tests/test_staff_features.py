@@ -1,10 +1,18 @@
 """Regression coverage for staff filters, deletion, audit history, and analytics."""
 
+from datetime import timedelta
+from io import BytesIO
+from unittest.mock import patch
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
+from docx import Document
+
 from library.models import ActivityLog, Profile, WebsiteVisit
 from library.tests.base import LibraryTestCase
+from library.views.staff_ai import StaffAIDetectionView
 
 
 class StaffManagementFeatureTests(LibraryTestCase):
@@ -105,6 +113,9 @@ class AIDetectionServiceTests(LibraryTestCase):
 
         self.assertEqual(page_response.status_code, 200)
         self.assertContains(page_response, "AI DETECTION")
+        self.assertContains(page_response, "PDF")
+        self.assertContains(page_response, "Word (.docx)")
+        self.assertContains(page_response, 'enctype="multipart/form-data"')
         self.assertContains(portal_response, "AI Detection")
         self.assertContains(portal_response, self.url)
 
@@ -123,3 +134,70 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertIn("detection_result", response.context)
         self.assertGreater(response.context["detection_result"]["word_count"], 20)
         self.assertContains(response, "Vocabulary diversity")
+    def test_staff_can_analyze_word_document_without_saving_it(self):
+        self.client.force_login(self.staff)
+        document = Document()
+        document.add_paragraph(
+            "Research writing should explain evidence carefully and compare "
+            "multiple reliable sources. Students need to identify limitations, "
+            "connect each claim to supporting information, and communicate the "
+            "reasoning that leads to a conclusion. These steps make an academic "
+            "argument easier for readers to examine and understand."
+        )
+        stream = BytesIO()
+        document.save(stream)
+        upload = SimpleUploadedFile(
+            "research-review.docx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+
+        response = self.client.post(self.url, {"document": upload})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("detection_result", response.context)
+        self.assertEqual(response.context["detection_source"], "research-review.docx")
+        self.assertContains(response, "research-review.docx")
+
+    def test_ai_detection_rejects_unsupported_file_type(self):
+        self.client.force_login(self.staff)
+        upload = SimpleUploadedFile(
+            "notes.txt",
+            b"This unsupported text file contains enough content for validation.",
+            content_type="text/plain",
+        )
+
+        response = self.client.post(self.url, {"document": upload})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("detection_result", response.context)
+        self.assertContains(response, "Upload a PDF or Word (.docx) document.")
+    def test_staff_can_submit_pdf_to_document_extractor(self):
+        self.client.force_login(self.staff)
+        upload = SimpleUploadedFile(
+            "research-paper.pdf",
+            b"%PDF-1.4 test fixture",
+            content_type="application/pdf",
+        )
+
+        class StubPdfExtractor:
+            def extract(self, uploaded_file):
+                self.received_name = uploaded_file.name
+                return (
+                    "A PDF document can provide enough extracted academic text "
+                    "for the writing pattern analyzer to calculate vocabulary "
+                    "diversity and sentence variation. This test confirms that "
+                    "the administrator upload workflow sends PDF input through "
+                    "the configured document extraction service correctly."
+                )
+
+        with patch.object(
+            StaffAIDetectionView,
+            "extractor_class",
+            StubPdfExtractor,
+        ):
+            response = self.client.post(self.url, {"document": upload})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("detection_result", response.context)
+        self.assertEqual(response.context["detection_source"], "research-paper.pdf")

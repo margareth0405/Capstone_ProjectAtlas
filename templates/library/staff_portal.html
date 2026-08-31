@@ -36,9 +36,12 @@
     <section class="staff-service-card" aria-labelledby="aiDetectionServiceHeading">
       <span class="staff-service-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
       <div>
-        <span class="section-kicker">Administrator service</span>
         <h2 id="aiDetectionServiceHeading">AI Detection</h2>
-        <p>Review writing patterns, vocabulary diversity, sentence variation, and repeated phrasing.</p>
+        <div class="ai-service-formats" aria-label="Supported file formats">
+          <span><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</span>
+          <span><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</span>
+          <span><i class="fas fa-align-left" aria-hidden="true"></i> Text</span>
+        </div>
       </div>
       <a class="btn-register-admin" href="{{ staff_ai_detection_url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i> Open service</a>
     </section>
@@ -107,7 +110,7 @@
         <a class="btn-register-admin" href="{{ staff_user_create_url|default:'#' }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
       </div>
 
-      <form class="staff-filter-bar" method="get" action="#users">
+      <form class="staff-filter-bar" method="get" action="#users" data-auto-submit>
         <div class="form-group">
           <label for="userSearch">Search users</label>
           <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Name or email">
@@ -126,7 +129,6 @@
             <option value="oldest"{% if selected_user_sort == 'oldest' %} selected{% endif %}>Oldest to newest</option>
           </select>
         </div>
-        <button class="btn-register-admin" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Apply</button>
         {% if selected_user_query or selected_user_role or selected_user_sort == 'oldest' %}<a class="btn btn-outline-secondary" href="{% url 'library:staff_portal' %}#users">Clear</a>{% endif %}
       </form>
 
@@ -168,29 +170,40 @@
     </section>
 
     <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
-      <div class="staff-panel-heading">
+      <div class="staff-panel-heading usage-heading">
         <div><span class="section-kicker">Usage analytics</span><h2 id="usageHeading"><i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage</h2></div>
-        <form class="analytics-date-form" method="get" action="#usage">
+        <form class="analytics-date-form" method="get" action="#usage" data-auto-submit>
           <label for="analyticsDate">Date</label>
           <input class="form-control" id="analyticsDate" type="date" name="analytics_date" value="{{ analytics_date }}">
-          <button class="btn-register-admin" type="submit">View</button>
         </form>
       </div>
-      <div class="usage-analytics-grid">
-        <div class="usage-chart-wrap">
-          <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
-            <span>Time by<br>account type</span>
-          </div>
-          <ul class="usage-chart-legend">
-            {% for usage in role_usage %}
-              <li><span class="usage-swatch" style="background: {{ usage.color }};"></span><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}%</span></li>
-            {% endfor %}
-          </ul>
+
+      <div class="usage-summary-grid" aria-label="Usage summary for {{ analytics_date }}">
+        <article><i class="fas fa-clock" aria-hidden="true"></i><div><strong>{{ usage_summary.minutes }}</strong><span>Active minutes</span></div></article>
+        <article><i class="fas fa-window-restore" aria-hidden="true"></i><div><strong>{{ usage_summary.sessions }}</strong><span>Sessions</span></div></article>
+        <article><i class="fas fa-eye" aria-hidden="true"></i><div><strong>{{ usage_summary.page_views }}</strong><span>Page views</span></div></article>
+        <article><i class="fas fa-user-group" aria-hidden="true"></i><div><strong>{{ usage_summary.visitors }}</strong><span>Visitors</span></div></article>
+      </div>
+
+      <div class="usage-overview">
+        <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
+          <span>Active time<br>by role</span>
         </div>
+        <ul class="usage-chart-legend">
+          {% for usage in role_usage %}
+            <li>
+              <span class="usage-swatch" style="background: {{ usage.color }};"></span>
+              <div><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}%</span></div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="usage-history-panel">
+        <div class="usage-history-heading"><h3>Visit history</h3><span>{{ analytics_date }}</span></div>
         <div class="table-responsive">
           <table class="staff-compact-table">
-            <caption>Visit history for {{ analytics_date }}</caption>
-            <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th></tr></thead>
+            <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th><th>Page views</th><th>Last page</th></tr></thead>
             <tbody>
               {% for visit in visit_history %}
                 <tr>
@@ -199,8 +212,10 @@
                   <td>{{ visit.started_at|date:'g:i a' }}</td>
                   <td>{{ visit.last_seen_at|date:'g:i a' }}</td>
                   <td>{% widthratio visit.duration_seconds 60 1 %} min</td>
+                  <td>{{ visit.page_views }}</td>
+                  <td><code>{{ visit.last_path|default:'—' }}</code></td>
                 </tr>
-              {% empty %}<tr><td colspan="5" class="empty-user-row">No website visits recorded for this date.</td></tr>{% endfor %}
+              {% empty %}<tr><td colspan="7" class="empty-user-row">No website visits recorded for this date.</td></tr>{% endfor %}
             </tbody>
           </table>
         </div>

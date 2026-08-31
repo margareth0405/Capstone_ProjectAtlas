@@ -2,7 +2,13 @@
 
 from .authentication import GuestLoginView, LandingView, LoginView, LogoutView, RegisterView
 from .catalog import CatalogView, DownloadView, FavoriteToggleView, FavoritesView, ItemDetailView
-from .public import AnnouncementsView, ContactView, DashboardView, RobotsView
+from .public import (
+    AnnouncementsView,
+    ContactView,
+    DashboardView,
+    RobotsView,
+    UsageHeartbeatView,
+)
 from .staff import (
     StaffAIDetectionView,
     StaffAnnouncementCreateView,

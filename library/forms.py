@@ -155,11 +155,17 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
 
 
 class AIDetectionForm(StyledFormMixin, forms.Form):
+    """Accept one bounded text sample or supported in-memory document upload."""
+
+    maximum_upload_size = 10 * 1024 * 1024
+    supported_extensions = (".pdf", ".docx")
+
     text = forms.CharField(
+        required=False,
         min_length=100,
         max_length=20000,
-        label="Text to analyze",
-        help_text="Paste between 100 and 20,000 characters.",
+        label="Paste text",
+        help_text="Use 100 to 20,000 characters.",
         widget=forms.Textarea(
             attrs={
                 "rows": 14,
@@ -167,6 +173,36 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
             }
         ),
     )
+    document = forms.FileField(
+        required=False,
+        label="Upload a document",
+        help_text="Accepted formats: PDF and Word (.docx), up to 10 MB.",
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+        ),
+    )
+
+    def clean_document(self):
+        document = self.cleaned_data.get("document")
+        if not document:
+            return document
+        filename = document.name.lower()
+        if not filename.endswith(self.supported_extensions):
+            raise ValidationError("Upload a PDF or Word (.docx) document.")
+        if document.size > self.maximum_upload_size:
+            raise ValidationError("The document must be 10 MB or smaller.")
+        return document
+
+    def clean(self):
+        cleaned = super().clean()
+        text = cleaned.get("text")
+        document = cleaned.get("document")
+        if not text and not document:
+            raise ValidationError("Paste text or upload a PDF or Word document.")
+        if text and document:
+            raise ValidationError("Use either pasted text or one document, not both.")
+        return cleaned
+
 
 class ContactForm(StyledFormMixin, forms.ModelForm):
     website = forms.CharField(required=False, widget=forms.HiddenInput)

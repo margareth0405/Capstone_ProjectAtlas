@@ -27,6 +27,17 @@ class RobotsView(View):
         )
 
 
+class UsageHeartbeatView(View):
+    """Receive visible-page heartbeats used to extend active visit duration."""
+
+    def post(self, request):
+        if not (
+            request.user.is_authenticated or request.session.get("guest_mode")
+        ):
+            return HttpResponse(status=403)
+        request.atlas_usage_heartbeat = True
+        return HttpResponse(status=204)
+
 class DashboardView(PageContextMixin, TemplateView):
     template_name = "library/dashboard.html"
     active_page = "home"

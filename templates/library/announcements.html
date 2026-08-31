@@ -20,7 +20,7 @@
     </div>
   </header>
 
-  <form class="announcement-filters" action="{{ announcements_url|default:'' }}" method="get">
+  <form class="announcement-filters" action="{{ announcements_url|default:'' }}" method="get" data-auto-submit>
     <label for="announcementCategory">Filter announcements</label>
     <select id="announcementCategory" name="category" class="form-select">
       <option value="">All categories</option>
@@ -28,7 +28,6 @@
         <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    <button class="btn-filter" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filter</button>
     {% if selected_category %}<a class="btn-filter btn-filter-outline" href="{{ announcements_url|default:'#' }}">Reset</a>{% endif %}
   </form>
 

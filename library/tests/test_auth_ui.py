@@ -248,7 +248,7 @@ class ScrollingStyleTests(LibraryTestCase):
 
     def test_integration_styles_restore_document_scrolling(self):
         css = (
-            Path(settings.BASE_DIR) / "static" / "library" / "css" / "django.css"
+            Path(settings.BASE_DIR) / "library" / "static" / "library" / "css" / "django.css"
         ).read_text(encoding="utf-8")
         body_rule = self._last_rule(css, "body")
 
@@ -258,7 +258,7 @@ class ScrollingStyleTests(LibraryTestCase):
 
     def test_dashboard_containers_do_not_trap_vertical_scrolling(self):
         css = (
-            Path(settings.BASE_DIR) / "static" / "library" / "css" / "django.css"
+            Path(settings.BASE_DIR) / "library" / "static" / "library" / "css" / "django.css"
         ).read_text(encoding="utf-8")
 
         for selector in (".atlas-shell", ".main-content", ".django-view"):

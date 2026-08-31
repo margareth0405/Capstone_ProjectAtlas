@@ -22,10 +22,11 @@
   {% url 'library:logout' as logout_url %}
   {% url 'library:staff_portal' as staff_portal_url %}
   {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
+  {% url 'library:usage_heartbeat' as usage_heartbeat_url %}
   {% url 'library:login' as login_url %}
   {% url 'account_email' as account_email_url %}
 
-  <div class="d-flex atlas-shell">
+  <div class="d-flex atlas-shell"{% if request.user.is_authenticated or request.session.guest_mode %} data-usage-heartbeat-url="{{ usage_heartbeat_url }}" data-usage-csrf-token="{{ csrf_token }}"{% endif %}>
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
       <a
         class="sidebar-brand"

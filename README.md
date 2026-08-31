@@ -12,9 +12,9 @@ JavaScript. Node.js is not required.
 
 ### Guests, students, and teachers
 
-- Browse, search, filter, and sort the library catalog.
+- Browse, search, filter, and sort the library catalog. Search and filter changes apply automatically.
 - View published announcements.
-- Submit support messages to atlasttshs@gmail.com.
+- Submit support messages to atlastshs@gmail.com.
 - Register and sign in as a student or teacher.
 - Download resources and save favorites when authenticated.
 
@@ -31,15 +31,34 @@ JavaScript. Node.js is not required.
 - Review and delete download records.
 - Review a dated audit history of resource, account, announcement, and download
   actions.
-- Review website usage by role, date, session history, and approximate active
-  time.
-- Analyze pasted writing with the administrator-only AI Detection service.
+- Review website usage by role and date, including active time, sessions, visitors, page views, and each session's last page.
+- Analyze pasted text, PDF files, and Word (.docx) files with the
+  administrator-only AI Detection service.
 
-AI Detection reports explainable writing-pattern indicators such as vocabulary
+AI Detection accepts pasted text from 100 to 20,000 characters or one PDF or
+Word (.docx) document up to 10 MB. Uploads are processed in memory and are not
+saved. Scanned image-only PDFs must go through OCR first.
+
+The service reports explainable writing-pattern indicators such as vocabulary
 diversity, sentence-length variation, and repeated phrases. It cannot prove who
 or what authored a document and must not be used as the sole basis for an
 academic decision.
 
+## Interface behavior
+
+Catalog collection, catalog sorting, announcement category, administrator
+account type, account order, and usage date filters submit automatically when a
+selection changes. Search fields submit 450 milliseconds after typing stops.
+The Clear or Reset link removes the active filters; there is no Apply button.
+
+The administrator account table displays each account's creation date and can
+sort newest-to-oldest or oldest-to-newest. Administrators can create student or
+teacher accounts from the portal. Additional administrator accounts must be
+created with createsuperuser or Django Admin.
+
+Published announcements created in the Administrator Portal appear on the
+announcement pages used by guests, students, and teachers. Draft announcements
+remain hidden from non-staff users.
 ## Technology
 
 - Python 3.12
@@ -47,13 +66,15 @@ academic decision.
 - PostgreSQL through DATABASE_URL
 - django-allauth for email identity, verification, and password recovery
 - WhiteNoise for deployed static assets
+- pypdf for PDF text extraction
+- python-docx for Word (.docx) text extraction
 - HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
 
 ~~~powershell
 python -m venv .venv
-..venvScriptsActivate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 # Edit .env with your PostgreSQL and administrator-path settings.
@@ -78,7 +99,7 @@ The repository contains a Windows startup script and matching VS Code tasks.
 - Without VS Code, run:
 
   ~~~powershell
-  powershell -ExecutionPolicy Bypass -File .scriptsstart_atlas.ps1
+  powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1
   ~~~
 
 The first run creates .venv and installs dependencies. Later runs reinstall
@@ -105,7 +126,8 @@ set DB_SSL_REQUIRE=True when TLS is required.
 
 ## Contact email delivery
 
-Contact submissions are addressed to atlasttshs@gmail.com. Each message
+The public Contact page lists email only; it does not display a phone number.
+Contact submissions are addressed to atlastshs@gmail.com. Each message
 contains the visitor's name, submitted email, authenticated account email when
 available, subject, and message. Reply-To is set to the visitor's submitted
 email.
@@ -115,7 +137,7 @@ of delivering them:
 
 ~~~dotenv
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-SUPPORT_EMAIL=atlasttshs@gmail.com
+SUPPORT_EMAIL=atlastshs@gmail.com
 SUPPORT_HOURS=Monday–Friday, 8:00 AM–5:00 PM
 ~~~
 
@@ -123,12 +145,12 @@ For real Gmail delivery, create a Google App Password and use:
 
 ~~~dotenv
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-DEFAULT_FROM_EMAIL=ATLAS <atlasttshs@gmail.com>
-SUPPORT_EMAIL=atlasttshs@gmail.com
+DEFAULT_FROM_EMAIL=ATLAS <atlastshs@gmail.com>
+SUPPORT_EMAIL=atlastshs@gmail.com
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=atlasttshs@gmail.com
+EMAIL_HOST_USER=atlastshs@gmail.com
 EMAIL_HOST_PASSWORD=your-google-app-password
 ~~~
 
@@ -197,7 +219,7 @@ atlas/
 
 library/
 |-- models.py                           Domain entities and persistence rules
-|-- forms.py                            Authentication, content, contact, and AI forms
+|-- forms.py                            Authentication, content, contact, and AI input forms
 |-- middleware.py                       Thin request/response integration
 |-- services/
 |   |-- activity.py                     ActivityRecorder
@@ -205,6 +227,7 @@ library/
 |   |-- catalog.py                      CatalogQueryService
 |   |-- contact.py                      ContactEmailService
 |   |-- context.py                      PageContextBuilder
+|   |-- documents.py                    DocumentTextExtractor
 |   |-- navigation.py                   SafeRedirectService
 |   |-- staff_portal.py                 StaffUserDirectory, UsageAnalytics,
 |   |                                    and StaffPortalContextService
@@ -212,7 +235,7 @@ library/
 |-- views/
 |   |-- authentication.py               Registration, login, guest, and logout
 |   |-- catalog.py                      Catalog, favorites, and downloads
-|   |-- public.py                       Dashboard, announcements, and contact
+|   |-- public.py                       Dashboard, announcements, contact, and usage heartbeat
 |   |-- mixins.py                       Context and staff permission mixins
 |   |-- staff.py                        Stable administrator-view import facade
 |   |-- staff_dashboard.py              Administrator homepage
@@ -239,15 +262,48 @@ responsibility-specific file.
 
 ## Usage tracking and audit history
 
-WebsiteUsageMiddleware delegates to WebsiteUsageTracker. A visit is tracked for
-authenticated users and guest-mode sessions. Requests separated by more than
-15 minutes start a new visit. Reported duration is approximate active browsing
-time, not surveillance of activity outside ATLAS.
+WebsiteUsageMiddleware delegates tracking to WebsiteUsageTracker for signed-in
+accounts and guest-mode sessions. The Administrator Portal can filter the report
+by date and displays:
 
-ActivityRecorder stores create, update, delete, and download events displayed
-in the administrator history panel. Records created before the audit feature
-was installed are not reconstructed retroactively.
+- Active time: time accumulated between page activity and visible-page
+  heartbeats, capped at 15 minutes for one idle gap.
+- Sessions: separate visits; a gap longer than 15 minutes starts a new visit.
+- Visitors: distinct signed-in accounts plus individual guest sessions.
+- Page views: successful HTML page requests. Heartbeats do not add page views.
+- Last page: the latest ATLAS path viewed during that session.
+- Account-type chart: active minutes grouped into guest, student, teacher, and
+  administrator roles.
 
+A lightweight heartbeat is sent every 45 seconds only while an ATLAS page is
+visible and the browser is online. Tracking does not inspect keystrokes, other
+websites, background applications, or activity outside ATLAS. Historical rows
+created before migration 0004 have zero page views and no last-page value
+because those values cannot be reconstructed.
+
+### Activity history versus download history
+
+| Record | Purpose | What deleting the record does |
+| --- | --- | --- |
+| Activity history | Audits resource, account, announcement, and download create/update/delete actions, including the administrator responsible. | The portal currently treats these as audit records; it does not use them as the content itself. |
+| Download history | Records which signed-in account downloaded which library resource and the exact time. | Deletes only the audit row. It does not delete the resource or account, revoke access, or remove a copy already saved by the user. |
+| Website visit history | Stores session start, last activity, active seconds, page views, last page, role, and date. | Used only for the Administrator Portal usage report. |
+
+ActivityRecorder creates new audit entries at the time an action occurs. Events
+from before the audit feature was installed are not reconstructed retroactively.
+
+## Database updates required for this version
+
+Run migrations after pulling or copying these changes:
+
+~~~powershell
+python manage.py migrate
+~~~
+
+Migration 0003 adds administrator activity and website-visit history. Migration
+0004 adds page-view counts and last-page tracking. Do not manually add these
+columns to the database; Django migrations handle both new and existing
+installations.
 ## Important commands
 
 ~~~powershell
