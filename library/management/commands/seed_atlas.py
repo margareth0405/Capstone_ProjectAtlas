@@ -126,6 +126,7 @@ class Command(BaseCommand):
     def _seed_items(self, created_by):
         seeded_at = timezone.now()
         for collection, call_number, title, author, details, file_type, file_size, pages, age in ITEMS:
+            publication_date = (seeded_at - timedelta(days=age)).date()
             defaults = {
                 "collection": collection,
                 "title": title,
@@ -134,6 +135,8 @@ class Command(BaseCommand):
                 "file_type": file_type,
                 "file_size": file_size,
                 "pages": pages,
+                "published_on": publication_date,
+                "publication_day_known": True,
                 "created_by": created_by,
             }
             item, created = LibraryItem.objects.get_or_create(

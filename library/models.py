@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.formats import date_format
 
 
 class Profile(models.Model):
@@ -38,15 +39,25 @@ class LibraryItem(models.Model):
         ACTIVITY_SHEETS = "activity_sheets", "Activity Sheets"
         CURRICULUM_GUIDE = "curriculum_guide", "Curriculum Guide"
 
+    class FileType(models.TextChoices):
+        PDF = "PDF", "PDF"
+        WORD = "WORD", "Word document"
+
     collection = models.CharField(max_length=32, choices=Collection.choices, db_index=True)
     call_number = models.CharField(max_length=80, unique=True)
     title = models.CharField(max_length=255, db_index=True)
     author = models.CharField(max_length=255, db_index=True)
     details = models.TextField(blank=True)
-    file_type = models.CharField(max_length=20, default="PDF")
+    file_type = models.CharField(
+        max_length=20,
+        choices=FileType.choices,
+        default=FileType.PDF,
+    )
     file_size = models.CharField(max_length=32, blank=True)
     pages = models.PositiveIntegerField(default=0)
     resource = models.FileField(upload_to="library/resources/%Y/%m/", blank=True)
+    published_on = models.DateField(null=True, blank=True, db_index=True)
+    publication_day_known = models.BooleanField(default=False)
     external_url = models.URLField(blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -76,6 +87,14 @@ class LibraryItem(models.Model):
     @property
     def downloadable(self):
         return bool(self.resource or self.external_url)
+
+
+    @property
+    def publication_date_display(self):
+        if not self.published_on:
+            return "Not specified"
+        output_format = "F j, Y" if self.publication_day_known else "F Y"
+        return date_format(self.published_on, output_format)
 
     def __str__(self):
         return f"{self.title} ({self.call_number})"

@@ -1,11 +1,13 @@
 """Guest pages and member-only catalog actions."""
 
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
-from library.models import ContactMessage, DownloadEvent, Favorite
+from library.models import ContactMessage, DownloadEvent, Favorite, Profile
 
 from .base import LibraryTestCase
 
@@ -36,6 +38,83 @@ class GuestPageTests(LibraryTestCase):
         self.assertContains(response, published.title)
         self.assertNotContains(response, hidden.title)
 
+
+class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
+    def test_published_announcement_is_visible_to_guest_student_and_teacher(self):
+        published = self.create_announcement(title="Role-visible announcement")
+        draft = self.create_announcement(
+            title="Staff-only draft",
+            is_published=False,
+            published_at=None,
+        )
+
+        guest_response = self.client.get(reverse("library:announcements"))
+        self.assertContains(guest_response, published.title)
+        self.assertNotContains(guest_response, draft.title)
+
+        for role in (Profile.Role.STUDENT, Profile.Role.TEACHER):
+            with self.subTest(role=role):
+                self.client.force_login(
+                    self.create_user(email=f"{role}@example.com", role=role)
+                )
+                response = self.client.get(reverse("library:announcements"))
+                self.assertContains(response, published.title)
+                self.assertNotContains(response, draft.title)
+                self.client.logout()
+
+    def test_library_page_links_latest_published_announcement(self):
+        announcement = self.create_announcement(title="New catalog notice")
+        response = self.client.get(reverse("library:catalog"))
+
+        self.assertContains(response, "Latest announcements")
+        self.assertContains(response, announcement.title)
+        self.assertContains(
+            response,
+            f'{reverse("library:announcements")}#announcement-{announcement.pk}',
+        )
+
+    def test_catalog_sorts_title_author_and_publication_date_both_directions(self):
+        alpha = self.create_item(
+            call_number="SORT-A",
+            title="Alpha",
+            author="Zulu Author",
+            published_on=date(2023, 5, 1),
+        )
+        beta = self.create_item(
+            call_number="SORT-B",
+            title="Beta",
+            author="Alpha Author",
+            published_on=date(2025, 6, 1),
+        )
+
+        cases = (
+            ("title", [alpha, beta]),
+            ("-title", [beta, alpha]),
+            ("author", [beta, alpha]),
+            ("-author", [alpha, beta]),
+            ("published_newest", [beta, alpha]),
+            ("published_oldest", [alpha, beta]),
+        )
+        for sort_value, expected in cases:
+            with self.subTest(sort=sort_value):
+                response = self.client.get(
+                    reverse("library:catalog"), {"sort": sort_value}
+                )
+                self.assertEqual(list(response.context["items"]), expected)
+
+    def test_catalog_and_saved_page_use_bookmark_and_abstract_labels(self):
+        item = self.create_item()
+        user = self.create_user(email="bookmark-reader@example.com")
+        self.client.force_login(user)
+
+        catalog_response = self.client.get(reverse("library:catalog"))
+        bookmarks_response = self.client.get(reverse("library:favorites"))
+
+        self.assertContains(catalog_response, "View abstract")
+        self.assertContains(catalog_response, "Bookmark")
+        self.assertContains(catalog_response, item.publication_date_display)
+        self.assertContains(bookmarks_response, "Bookmarks")
+        self.assertNotContains(bookmarks_response, ">Favorites<")
 
 @override_settings(
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",

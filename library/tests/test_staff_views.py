@@ -1,6 +1,7 @@
 """Authorization and CRUD behavior for the ATLAS staff portal."""
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from library.models import Announcement, LibraryItem, Profile
@@ -74,9 +75,12 @@ class StaffCrudTests(LibraryTestCase):
             "author": "Research Team",
             "details": "A staff-managed resource.",
             "file_type": "PDF",
-            "file_size": "2.5 MB",
             "pages": 42,
-            "external_url": "https://example.com/resources/research.pdf",
+            "publication_month": "2026-02",
+            "publication_day": "14",
+            "resource": SimpleUploadedFile(
+                "research.pdf", b"%PDF-1.4 test resource", content_type="application/pdf"
+            ),
         }
         values.update(overrides)
         return values
@@ -104,7 +108,43 @@ class StaffCrudTests(LibraryTestCase):
         item = LibraryItem.objects.get(call_number="RES-2026-101")
         self.assertEqual(item.title, "New Research Resource")
         self.assertEqual(item.created_by, self.staff)
+        self.assertEqual(item.published_on.isoformat(), "2026-02-14")
+        self.assertTrue(item.publication_day_known)
 
+    def test_resource_accepts_word_file_and_month_without_day(self):
+        response = self.client.post(
+            reverse("library:staff_item_create"),
+            self.item_payload(
+                call_number="WORD-2026-001",
+                file_type=LibraryItem.FileType.WORD,
+                publication_month="2026-07",
+                publication_day="",
+                resource=SimpleUploadedFile(
+                    "research.docx",
+                    b"word document fixture",
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item = LibraryItem.objects.get(call_number="WORD-2026-001")
+        self.assertEqual(item.published_on.isoformat(), "2026-07-01")
+        self.assertFalse(item.publication_day_known)
+        self.assertEqual(item.publication_date_display, "July 2026")
+
+    def test_resource_rejects_file_that_does_not_match_selected_format(self):
+        response = self.client.post(
+            reverse("library:staff_item_create"),
+            self.item_payload(
+                call_number="BAD-FORMAT-001",
+                file_type=LibraryItem.FileType.WORD,
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "must match the selected PDF or Word format")
+        self.assertFalse(LibraryItem.objects.filter(call_number="BAD-FORMAT-001").exists())
     def test_staff_item_edit_get_is_read_only_and_post_updates_item(self):
         item = self.create_item()
         url = reverse("library:staff_item_edit", args=[item.pk])
@@ -144,9 +184,30 @@ class StaffCrudTests(LibraryTestCase):
         self.assertEqual(post_response.status_code, 302)
         announcement = Announcement.objects.get(title="Staff announcement")
         self.assertEqual(announcement.created_by, self.staff)
+        self.assertEqual(
+            post_response.url,
+            f'{reverse("library:announcements")}#announcement-{announcement.pk}',
+        )
         self.assertTrue(announcement.is_featured)
         self.assertTrue(announcement.is_published)
 
+    def test_staff_sees_draft_with_edit_and_delete_controls(self):
+        draft = self.create_announcement(
+            title="Administrator draft",
+            is_published=False,
+            published_at=None,
+        )
+
+        response = self.client.get(reverse("library:announcements"))
+
+        self.assertContains(response, draft.title)
+        self.assertContains(response, "Draft")
+        self.assertContains(
+            response, reverse("library:staff_announcement_edit", args=[draft.pk])
+        )
+        self.assertContains(
+            response, reverse("library:staff_announcement_delete", args=[draft.pk])
+        )
     def test_staff_announcement_edit_get_is_read_only_and_post_updates(self):
         announcement = self.create_announcement()
         url = reverse("library:staff_announcement_edit", args=[announcement.pk])

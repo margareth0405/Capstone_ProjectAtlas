@@ -1,5 +1,7 @@
 """Shared test data helpers for the library application."""
 
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
@@ -49,6 +51,8 @@ class LibraryTestCase(TestCase):
             "file_type": "PDF",
             "file_size": "1.2 MB",
             "pages": 120,
+            "published_on": date(2025, 6, 15),
+            "publication_day_known": True,
             "external_url": "https://example.com/resources/django-testing.pdf",
         }
         values.update(overrides)

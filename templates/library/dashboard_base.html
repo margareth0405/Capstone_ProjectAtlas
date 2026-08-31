@@ -57,7 +57,7 @@
             href="{{ favorites_url|default:'#' }}"
             {% if active_page == 'favorites' %}class="active" aria-current="page"{% endif %}
           >
-            <i class="fas fa-star" aria-hidden="true"></i> FAVORITES
+            <i class="fas fa-bookmark" aria-hidden="true"></i> BOOKMARKS
             {% if favorite_count is not None %}
               <span class="item-counter">{{ favorite_count }}</span>
             {% endif %}

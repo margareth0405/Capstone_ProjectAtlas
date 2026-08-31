@@ -2,9 +2,6 @@
 
 from pathlib import Path
 
-from docx import Document
-from pypdf import PdfReader
-
 
 class DocumentExtractionError(ValueError):
     """Raised when text cannot be safely extracted from an uploaded document."""
@@ -38,6 +35,13 @@ class DocumentTextExtractor:
     @staticmethod
     def _extract_pdf(uploaded_file):
         try:
+            from pypdf import PdfReader
+        except ImportError as exc:
+            raise DocumentExtractionError(
+                "PDF support is unavailable. Install the project requirements."
+            ) from exc
+
+        try:
             uploaded_file.seek(0)
             reader = PdfReader(uploaded_file)
             if reader.is_encrypted:
@@ -54,6 +58,13 @@ class DocumentTextExtractor:
 
     @staticmethod
     def _extract_docx(uploaded_file):
+        try:
+            from docx import Document
+        except ImportError as exc:
+            raise DocumentExtractionError(
+                "Word support is unavailable. Install the project requirements."
+            ) from exc
+
         try:
             uploaded_file.seek(0)
             document = Document(uploaded_file)

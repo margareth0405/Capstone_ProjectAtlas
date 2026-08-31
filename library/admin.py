@@ -15,8 +15,31 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @admin.register(LibraryItem)
 class LibraryItemAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "collection", "call_number", "file_type", "downloadable", "created_at")
-    list_filter = ("collection", "file_type", "created_at")
+    fields = (
+        "collection",
+        "call_number",
+        "title",
+        "author",
+        "details",
+        "file_type",
+        "pages",
+        "published_on",
+        "publication_day_known",
+        "resource",
+        "created_by",
+        "created_at",
+        "updated_at",
+    )
+    list_display = (
+        "title",
+        "author",
+        "collection",
+        "file_type",
+        "published_on",
+        "downloadable",
+        "created_at",
+    )
+    list_filter = ("collection", "file_type", "published_on", "created_at")
     search_fields = ("title", "author", "call_number", "details")
     autocomplete_fields = ("created_by",)
     readonly_fields = ("created_at", "updated_at")

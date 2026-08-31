@@ -1,7 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}ATLAS · Favorites{% endblock %}
-{% block breadcrumb %}Favorites{% endblock %}
+{% block title %}ATLAS · Bookmarks{% endblock %}
+{% block breadcrumb %}Bookmarks{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
@@ -10,9 +10,9 @@
     <header class="favorites-header django-page-header">
       <div>
         <span class="section-kicker">Your reading list</span>
-        <h1><i class="fas fa-star" aria-hidden="true"></i> Favorites</h1>
+        <h1><i class="fas fa-bookmark" aria-hidden="true"></i> Bookmarks</h1>
       </div>
-      <span class="favorite-count"><i class="fas fa-star" aria-hidden="true"></i> {{ favorite_count|default:0 }} items</span>
+      <span class="favorite-count"><i class="fas fa-bookmark" aria-hidden="true"></i> {{ favorite_count|default:0 }} items</span>
     </header>
 
     {% if favorites %}
@@ -27,7 +27,7 @@
                 <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
                 <form action="{{ favorite_toggle_url|default:'' }}" method="post">
                   {% csrf_token %}
-                  <button class="btn-remove-favorite" type="submit" aria-label="Remove {{ item.title }} from favorites">
+                  <button class="btn-remove-favorite" type="submit" aria-label="Remove {{ item.title }} from bookmarks">
                     <i class="fas fa-times" aria-hidden="true"></i>
                   </button>
                 </form>
@@ -46,9 +46,9 @@
       {% include "library/includes/pagination.html" %}
     {% else %}
       <div class="favorites-empty favorites-page-empty">
-        <i class="fas fa-star" aria-hidden="true"></i>
-        <h2>No favorites yet</h2>
-        <p>Choose “Favorite” beside any library item to save it here.</p>
+        <i class="fas fa-bookmark" aria-hidden="true"></i>
+        <h2>No bookmarks yet</h2>
+        <p>Choose “Bookmark” beside any library item to save it here.</p>
         <a class="btn btn-primary atlas-primary-action" href="{{ catalog_url|default:'#' }}">
           <i class="fas fa-book-open" aria-hidden="true"></i> Browse the library
         </a>

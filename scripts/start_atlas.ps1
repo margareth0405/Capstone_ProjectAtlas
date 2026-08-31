@@ -51,7 +51,7 @@ if ($currentRequirementsHash -ne $installedRequirementsHash) {
 . $activateScript
 $env:PYTHONUNBUFFERED = "1"
 
-Write-Host "Using $(& python --version) from $venvDirectory" -ForegroundColor Green
+Write-Host "Using $(& $venvPython --version) from $venvDirectory" -ForegroundColor Green
 
 if ($PrepareOnly) {
     Write-Host "ATLAS environment is ready." -ForegroundColor Green
@@ -59,11 +59,17 @@ if ($PrepareOnly) {
 }
 
 Write-Host "Checking the Django configuration..." -ForegroundColor Cyan
-& python manage.py check
+& $venvPython manage.py check
 if ($LASTEXITCODE -ne 0) {
     throw "Django's configuration check failed."
 }
 
 Write-Host "Starting ATLAS at http://$Address/" -ForegroundColor Green
-& python manage.py runserver $Address
+Write-Host "Applying database migrations..." -ForegroundColor Cyan
+& $venvPython manage.py migrate --noinput
+if ($LASTEXITCODE -ne 0) {
+    throw "Database migration failed."
+}
+
+& $venvPython manage.py runserver $Address
 exit $LASTEXITCODE

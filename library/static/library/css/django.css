@@ -512,3 +512,209 @@ a.role-btn,
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* Connected catalog resource cards */
+.catalog-announcement-strip {
+    background: #fff;
+    border: 1px solid #eadfda;
+    border-left: 4px solid var(--maroon-600);
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(74, 17, 28, 0.05);
+    margin-bottom: 1rem;
+    padding: 1rem 1.15rem;
+}
+
+.catalog-section-heading {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.catalog-section-heading h2 {
+    color: var(--maroon-800);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.catalog-section-heading a {
+    color: var(--maroon-600);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.catalog-announcement-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-announcement-grid a {
+    background: #fcfaf9;
+    border: 1px solid #eee6e1;
+    border-radius: 11px;
+    color: inherit;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    text-decoration: none;
+}
+
+.catalog-announcement-grid strong,
+.catalog-announcement-grid span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.catalog-announcement-grid strong {
+    color: var(--maroon-800);
+    font-size: 0.82rem;
+}
+
+.catalog-announcement-grid span {
+    color: #77706c;
+    font-size: 0.68rem;
+    margin-top: 0.2rem;
+}
+
+.catalog-resource-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.catalog-resource-card {
+    background: #fff;
+    border: 1px solid #e9e1dd;
+    border-radius: 16px;
+    box-shadow: 0 7px 22px rgba(74, 17, 28, 0.055);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 1.1rem;
+}
+
+.catalog-card-topline,
+.catalog-card-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.catalog-card-topline {
+    justify-content: space-between;
+}
+
+.resource-format-badge {
+    align-items: center;
+    background: var(--maroon-50);
+    border-radius: 999px;
+    color: var(--maroon-700);
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 700;
+    gap: 0.35rem;
+    padding: 0.28rem 0.58rem;
+}
+
+.catalog-card-copy {
+    margin: 0.9rem 0;
+}
+
+.catalog-card-copy h2 {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.catalog-card-copy h2 a {
+    color: var(--maroon-900);
+    text-decoration: none;
+}
+
+.catalog-card-copy h2 a:hover {
+    color: var(--maroon-600);
+    text-decoration: underline;
+}
+
+.catalog-card-author {
+    color: #615a56;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 0.35rem 0 0;
+}
+
+.catalog-card-abstract {
+    color: #706965;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    margin: 0.7rem 0 0;
+}
+
+.catalog-card-dates {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: auto 0 0.9rem;
+}
+
+.catalog-card-dates div {
+    background: #fcfaf9;
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+}
+
+.catalog-card-dates dt {
+    color: #857d78;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.catalog-card-dates dd {
+    color: #4f4945;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 0.15rem 0 0;
+}
+
+.catalog-card-actions {
+    border-top: 1px solid #eee8e4;
+    padding-top: 0.85rem;
+}
+
+.announcement-status {
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.22rem 0.5rem;
+}
+
+.announcement-status.published {
+    background: #e7f6ec;
+    color: #2f7147;
+}
+
+.announcement-status.draft {
+    background: #fff3d6;
+    color: #795714;
+}
+
+@media (max-width: 900px) {
+    .catalog-announcement-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .catalog-resource-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 440px) {
+    .catalog-card-dates {
+        grid-template-columns: 1fr;
+    }
+}

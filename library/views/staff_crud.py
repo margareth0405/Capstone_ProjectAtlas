@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views import View
 
 from library.forms import AnnouncementForm, LibraryItemForm
@@ -38,6 +39,9 @@ class StaffFormView(StaffRequiredMixin, View):
     def prepare_instance(self, instance):
         return instance
 
+    def get_success_url(self, instance):
+        return reverse("library:staff_portal")
+
     def get(self, request, *args, **kwargs):
         return self.render_form(self.get_form())
 
@@ -60,7 +64,7 @@ class StaffFormView(StaffRequiredMixin, View):
                 description=str(instance),
             )
             messages.success(request, self.success_message)
-            return redirect("library:staff_portal")
+            return redirect(self.get_success_url(instance))
         return self.render_form(form)
 
     def render_form(self, form):
@@ -133,12 +137,19 @@ class StaffAnnouncementCreateView(StaffFormView):
     active_page = "announcements"
     form_title = "Create announcement"
     submit_label = "Save announcement"
-    success_message = "Announcement published."
     activity_object_type = "announcement"
 
     def prepare_instance(self, instance):
         instance.created_by = self.request.user
+        self.success_message = (
+            "Announcement published."
+            if instance.is_published
+            else "Announcement saved as a draft."
+        )
         return instance
+
+    def get_success_url(self, instance):
+        return f'{reverse("library:announcements")}#announcement-{instance.pk}'
 
 
 class StaffAnnouncementEditView(StaffAnnouncementCreateView):
@@ -146,12 +157,16 @@ class StaffAnnouncementEditView(StaffAnnouncementCreateView):
 
     form_title = "Edit announcement"
     submit_label = "Save changes"
-    success_message = "Announcement updated."
 
     def get_instance(self):
         return get_object_or_404(Announcement, pk=self.kwargs["pk"])
 
     def prepare_instance(self, instance):
+        self.success_message = (
+            "Announcement updated and published."
+            if instance.is_published
+            else "Announcement updated as a draft."
+        )
         return instance
 
 
@@ -171,5 +186,5 @@ class StaffAnnouncementDeleteView(StaffRequiredMixin, View):
             object_id=pk,
             description=title,
         )
-        messages.info(request, "Announcement deleted.")
-        return redirect("library:staff_portal")
+        messages.info(request, f"{title} was deleted.")
+        return redirect("library:announcements")

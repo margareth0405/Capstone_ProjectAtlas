@@ -75,9 +75,14 @@ class AnnouncementsView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        announcements = Announcement.objects.filter(
+        published_announcements = Announcement.objects.filter(
             is_published=True,
             published_at__lte=timezone.now(),
+        )
+        announcements = (
+            Announcement.objects.all()
+            if self.request.user.is_authenticated and self.request.user.is_staff
+            else published_announcements
         )
         category = self.request.GET.get("category", "").strip()
         valid_categories = {value for value, _label in Announcement.Category.choices}
@@ -87,7 +92,11 @@ class AnnouncementsView(PageContextMixin, TemplateView):
             {
                 "announcements": announcements,
                 "announcement_count": announcements.count(),
-                "featured_announcement": announcements.filter(is_featured=True).first(),
+                "featured_announcement": (
+                    None
+                    if self.request.user.is_authenticated and self.request.user.is_staff
+                    else announcements.filter(is_featured=True).first()
+                ),
                 "selected_category": category,
                 "category_choices": Announcement.Category.choices,
             }

@@ -10,8 +10,15 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import TemplateView
+from django.utils import timezone
 
-from library.models import ActivityLog, DownloadEvent, Favorite, LibraryItem
+from library.models import (
+    ActivityLog,
+    Announcement,
+    DownloadEvent,
+    Favorite,
+    LibraryItem,
+)
 from library.services.activity import ActivityRecorder
 from library.services import CatalogQueryService, SafeRedirectService
 
@@ -45,6 +52,10 @@ class CatalogView(PageContextMixin, TemplateView):
                 "selected_collection": query_service.collection,
                 "selected_sort": query_service.sort,
                 "collection_choices": LibraryItem.Collection.choices,
+                "recent_announcements": Announcement.objects.filter(
+                    is_published=True,
+                    published_at__lte=timezone.now(),
+                )[:3],
             }
         )
         return context
@@ -93,10 +104,10 @@ class FavoriteToggleView(View):
         item = get_object_or_404(LibraryItem, pk=pk)
         favorite, created = Favorite.objects.get_or_create(user=request.user, item=item)
         if created:
-            messages.success(request, f"Added {item.title} to your favorites.")
+            messages.success(request, f"Bookmarked {item.title}.")
         else:
             favorite.delete()
-            messages.info(request, f"Removed {item.title} from your favorites.")
+            messages.info(request, f"Removed the bookmark for {item.title}.")
         return redirect(SafeRedirectService.resolve(request, "library:catalog"))
 
 

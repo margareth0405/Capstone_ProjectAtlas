@@ -55,14 +55,15 @@
         {% if items %}
           <div class="table-responsive">
             <table class="staff-compact-table">
-              <thead><tr><th>Title</th><th>Type</th><th>Added</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Title</th><th>Type</th><th>Published</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody>
                 {% for item in items|slice:":8" %}
                   {% url 'library:staff_item_edit' item.pk as edit_url %}
                   {% url 'library:staff_item_delete' item.pk as delete_url %}
                   <tr>
                     <td><strong>{{ item.title }}</strong><small>{{ item.author }}</small></td>
-                    <td>{{ item.get_collection_display|default:item.collection }}</td>
+                    <td>{{ item.get_file_type_display|default:item.file_type }}</td>
+                    <td>{{ item.publication_date_display }}</td>
                     <td>{{ item.created_at|date:'M j, Y' }}</td>
                     <td class="resource-actions">
                       <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
@@ -185,6 +186,7 @@
         <article><i class="fas fa-user-group" aria-hidden="true"></i><div><strong>{{ usage_summary.visitors }}</strong><span>Visitors</span></div></article>
       </div>
 
+      <div class="usage-content-grid">
       <div class="usage-overview">
         <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
           <span>Active time<br>by role</span>
@@ -219,6 +221,7 @@
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </section>
 

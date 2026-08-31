@@ -7,7 +7,8 @@
   {% url 'library:catalog' as catalog_url %}
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
-  {% url 'library:favorites' as favorites_url %}
+  {% url 'library:favorites' as bookmarks_url %}
+  {% url 'library:announcements' as announcements_url %}
   {% url 'library:staff_item_create' as staff_item_create_url %}
 
   <div class="library-view">
@@ -17,34 +18,40 @@
         <h1>Library Collection</h1>
         <div class="d-flex gap-3 mt-2 flex-wrap">
           <span class="badge bg-maroon">Total Items: {{ resource_count|default:0 }}</span>
-          <span class="badge atlas-pale-badge"><i class="fas fa-sort" aria-hidden="true"></i> Sort from the controls below</span>
         </div>
       </div>
-      {% if active_role == "administrator" or request.user.is_staff %}
-        <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}">
-          <i class="fas fa-plus" aria-hidden="true"></i> Add resource
-        </a>
+      {% if request.user.is_staff %}
+        <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
       {% endif %}
     </header>
+
+    {% if recent_announcements %}
+      <section class="catalog-announcement-strip" aria-labelledby="catalogAnnouncementsHeading">
+        <div class="catalog-section-heading">
+          <h2 id="catalogAnnouncementsHeading"><i class="fas fa-bullhorn" aria-hidden="true"></i> Latest announcements</h2>
+          <a href="{{ announcements_url|default:'#' }}">View all</a>
+        </div>
+        <div class="catalog-announcement-grid">
+          {% for announcement in recent_announcements %}
+            <a href="{{ announcements_url }}#announcement-{{ announcement.pk }}">
+              <strong>{{ announcement.title }}</strong>
+              <span>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
     {% if active_role == "guest" %}
       <div class="guest-banner" role="note">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <p>
-          You are browsing as a guest. <a class="login-prompt" href="{{ login_url|default:'/login/' }}">Sign in</a>
-          or <a class="login-prompt" href="{{ register_url|default:'/register/' }}">register</a> to download and save resources.
-        </p>
+        <p>You are browsing as a guest. <a class="login-prompt" href="{{ login_url|default:'/login/' }}">Sign in</a> or <a class="login-prompt" href="{{ register_url|default:'/register/' }}">register</a> to download and bookmark resources.</p>
       </div>
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
         <i class="fas fa-eye" aria-hidden="true"></i>
-        <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — view, download, and save favorites</span>
-        <a href="{{ favorites_url|default:'#' }}">View favorites</a>
-      </div>
-    {% else %}
-      <div class="administrator-view-only">
-        <i class="fas fa-user-cog" aria-hidden="true"></i>
-        <span>Administrator access — add, edit, and remove library resources</span>
+        <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — view, download, and bookmark resources</span>
+        <a href="{{ bookmarks_url|default:'#' }}">View bookmarks</a>
       </div>
     {% endif %}
 
@@ -53,127 +60,70 @@
         <label for="collectionFilter">Collection type</label>
         <select id="collectionFilter" name="collection" class="form-select">
           <option value="">All types</option>
-          {% if collection_choices %}
-            {% for value, label in collection_choices %}
-              <option value="{{ value }}" {% if selected_collection == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          {% else %}
-            <option value="book" {% if selected_collection == 'book' %}selected{% endif %}>Books</option>
-            <option value="journal" {% if selected_collection == 'journal' %}selected{% endif %}>Journals</option>
-            <option value="research" {% if selected_collection == 'research' %}selected{% endif %}>Research</option>
-            <option value="activity_sheets" {% if selected_collection == 'activity_sheets' %}selected{% endif %}>Activity Sheets</option>
-            <option value="curriculum_guide" {% if selected_collection == 'curriculum_guide' %}selected{% endif %}>Curriculum Guides</option>
-          {% endif %}
+          {% for value, label in collection_choices %}<option value="{{ value }}" {% if selected_collection == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select>
       </div>
-
       <div class="filter-group filter-search-group">
         <label for="librarySearch">Search within library</label>
-        <input
-          type="search"
-          id="librarySearch"
-          name="q"
-          class="form-control"
-          value="{{ query|default:'' }}"
-          placeholder="Title, author, or call number…"
-        >
+        <input type="search" id="librarySearch" name="q" class="form-control" value="{{ query|default:'' }}" placeholder="Title, author, call number, or abstract">
       </div>
-
       <div class="filter-group filter-sort-group">
         <label for="sortSelect">Sort by</label>
         <select id="sortSelect" name="sort" class="form-select">
           <option value="title" {% if selected_sort == 'title' %}selected{% endif %}>Title A–Z</option>
           <option value="-title" {% if selected_sort == '-title' %}selected{% endif %}>Title Z–A</option>
-          <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest first</option>
           <option value="author" {% if selected_sort == 'author' %}selected{% endif %}>Author A–Z</option>
+          <option value="-author" {% if selected_sort == '-author' %}selected{% endif %}>Author Z–A</option>
+          <option value="published_newest" {% if selected_sort == 'published_newest' or selected_sort == 'newest' %}selected{% endif %}>Published newest–oldest</option>
+          <option value="published_oldest" {% if selected_sort == 'published_oldest' or selected_sort == 'oldest' %}selected{% endif %}>Published oldest–newest</option>
         </select>
       </div>
-
-      <div class="filter-actions">
-        <a class="btn-filter btn-filter-outline" href="{{ catalog_url|default:'#' }}"><i class="fas fa-undo" aria-hidden="true"></i> Clear</a>
-      </div>
+      <div class="filter-actions"><a class="btn-filter btn-filter-outline" href="{{ catalog_url|default:'#' }}"><i class="fas fa-undo" aria-hidden="true"></i> Clear</a></div>
     </form>
 
     {% if items %}
-      <div class="table-responsive">
-        <table class="library-table django-library-table">
-          <caption class="visually-hidden">ATLAS library resources</caption>
-          <thead>
-            <tr>
-              <th scope="col">Type</th>
-              <th scope="col">Call number</th>
-              <th scope="col">Format</th>
-              <th scope="col">Title</th>
-              <th scope="col">Author</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in items %}
-              {% url 'library:item_detail' item.pk as item_detail_url %}
-              {% url 'library:download' item.pk as download_url %}
-              {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
-              {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
-              {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
-              <tr>
-                <td><span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span></td>
-                <td>
-                  <code class="call-number">{{ item.call_number }}</code>
-                  <button class="btn-copy" type="button" data-copy-text="{{ item.call_number }}" aria-label="Copy call number {{ item.call_number }}">
-                    <i class="fas fa-copy" aria-hidden="true"></i>
-                  </button>
-                </td>
-                <td>{{ item.file_type|default:'PDF' }}</td>
-                <td>
-                  <strong>{{ item.title }}</strong>
-                  {% if item.created_at %}
-                    <time class="time-ago" datetime="{{ item.created_at|date:'c' }}">
-                      <i class="far fa-clock" aria-hidden="true"></i> {{ item.created_at|timesince }} ago
-                    </time>
-                  {% endif %}
-                </td>
-                <td>{{ item.author }}</td>
-                <td class="resource-actions">
-                  <a class="btn-details" href="{{ item_detail_url|default:'#' }}">
-                    <i class="fas fa-info-circle" aria-hidden="true"></i> View
-                  </a>
-
-                  {% if active_role == "student" or active_role == "teacher" %}
-                    <a class="btn-download" href="{{ download_url|default:'#' }}">
-                      <i class="fas fa-download" aria-hidden="true"></i> Download
-                    </a>
-                    <form action="{{ favorite_toggle_url|default:'' }}" method="post" class="inline-action-form">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit">
-                        <i class="fas fa-star" aria-hidden="true"></i>
-                        {% if item.pk in favorite_ids %}Saved{% else %}Favorite{% endif %}
-                      </button>
-                    </form>
-                  {% elif active_role == "guest" %}
-                    <span class="guest-restricted"><i class="fas fa-lock" aria-hidden="true"></i> Sign in to download</span>
-                  {% else %}
-                    <a class="btn-details" href="{{ download_url|default:'#' }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>
-                    <a class="btn-edit" href="{{ staff_item_edit_url|default:'#' }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
-                    <form action="{{ staff_item_delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">
-                      {% csrf_token %}
-                      <button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button>
-                    </form>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="catalog-resource-grid">
+        {% for item in items %}
+          {% url 'library:item_detail' item.pk as item_detail_url %}
+          {% url 'library:download' item.pk as download_url %}
+          {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
+          {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
+          {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
+          <article class="catalog-resource-card">
+            <div class="catalog-card-topline">
+              <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
+              <span class="resource-format-badge"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}" aria-hidden="true"></i> {{ item.get_file_type_display|default:item.file_type }}</span>
+            </div>
+            <div class="catalog-card-copy">
+              <h2><a href="{{ item_detail_url }}">{{ item.title }}</a></h2>
+              <p class="catalog-card-author"><i class="fas fa-user-pen" aria-hidden="true"></i> {{ item.author }}</p>
+              <p class="catalog-card-abstract">{{ item.details|default:'No abstract has been provided.'|truncatechars:170 }}</p>
+            </div>
+            <dl class="catalog-card-dates">
+              <div><dt>Published</dt><dd>{{ item.publication_date_display }}</dd></div>
+              <div><dt>Added to ATLAS</dt><dd>{{ item.created_at|date:'M j, Y' }}</dd></div>
+            </dl>
+            <div class="catalog-card-actions">
+              <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
+              {% if active_role == "student" or active_role == "teacher" %}
+                {% if item.downloadable %}<a class="btn-download" href="{{ download_url }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>{% endif %}
+                <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
+                  {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit"><i class="fas fa-bookmark" aria-hidden="true"></i> {% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</button>
+                </form>
+              {% elif active_role == "guest" %}
+                <span class="guest-restricted"><i class="fas fa-lock" aria-hidden="true"></i> Sign in to download</span>
+              {% else %}
+                {% if item.downloadable %}<a class="btn-download" href="{{ download_url }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>{% endif %}
+                <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
+                <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
       </div>
-      {% include "library/includes/pagination.html" %}
     {% else %}
-      <div class="empty-state">
-        <i class="fas fa-search" aria-hidden="true"></i>
-        <h2>No resources found</h2>
-        <p>Try a different search or collection filter.</p>
-        <a class="btn btn-outline-secondary rounded-pill" href="{{ catalog_url|default:'#' }}">Clear filters</a>
-      </div>
+      <div class="empty-state"><i class="fas fa-search" aria-hidden="true"></i><h2>No resources found</h2><p>Try a different search or collection filter.</p><a class="btn btn-outline-secondary rounded-pill" href="{{ catalog_url|default:'#' }}">Clear filters</a></div>
     {% endif %}
   </div>
 {% endblock %}

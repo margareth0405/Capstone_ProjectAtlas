@@ -13,8 +13,8 @@
       <h1>Announcements</h1>
     </div>
     <div class="announcement-header-actions">
-      <span class="announcement-total"><i class="fas fa-bullhorn" aria-hidden="true"></i> {{ announcements|length }} total</span>
-      {% if active_role == "administrator" or request.user.is_staff %}
+      <span class="announcement-total"><i class="fas fa-bullhorn" aria-hidden="true"></i> {{ announcement_count|default:0 }} total</span>
+      {% if request.user.is_staff %}
         <a class="btn btn-light rounded-pill" href="{{ staff_announcement_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> New announcement</a>
       {% endif %}
     </div>
@@ -32,16 +32,16 @@
   </form>
 
   {% if featured_announcement %}
-    <article class="featured-announcement django-featured-announcement">
+    <article class="featured-announcement django-featured-announcement" id="announcement-{{ featured_announcement.pk }}">
       <div class="featured-mark"><i class="fas fa-star" aria-hidden="true"></i> Featured</div>
       <div class="announcement-card-heading">
-        <span class="announcement-icon" aria-hidden="true">{{ featured_announcement.icon|default:'ðŸ“š' }}</span>
+        <span class="announcement-icon" aria-hidden="true"><i class="fas fa-bullhorn"></i></span>
         <div>
           <h2>{{ featured_announcement.title }}</h2>
           <div class="announcement-meta">
             <time datetime="{{ featured_announcement.published_at|date:'c' }}"><i class="far fa-calendar-alt" aria-hidden="true"></i> {{ featured_announcement.published_at|date:'F j, Y' }}</time>
             <span><i class="far fa-user" aria-hidden="true"></i> {{ featured_announcement.created_by.get_full_name|default:'Library Team' }}</span>
-            <span class="announcement-category">{{ featured_announcement.get_category_display|default:featured_announcement.category }}</span>
+            <span class="announcement-category">{{ featured_announcement.get_category_display }}</span>
           </div>
         </div>
       </div>
@@ -55,7 +55,7 @@
 
   <section class="announcements-list" aria-labelledby="allAnnouncementsHeading">
     <div class="section-header">
-      <h2 id="allAnnouncementsHeading"><i class="fas fa-list" aria-hidden="true"></i> All Announcements</h2>
+      <h2 id="allAnnouncementsHeading"><i class="fas fa-list" aria-hidden="true"></i> {% if request.user.is_staff %}Manage announcements{% else %}All Announcements{% endif %}</h2>
       {% if selected_category %}<span>Filtered by {{ selected_category }}</span>{% endif %}
     </div>
 
@@ -64,42 +64,43 @@
         {% if not featured_announcement or announcement.pk != featured_announcement.pk %}
           {% url 'library:staff_announcement_edit' announcement.pk as staff_announcement_edit_url %}
           {% url 'library:staff_announcement_delete' announcement.pk as staff_announcement_delete_url %}
-          <article class="announcement-item django-announcement-card">
+          <article class="announcement-item django-announcement-card" id="announcement-{{ announcement.pk }}">
             <div class="announcement-card-heading">
-              <span class="announcement-icon" aria-hidden="true">{{ announcement.icon|default:'ðŸ“¢' }}</span>
+              <span class="announcement-icon" aria-hidden="true"><i class="fas fa-bullhorn"></i></span>
               <div>
                 <div class="announcement-title-line">
                   <h3>{{ announcement.title }}</h3>
                   {% if announcement.is_featured %}<span class="featured-mark"><i class="fas fa-star" aria-hidden="true"></i> Featured</span>{% endif %}
-                  <span class="announcement-category">{{ announcement.get_category_display|default:announcement.category }}</span>
+                  <span class="announcement-category">{{ announcement.get_category_display }}</span>
+                  {% if request.user.is_staff %}<span class="announcement-status {% if announcement.is_published %}published{% else %}draft{% endif %}">{% if announcement.is_published %}Published{% else %}Draft{% endif %}</span>{% endif %}
                 </div>
                 <div class="announcement-meta">
-                  <time datetime="{{ announcement.published_at|date:'c' }}"><i class="far fa-calendar-alt" aria-hidden="true"></i> {{ announcement.published_at|date:'F j, Y' }}</time>
+                  {% if announcement.published_at %}<time datetime="{{ announcement.published_at|date:'c' }}"><i class="far fa-calendar-alt" aria-hidden="true"></i> {{ announcement.published_at|date:'F j, Y, g:i a' }}</time>{% endif %}
                   <span><i class="far fa-user" aria-hidden="true"></i> {{ announcement.created_by.get_full_name|default:'Library Team' }}</span>
                 </div>
               </div>
             </div>
             <p>{{ announcement.body|linebreaksbr }}</p>
             <div class="announcement-actions">
-              <button type="button" data-share-title="{{ announcement.title }}" data-share-text="{{ announcement.body|striptags }}"><i class="fas fa-share-alt" aria-hidden="true"></i> Share</button>
-              <button type="button" data-copy-text="{{ announcement.title }} — {{ announcement.body|striptags }}"><i class="fas fa-copy" aria-hidden="true"></i> Copy</button>
-              {% if active_role == "administrator" or request.user.is_staff %}
+              {% if request.user.is_staff %}
                 <a href="{{ staff_announcement_edit_url|default:'#' }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
                 <form action="{{ staff_announcement_delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’?">
                   {% csrf_token %}
                   <button type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button>
                 </form>
+              {% else %}
+                <button type="button" data-share-title="{{ announcement.title }}" data-share-text="{{ announcement.body|striptags }}"><i class="fas fa-share-alt" aria-hidden="true"></i> Share</button>
+                <button type="button" data-copy-text="{{ announcement.title }} — {{ announcement.body|striptags }}"><i class="fas fa-copy" aria-hidden="true"></i> Copy</button>
               {% endif %}
             </div>
           </article>
         {% endif %}
       {% endfor %}
-      {% include "library/includes/pagination.html" %}
     {% else %}
       <div class="empty-state">
         <i class="fas fa-bullhorn" aria-hidden="true"></i>
         <h2>No announcements found</h2>
-        <p>Check back later or choose a different category.</p>
+        <p>{% if request.user.is_staff %}Create an announcement or choose another category.{% else %}Check back later or choose a different category.{% endif %}</p>
       </div>
     {% endif %}
   </section>

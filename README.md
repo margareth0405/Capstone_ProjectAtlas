@@ -12,16 +12,19 @@ JavaScript. Node.js is not required.
 
 ### Guests, students, and teachers
 
-- Browse, search, filter, and sort the library catalog. Search and filter changes apply automatically.
-- View published announcements.
+- Browse and search the connected library catalog. Filters and sorting update automatically.
+- Sort resources by title A-Z/Z-A, author A-Z/Z-A, or publication date newest/oldest.
+- See each resource's title, author, file format, description or abstract, publication date, and system-added date.
+- View published announcements on both the Announcements page and the Library page.
 - Submit support messages to atlastshs@gmail.com.
 - Register and sign in as a student or teacher.
-- Download resources and save favorites when authenticated.
+- Download PDF or Word resources and save Bookmarks when authenticated.
 
 ### Administrators
 
-- Create, edit, and delete library resources.
-- Create, edit, publish, and delete announcements.
+- Create, edit, and delete PDF or Word library resources.
+- Enter a publication month and year, with an optional exact day; ATLAS records the system-added date automatically.
+- Create, review, edit, publish, unpublish, and delete announcements. Changes appear after the save redirect without a manual browser refresh.
 - Create student and teacher accounts.
 - Search accounts by name or email.
 - Filter accounts by student, teacher, or administrator.
@@ -31,7 +34,7 @@ JavaScript. Node.js is not required.
 - Review and delete download records.
 - Review a dated audit history of resource, account, announcement, and download
   actions.
-- Review website usage by role and date, including active time, sessions, visitors, page views, and each session's last page.
+- Review a responsive side-by-side website-usage chart and visit history by date, including active time, sessions, visitors, page views, and each session's last page.
 - Analyze pasted text, PDF files, and Word (.docx) files with the
   administrator-only AI Detection service.
 
@@ -66,6 +69,23 @@ created with createsuperuser or Django Admin.
 Published announcements created in the Administrator Portal appear on the
 announcement pages used by guests, students, and teachers. Draft announcements
 remain hidden from non-staff users.
+ The Library page also shows the newest published announcements and links each
+one to its full announcement. Administrator create, edit, publish, unpublish,
+and delete actions use Django's POST-redirect-GET flow, so the returned page
+already contains the saved state without requiring a manual refresh.
+
+## Library resource records
+
+The branded resource form accepts one uploaded PDF (.pdf) or Word (.doc/.docx)
+file. File format is a visible PDF/Word toggle. File size and external URL are
+not part of new resource entry or editing. Older database columns are retained
+internally only so an upgrade cannot destroy legacy data; they are hidden from
+the branded staff form and Django Admin.
+
+Use Details for a short description or abstract. Publication date requires a
+month and year and accepts an optional day. If the day is omitted, ATLAS stores
+the first day of that month internally while displaying only the month and
+year. Created at is the automatic date and time when the record entered ATLAS.
 ## Technology
 
 - Python 3.12
@@ -110,7 +130,9 @@ The repository contains a Windows startup script and matching VS Code tasks.
   ~~~
 
 The first run creates .venv and installs dependencies. Later runs reinstall
-only when requirements.txt changes.
+only when requirements.txt changes. The script always runs Django with the
+virtual-environment interpreter and applies pending migrations before starting
+the server. This avoids using a different global Python installation.
 
 ## Environment configuration
 
@@ -241,7 +263,7 @@ library/
 |   +-- usage.py                        WebsiteUsageTracker
 |-- views/
 |   |-- authentication.py               Registration, login, guest, and logout
-|   |-- catalog.py                      Catalog, favorites, and downloads
+|   |-- catalog.py                      Catalog, bookmarks, and downloads
 |   |-- public.py                       Dashboard, announcements, contact, and usage heartbeat
 |   |-- mixins.py                       Context and staff permission mixins
 |   |-- staff.py                        Stable administrator-view import facade
@@ -311,9 +333,10 @@ python manage.py migrate
 ~~~
 
 Migration 0003 adds administrator activity and website-visit history. Migration
-0004 adds page-view counts and last-page tracking. Do not manually add these
-columns to the database; Django migrations handle both new and existing
-installations.
+0004 adds page-view counts and last-page tracking. Migration 0005 adds the
+publication date, optional-day indicator, and PDF/Word format choices for
+library resources. Do not manually add these columns; Django migrations handle
+both new and existing installations.
 ## Important commands
 
 ~~~powershell
@@ -324,11 +347,27 @@ python manage.py test
 python manage.py collectstatic --noinput
 ~~~
 
-Focused administrator tests:
+Focused announcement, catalog, resource, and administrator tests:
 
 ~~~powershell
-python manage.py test library.tests.test_staff_views library.tests.test_staff_features
+python manage.py test library.tests.test_staff_views library.tests.test_public_views library.tests.test_staff_features
 ~~~
+
+## Troubleshooting missing Python modules
+
+Use the project interpreter for every Django command:
+
+~~~powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py check
+~~~
+
+If PowerShell reports No module named django, allauth, docx, pypdf, psycopg,
+whitenoise, or dotenv, the command is using the wrong interpreter or the
+requirements were not installed. Run the commands above, or use
+scripts\start_atlas.ps1, which selects .venv automatically. Do not install a
+package named docx; the correct dependency is python-docx.
 
 ## Production checklist
 
