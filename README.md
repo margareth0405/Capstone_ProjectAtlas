@@ -92,12 +92,50 @@ python manage.py migrate
 
 ## Administration
 
-- Django Admin uses the private path configured by `DJANGO_ADMIN_PATH` in `.env`.
-- The public frontend does not display or link to administrator sign-in.
-- `/staff/` and Django Admin require an active Django staff or superuser account.
-- The branded staff account form can create students and teachers only. Create
-  administrators with `python manage.py createsuperuser` or Django Admin.
-- Passwords are never stored in browser storage or in plain text.
+The administrator login is intentionally not linked from the public site. To
+create an administrator and sign in locally:
+
+1. Open `.env` and find `DJANGO_ADMIN_PATH`. Set it to a private path if it is
+   still using the example value. Use only the path segment, without `/` at the
+   beginning or end:
+
+   ```dotenv
+   DJANGO_ADMIN_PATH=your-private-admin-path
+   ```
+
+2. With PostgreSQL running and the virtual environment activated, apply the
+   migrations and create a superuser:
+
+   ```powershell
+   python manage.py migrate
+   python manage.py createsuperuser
+   ```
+
+   Enter the administrator email and a unique password when prompted. The
+   seeded student and teacher accounts are not administrators.
+
+3. Start Django:
+
+   ```powershell
+   python manage.py runserver
+   ```
+
+4. Replace the final path below with the exact value of `DJANGO_ADMIN_PATH` and
+   open it in a browser:
+
+   ```text
+   http://127.0.0.1:8000/your-private-admin-path/
+   ```
+
+5. Sign in with the superuser credentials. Django Admin opens first. Use the
+   **View site** link and then open <http://127.0.0.1:8000/staff/> for the branded
+   ATLAS Administrator Portal. Once signed in, `/staff/` uses the same session.
+
+Both `/staff/` and Django Admin require an active staff or superuser account.
+The branded staff account form can create students and teachers only; create
+additional administrators with `python manage.py createsuperuser` or Django
+Admin. Keep `DJANGO_ADMIN_PATH` private and use a different value in production.
+Passwords are never stored in browser storage or in plain text.
 
 ## Important commands
 
