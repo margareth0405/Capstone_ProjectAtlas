@@ -18,7 +18,7 @@ class WebsiteUsageTracker:
             request.user.is_authenticated or request.session.get("guest_mode")
         ) and not request.path.startswith(("/static/", "/media/"))
 
-    def track(self, request, *, page_view=False):
+    def track(self, request, *, page_view=False, page_path=""):
         if not self.should_track(request):
             return None
         if not request.session.session_key:
@@ -27,7 +27,7 @@ class WebsiteUsageTracker:
         now = timezone.now()
         user = request.user if request.user.is_authenticated else None
         role = self.role_for(user)
-        path = request.path[:255] if page_view else ""
+        path = (page_path or request.path)[:255] if page_view else ""
         visit = (
             self.model.objects.filter(
                 session_key=request.session.session_key,

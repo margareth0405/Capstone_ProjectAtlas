@@ -39,12 +39,19 @@ AI Detection accepts pasted text from 100 to 20,000 characters or one PDF or
 Word (.docx) document up to 10 MB. Uploads are processed in memory and are not
 saved. Scanned image-only PDFs must go through OCR first.
 
+The AI Detection page and its Administrator Portal entry use the same white
+panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
+
 The service reports explainable writing-pattern indicators such as vocabulary
 diversity, sentence-length variation, and repeated phrases. It cannot prove who
 or what authored a document and must not be used as the sole basis for an
 academic decision.
 
 ## Interface behavior
+
+The welcome greeting displays a non-email username. For accounts whose stored
+username is an email address, ATLAS uses the full name or only the part before
+the @ sign so the complete email is never shown in the greeting.
 
 Catalog collection, catalog sorting, announcement category, administrator
 account type, account order, and usage date filters submit automatically when a
@@ -226,7 +233,7 @@ library/
 |   |-- ai_detection.py                 WritingPatternAnalyzer
 |   |-- catalog.py                      CatalogQueryService
 |   |-- contact.py                      ContactEmailService
-|   |-- context.py                      PageContextBuilder
+|   |-- context.py                      GreetingNameResolver and PageContextBuilder
 |   |-- documents.py                    DocumentTextExtractor
 |   |-- navigation.py                   SafeRedirectService
 |   |-- staff_portal.py                 StaffUserDirectory, UsageAnalytics,
@@ -263,19 +270,22 @@ responsibility-specific file.
 ## Usage tracking and audit history
 
 WebsiteUsageMiddleware delegates tracking to WebsiteUsageTracker for signed-in
-accounts and guest-mode sessions. The Administrator Portal can filter the report
-by date and displays:
+accounts and guest-mode sessions. The Administrator Portal filters each selected date using the configured local
+timezone (Asia/Manila by default), with explicit start and end boundaries so a
+selected past date is not mixed with today, and displays:
 
 - Active time: time accumulated between page activity and visible-page
   heartbeats, capped at 15 minutes for one idle gap.
 - Sessions: separate visits; a gap longer than 15 minutes starts a new visit.
 - Visitors: distinct signed-in accounts plus individual guest sessions.
-- Page views: successful HTML page requests. Heartbeats do not add page views.
+- Page views: browser navigations inside ATLAS. Refreshing/reloading the
+  current page and heartbeat requests do not add page views.
 - Last page: the latest ATLAS path viewed during that session.
 - Account-type chart: active minutes grouped into guest, student, teacher, and
   administrator roles.
 
-A lightweight heartbeat is sent every 45 seconds only while an ATLAS page is
+A reload-aware browser event records a page view after a new navigation. A
+lightweight heartbeat is sent every 45 seconds only while an ATLAS page is
 visible and the browser is online. Tracking does not inspect keystrokes, other
 websites, background applications, or activity outside ATLAS. Historical rows
 created before migration 0004 have zero page views and no last-page value

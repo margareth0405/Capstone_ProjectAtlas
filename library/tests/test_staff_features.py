@@ -1,6 +1,6 @@
 """Regression coverage for staff filters, deletion, audit history, and analytics."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from io import BytesIO
 from unittest.mock import patch
 
@@ -90,6 +90,80 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertContains(response, "Website usage")
         self.assertContains(response, "teacher-session", count=0)
 
+
+class WebsiteUsageRegressionTests(LibraryTestCase):
+    def setUp(self):
+        self.staff = self.create_user(
+            email="usage-staff@example.com", is_staff=True
+        )
+        self.client.force_login(self.staff)
+
+    def test_historical_usage_date_excludes_todays_visits(self):
+        historical_date = timezone.localdate() - timedelta(days=7)
+        historical_visit = WebsiteVisit.objects.create(
+            session_key="historical-session",
+            user=None,
+            role=WebsiteVisit.Role.STUDENT,
+            duration_seconds=180,
+            page_views=4,
+            last_path="/catalog/",
+        )
+        historical_started_at = timezone.make_aware(
+            datetime.combine(historical_date, time(hour=10))
+        )
+        WebsiteVisit.objects.filter(pk=historical_visit.pk).update(
+            started_at=historical_started_at,
+            last_seen_at=historical_started_at + timedelta(minutes=3),
+        )
+        WebsiteVisit.objects.create(
+            session_key="today-session",
+            user=None,
+            role=WebsiteVisit.Role.TEACHER,
+            duration_seconds=600,
+            page_views=20,
+        )
+
+        response = self.client.get(
+            reverse("library:staff_portal"),
+            {"analytics_date": historical_date.isoformat()},
+        )
+
+        self.assertEqual(response.context["analytics_date"], historical_date.isoformat())
+        self.assertEqual(response.context["usage_summary"]["sessions"], 1)
+        self.assertEqual(response.context["usage_summary"]["page_views"], 4)
+        self.assertEqual(list(response.context["visit_history"]), [historical_visit])
+        self.assertContains(response, f'value="{historical_date.isoformat()}"')
+
+    def test_refresh_request_does_not_add_a_page_view(self):
+        dashboard_url = reverse("library:dashboard")
+        self.client.get(dashboard_url)
+        visit = WebsiteVisit.objects.get(user=self.staff)
+        self.assertEqual(visit.page_views, 0)
+
+        page_view_response = self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": dashboard_url},
+        )
+        self.assertEqual(page_view_response.status_code, 204)
+        visit.refresh_from_db()
+        self.assertEqual(visit.page_views, 1)
+        self.assertEqual(visit.last_path, dashboard_url)
+
+        self.client.get(dashboard_url)
+        self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "heartbeat", "path": dashboard_url},
+        )
+        visit.refresh_from_db()
+        self.assertEqual(visit.page_views, 1)
+
+    def test_usage_event_rejects_external_style_path(self):
+        response = self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": "//example.com/not-atlas"},
+        )
+        self.assertEqual(response.status_code, 400)
+
 class AIDetectionServiceTests(LibraryTestCase):
     def setUp(self):
         self.staff = self.create_user(
@@ -116,8 +190,13 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, "PDF")
         self.assertContains(page_response, "Word (.docx)")
         self.assertContains(page_response, 'enctype="multipart/form-data"')
+        self.assertContains(page_response, 'class="ai-input-grid"')
+        self.assertContains(page_response, 'class="staff-panel ai-detection-form-card"')
+        self.assertContains(page_response, 'class="staff-panel ai-detection-result-card"')
         self.assertContains(portal_response, "AI Detection")
         self.assertContains(portal_response, self.url)
+        self.assertContains(portal_response, 'class="staff-panel staff-ai-entry"')
+        self.assertNotContains(portal_response, 'class="staff-service-card"')
 
     def test_staff_can_analyze_pasted_text(self):
         self.client.force_login(self.staff)

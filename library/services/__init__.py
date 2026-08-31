@@ -4,7 +4,7 @@ from .activity import ActivityRecorder
 from .ai_detection import WritingPatternAnalyzer
 from .catalog import CatalogQueryService
 from .contact import ContactDeliveryError, ContactEmailService
-from .context import PageContextBuilder
+from .context import GreetingNameResolver, PageContextBuilder
 from .documents import DocumentExtractionError, DocumentTextExtractor
 from .navigation import SafeRedirectService
 from .staff_portal import (
@@ -21,6 +21,7 @@ __all__ = (
     "ContactEmailService",
     "DocumentExtractionError",
     "DocumentTextExtractor",
+    "GreetingNameResolver",
     "PageContextBuilder",
     "SafeRedirectService",
     "StaffPortalContextService",

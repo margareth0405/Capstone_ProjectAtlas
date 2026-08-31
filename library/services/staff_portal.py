@@ -1,6 +1,6 @@
 """Query and presentation services for the administrator dashboard."""
 
-from datetime import date
+from datetime import date, datetime, time, timedelta
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q, Sum
@@ -87,8 +87,15 @@ class UsageAnalytics:
             return timezone.localdate()
 
     def visits(self):
+        current_timezone = timezone.get_current_timezone()
+        day_start = timezone.make_aware(
+            datetime.combine(self.selected_date, time.min),
+            current_timezone,
+        )
+        day_end = day_start + timedelta(days=1)
         return WebsiteVisit.objects.select_related("user").filter(
-            started_at__date=self.selected_date
+            started_at__gte=day_start,
+            started_at__lt=day_end,
         )
 
     def role_usage(self, visits):

@@ -254,3 +254,28 @@ class LoginAndSessionTests(LibraryTestCase):
         post_response = self.client.post(reverse("library:logout"))
         self.assertEqual(post_response.status_code, 302)
         self.assertNotIn("_auth_user_id", self.client.session)
+class WelcomeGreetingTests(LibraryTestCase):
+    def test_greeting_prefers_non_email_username(self):
+        user = self.create_user(email="reader@example.com")
+        user.username = "atlas_reader"
+        user.save(update_fields=("username",))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertEqual(response.context["display_name"], "atlas_reader")
+        self.assertContains(response, "atlas_reader")
+        self.assertNotContains(response, "reader@example.com")
+
+    def test_email_shaped_username_never_exposes_full_email_in_greeting(self):
+        user = self.create_user(email="quiet.reader@example.com")
+        user.first_name = ""
+        user.last_name = ""
+        user.save(update_fields=("first_name", "last_name"))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertEqual(response.context["display_name"], "quiet.reader")
+        self.assertContains(response, "quiet.reader")
+        self.assertNotContains(response, "quiet.reader@example.com")

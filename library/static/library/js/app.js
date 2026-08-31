@@ -146,7 +146,16 @@
 
     var lastPingAt = 0;
 
-    function ping() {
+    function isReloadNavigation() {
+      var entries = window.performance && window.performance.getEntriesByType
+        ? window.performance.getEntriesByType("navigation")
+        : [];
+      if (entries.length) return entries[0].type === "reload";
+      return Boolean(window.performance && window.performance.navigation
+        && window.performance.navigation.type === 1);
+    }
+
+    function ping(eventName) {
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
       lastPingAt = Date.now();
       window.fetch(url, {
@@ -154,23 +163,28 @@
         credentials: "same-origin",
         keepalive: true,
         headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
           "X-CSRFToken": csrfToken,
           "X-Requested-With": "XMLHttpRequest",
         },
+        body: new URLSearchParams({
+          event: eventName,
+          path: window.location.pathname,
+        }).toString(),
       }).catch(function () {});
     }
 
-    window.setInterval(ping, 45000);
+    if (!isReloadNavigation()) ping("page_view");
+    window.setInterval(function () { ping("heartbeat"); }, 45000);
     document.addEventListener("visibilitychange", function () {
       if (
         document.visibilityState === "visible"
         && Date.now() - lastPingAt > 30000
       ) {
-        ping();
+        ping("heartbeat");
       }
     });
-  }
-  document.addEventListener("DOMContentLoaded", function () {
+  }  document.addEventListener("DOMContentLoaded", function () {
     initializeMessages();
     initializeSidebar();
     initializeScrollTop();

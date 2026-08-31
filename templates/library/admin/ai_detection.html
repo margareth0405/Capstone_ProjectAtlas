@@ -7,63 +7,73 @@
 {% block dashboard_content %}
   <div class="ai-detection-page">
     <header class="django-page-header">
-      <div>
-        <h1><i class="fas fa-robot" aria-hidden="true"></i> AI Detection</h1>
-      </div>
+      <div><h1><i class="fas fa-robot" aria-hidden="true"></i> AI Detection</h1></div>
     </header>
 
-    <div class="ai-supported-inputs" aria-label="Supported AI Detection inputs">
-      <span>Supported inputs</span>
-      <strong><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</strong>
-      <strong><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</strong>
-      <strong><i class="fas fa-align-left" aria-hidden="true"></i> Pasted text</strong>
-    </div>
-
     <div class="ai-detection-layout">
-      <section class="ai-detection-form-card" aria-labelledby="aiDetectionFormHeading">
-        <h2 id="aiDetectionFormHeading">Analyze content</h2>
+      <section class="staff-panel ai-detection-form-card" aria-labelledby="aiDetectionFormHeading">
+        <div class="staff-panel-heading ai-panel-heading">
+          <div><span class="section-kicker">Content input</span><h2 id="aiDetectionFormHeading">Analyze content</h2></div>
+          <div class="ai-supported-inputs" aria-label="Supported AI Detection inputs">
+            <strong><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</strong>
+            <strong><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</strong>
+            <strong><i class="fas fa-align-left" aria-hidden="true"></i> Text</strong>
+          </div>
+        </div>
+
         <form method="post" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
           {% include "library/includes/form_errors.html" with form=form %}
 
-          <div class="form-group ai-upload-field">
-            <label for="{{ form.document.id_for_label }}">{{ form.document.label }}</label>
-            {{ form.document }}
-            {% if form.document.help_text %}<small class="form-helper">{{ form.document.help_text }}</small>{% endif %}
-            {% if form.document.errors %}<div class="invalid-feedback d-block">{% for error in form.document.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          <div class="ai-input-grid">
+            <div class="form-group ai-upload-field">
+              <span class="ai-field-icon"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i></span>
+              <div>
+                <label for="{{ form.document.id_for_label }}">{{ form.document.label }}</label>
+                {{ form.document }}
+                {% if form.document.help_text %}<small class="form-helper">{{ form.document.help_text }}</small>{% endif %}
+                {% if form.document.errors %}<div class="invalid-feedback d-block">{% for error in form.document.errors %}{{ error }}{% endfor %}</div>{% endif %}
+              </div>
+            </div>
+
+            <div class="form-group ai-text-field">
+              <label for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+              {{ form.text }}
+              {% if form.text.help_text %}<small class="form-helper">{{ form.text.help_text }}</small>{% endif %}
+              {% if form.text.errors %}<div class="invalid-feedback d-block">{% for error in form.text.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            </div>
           </div>
 
-          <div class="ai-input-divider"><span>or</span></div>
-
-          <div class="form-group">
-            <label for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
-            {{ form.text }}
-            {% if form.text.help_text %}<small class="form-helper">{{ form.text.help_text }}</small>{% endif %}
-            {% if form.text.errors %}<div class="invalid-feedback d-block">{% for error in form.text.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          <div class="ai-form-actions">
+            <button class="btn-create-admin" type="submit"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i> Analyze content</button>
           </div>
-
-          <button class="btn-create-admin" type="submit"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i> Analyze content</button>
         </form>
       </section>
 
-      <section class="ai-detection-result-card" aria-live="polite" aria-labelledby="aiDetectionResultHeading">
-        <h2 id="aiDetectionResultHeading">Analysis result</h2>
+      <section class="staff-panel ai-detection-result-card" aria-live="polite" aria-labelledby="aiDetectionResultHeading">
+        <div class="staff-panel-heading">
+          <div><span class="section-kicker">Report</span><h2 id="aiDetectionResultHeading">Analysis result</h2></div>
+          {% if detection_source %}<span class="ai-result-source"><i class="fas fa-file-lines" aria-hidden="true"></i> {{ detection_source }}</span>{% endif %}
+        </div>
+
         {% if detection_result %}
-          <div class="ai-result-source"><i class="fas fa-file-lines" aria-hidden="true"></i> {{ detection_source }}</div>
-          <div class="ai-score {{ detection_result.tone }}">
-            <strong>{{ detection_result.score }}%</strong>
-            <span>{{ detection_result.label }}</span>
+          <div class="ai-result-grid">
+            <div class="ai-score {{ detection_result.tone }}">
+              <strong>{{ detection_result.score }}%</strong>
+              <span>{{ detection_result.label }}</span>
+            </div>
+            <dl class="ai-metrics">
+              <div><dt>Words</dt><dd>{{ detection_result.word_count }}</dd></div>
+              <div><dt>Sentences</dt><dd>{{ detection_result.sentence_count }}</dd></div>
+              <div><dt>Vocabulary diversity</dt><dd>{{ detection_result.lexical_diversity }}%</dd></div>
+              <div><dt>Sentence variation</dt><dd>{{ detection_result.sentence_variation }}%</dd></div>
+              <div><dt>Repeated phrases</dt><dd>{{ detection_result.repeated_phrase_ratio }}%</dd></div>
+            </dl>
           </div>
-          <dl class="ai-metrics">
-            <div><dt>Words</dt><dd>{{ detection_result.word_count }}</dd></div>
-            <div><dt>Sentences</dt><dd>{{ detection_result.sentence_count }}</dd></div>
-            <div><dt>Vocabulary diversity</dt><dd>{{ detection_result.lexical_diversity }}%</dd></div>
-            <div><dt>Sentence variation</dt><dd>{{ detection_result.sentence_variation }}%</dd></div>
-            <div><dt>Repeated phrases</dt><dd>{{ detection_result.repeated_phrase_ratio }}%</dd></div>
-          </dl>
         {% else %}
           <div class="ai-empty-result"><i class="fas fa-file-circle-question" aria-hidden="true"></i><p>Upload a PDF or Word document, or paste at least 100 characters.</p></div>
         {% endif %}
+
         <div class="ai-detection-notice" role="note">
           <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
           <p>This score measures writing patterns only. It cannot prove whether a person or an AI wrote the content, so it should not be used as the sole basis for academic decisions.</p>

@@ -5,8 +5,30 @@ from django.db.models import Count, Sum
 from library.models import Favorite, LibraryItem, Profile
 
 
+class GreetingNameResolver:
+    """Return a friendly account label without exposing a full email address."""
+
+    fallback_label = "User"
+
+    @classmethod
+    def resolve(cls, user):
+        username = (user.get_username() or "").strip()
+        if username and "@" not in username:
+            return username
+
+        full_name = user.get_full_name().strip()
+        if full_name:
+            return full_name
+
+        email = (user.email or username).strip()
+        local_part = email.partition("@")[0].strip()
+        return local_part or cls.fallback_label
+
+
 class PageContextBuilder:
     """Create shared template context for one request."""
+
+    greeting_name_resolver_class = GreetingNameResolver
 
     def __init__(self, request):
         self.request = request
@@ -38,7 +60,7 @@ class PageContextBuilder:
         user = self.request.user
         if not user.is_authenticated:
             return "Guest"
-        return user.get_full_name() or user.email or user.username
+        return self.greeting_name_resolver_class.resolve(user)
 
     def _favorite_count(self):
         user = self.request.user

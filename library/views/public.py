@@ -28,14 +28,20 @@ class RobotsView(View):
 
 
 class UsageHeartbeatView(View):
-    """Receive visible-page heartbeats used to extend active visit duration."""
+    """Receive active-time heartbeats and reload-aware page-view events."""
 
     def post(self, request):
         if not (
             request.user.is_authenticated or request.session.get("guest_mode")
         ):
             return HttpResponse(status=403)
-        request.atlas_usage_heartbeat = True
+
+        if request.POST.get("event") == "page_view":
+            page_path = request.POST.get("path", "").strip()
+            if not page_path.startswith("/") or page_path.startswith("//"):
+                return HttpResponse(status=400)
+            request.atlas_usage_page_path = page_path[:255]
+
         return HttpResponse(status=204)
 
 class DashboardView(PageContextMixin, TemplateView):

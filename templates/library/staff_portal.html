@@ -33,15 +33,15 @@
     </section>
 
 
-    <section class="staff-service-card" aria-labelledby="aiDetectionServiceHeading">
-      <span class="staff-service-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
-      <div>
-        <h2 id="aiDetectionServiceHeading">AI Detection</h2>
-        <div class="ai-service-formats" aria-label="Supported file formats">
-          <span><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</span>
-          <span><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</span>
-          <span><i class="fas fa-align-left" aria-hidden="true"></i> Text</span>
-        </div>
+    <section class="staff-panel staff-ai-entry" aria-labelledby="aiDetectionServiceHeading">
+      <div class="staff-ai-entry-main">
+        <span class="staff-service-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+        <div><span class="section-kicker">Administrator tool</span><h2 id="aiDetectionServiceHeading">AI Detection</h2></div>
+      </div>
+      <div class="ai-service-formats" aria-label="Supported file formats">
+        <span><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</span>
+        <span><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</span>
+        <span><i class="fas fa-align-left" aria-hidden="true"></i> Text</span>
       </div>
       <a class="btn-register-admin" href="{{ staff_ai_detection_url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i> Open service</a>
     </section>
@@ -172,7 +172,7 @@
     <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
       <div class="staff-panel-heading usage-heading">
         <div><span class="section-kicker">Usage analytics</span><h2 id="usageHeading"><i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage</h2></div>
-        <form class="analytics-date-form" method="get" action="#usage" data-auto-submit>
+        <form class="analytics-date-form" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
           <label for="analyticsDate">Date</label>
           <input class="form-control" id="analyticsDate" type="date" name="analytics_date" value="{{ analytics_date }}">
         </form>
