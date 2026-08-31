@@ -526,3 +526,34 @@
     margin-bottom: 0.5rem;
   }
 }
+
+/* Explicit student/teacher choice on sign-in and registration. */
+.auth-role-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  width: 100%;
+  margin: 0.9rem 0 1rem;
+}
+
+.auth-role-switch a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(123, 32, 51, 0.22);
+  border-radius: 0.8rem;
+  color: #5f2431;
+  font-weight: 700;
+  text-decoration: none;
+  background: #fff;
+}
+
+.auth-role-switch a:hover,
+.auth-role-switch a:focus-visible,
+.auth-role-switch a.active {
+  color: #fff;
+  background: #7b2033;
+  border-color: #7b2033;
+}

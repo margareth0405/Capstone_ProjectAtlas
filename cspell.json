@@ -1,0 +1,18 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "allauth",
+    "collectstatic",
+    "createsuperuser",
+    "HSTS",
+    "makemigrations",
+    "navigations",
+    "noinput",
+    "psycopg",
+    "pypdf",
+    "runserver",
+    "venv",
+    "whitenoise"
+  ]
+}

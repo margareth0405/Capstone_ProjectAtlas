@@ -45,12 +45,12 @@
     {% if active_role == "guest" %}
       <div class="guest-banner" role="note">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <p>You are browsing as a guest. <a class="login-prompt" href="{{ login_url|default:'/login/' }}">Sign in</a> or <a class="login-prompt" href="{{ register_url|default:'/register/' }}">register</a> to download and bookmark resources.</p>
+        <p>You are browsing as a guest. You can read protected resources in ATLAS. <a class="login-prompt" href="{{ login_url|default:'/login/' }}">Sign in</a> as a student or teacher to use bookmarks.</p>
       </div>
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
         <i class="fas fa-eye" aria-hidden="true"></i>
-        <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — view, download, and bookmark resources</span>
+        <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — protected reading and bookmarks</span>
         <a href="{{ bookmarks_url|default:'#' }}">View bookmarks</a>
       </div>
     {% endif %}
@@ -85,7 +85,7 @@
       <div class="catalog-resource-grid">
         {% for item in items %}
           {% url 'library:item_detail' item.pk as item_detail_url %}
-          {% url 'library:download' item.pk as download_url %}
+          {% url 'library:resource_reader' item.pk as resource_reader_url %}
           {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
           {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
           {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
@@ -105,16 +105,13 @@
             </dl>
             <div class="catalog-card-actions">
               <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
+              {% if item.resource %}<a class="btn-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>{% endif %}
               {% if active_role == "student" or active_role == "teacher" %}
-                {% if item.downloadable %}<a class="btn-download" href="{{ download_url }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>{% endif %}
                 <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
                   {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit"><i class="fas fa-bookmark" aria-hidden="true"></i> {% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</button>
                 </form>
-              {% elif active_role == "guest" %}
-                <span class="guest-restricted"><i class="fas fa-lock" aria-hidden="true"></i> Sign in to download</span>
-              {% else %}
-                {% if item.downloadable %}<a class="btn-download" href="{{ download_url }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>{% endif %}
+              {% elif request.user.is_staff %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
                 <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
               {% endif %}

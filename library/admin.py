@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Announcement, ContactMessage, DownloadEvent, Favorite, LibraryItem, Profile
+from .models import Announcement, ContactMessage, Favorite, LibraryItem, Profile, ResourceViewEvent
 
 
 @admin.register(Profile)
@@ -36,7 +36,7 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "collection",
         "file_type",
         "published_on",
-        "downloadable",
+        "resource",
         "created_at",
     )
     list_filter = ("collection", "file_type", "published_on", "created_at")
@@ -56,36 +56,61 @@ class FavoriteAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
 
-@admin.register(DownloadEvent)
-class DownloadEventAdmin(admin.ModelAdmin):
-    list_display = ("item", "user", "ip_address", "downloaded_at")
-    list_filter = ("downloaded_at",)
-    search_fields = ("item__title", "item__call_number", "user__email", "ip_address")
-    autocomplete_fields = ("user", "item")
-    readonly_fields = ("user", "item", "downloaded_at", "ip_address", "user_agent")
-    date_hierarchy = "downloaded_at"
-
-    def has_add_permission(self, request):
-        return False
-
-
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "is_featured", "is_published", "published_at", "created_by")
-    list_filter = ("category", "is_featured", "is_published")
+    fields = ("title", "body", "category", "created_by", "published_at", "created_at", "updated_at")
+    list_display = ("title", "category", "publication_status", "published_at", "created_by")
+    list_filter = ("category",)
     search_fields = ("title", "body")
     autocomplete_fields = ("created_by",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("published_at", "created_at", "updated_at")
     date_hierarchy = "published_at"
     actions = ("publish_selected", "unpublish_selected")
 
+    @admin.display(description="Status")
+    def publication_status(self, announcement):
+        return "Published" if announcement.is_published else "Draft"
+
+    def save_model(self, request, obj, form, change):
+        obj.is_featured = False
+        if not change:
+            obj.is_published = False
+            obj.published_at = None
+        super().save_model(request, obj, form, change)
+
     @admin.action(description="Publish selected announcements")
     def publish_selected(self, request, queryset):
-        queryset.update(is_published=True, published_at=timezone.now())
+        queryset.update(is_featured=False, is_published=True, published_at=timezone.now())
 
-    @admin.action(description="Unpublish selected announcements")
+    @admin.action(description="Return selected announcements to draft")
     def unpublish_selected(self, request, queryset):
-        queryset.update(is_published=False)
+        queryset.update(is_published=False, published_at=None)
+
+
+@admin.register(ResourceViewEvent)
+class ResourceViewEventAdmin(admin.ModelAdmin):
+    list_display = ("item", "display_name", "role", "first_viewed_at", "last_viewed_at")
+    list_filter = ("role", "first_viewed_at", "last_viewed_at")
+    search_fields = (
+        "item__title",
+        "item__call_number",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    )
+    readonly_fields = (
+        "item",
+        "user",
+        "session_key",
+        "role",
+        "first_viewed_at",
+        "last_viewed_at",
+        "ip_address",
+    )
+    date_hierarchy = "last_viewed_at"
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(ContactMessage)

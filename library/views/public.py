@@ -28,7 +28,9 @@ class RobotsView(View):
 
 
 class UsageHeartbeatView(View):
-    """Receive active-time heartbeats and reload-aware page-view events."""
+    """Receive visible-page activity and deduplicated navigation events."""
+
+    allowed_events = {"page_view", "heartbeat"}
 
     def post(self, request):
         if not (
@@ -36,7 +38,12 @@ class UsageHeartbeatView(View):
         ):
             return HttpResponse(status=403)
 
-        if request.POST.get("event") == "page_view":
+        event = request.POST.get("event", "")
+        if event not in self.allowed_events:
+            return HttpResponse(status=400)
+        request.atlas_usage_event = event
+
+        if event == "page_view":
             page_path = request.POST.get("path", "").strip()
             if not page_path.startswith("/") or page_path.startswith("//"):
                 return HttpResponse(status=400)
@@ -92,11 +99,6 @@ class AnnouncementsView(PageContextMixin, TemplateView):
             {
                 "announcements": announcements,
                 "announcement_count": announcements.count(),
-                "featured_announcement": (
-                    None
-                    if self.request.user.is_authenticated and self.request.user.is_staff
-                    else announcements.filter(is_featured=True).first()
-                ),
                 "selected_category": category,
                 "category_choices": Announcement.Category.choices,
             }

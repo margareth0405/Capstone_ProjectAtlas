@@ -157,7 +157,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
         }
         help_texts = {
             "details": "Add a concise description or abstract for readers.",
-            "resource": "Upload one PDF, .doc, or .docx file.",
+            "resource": "Upload one PDF or Word (.docx) file.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -189,7 +189,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             extension = Path(upload.name).suffix.lower()
             allowed = {
                 LibraryItem.FileType.PDF: {".pdf"},
-                LibraryItem.FileType.WORD: {".doc", ".docx"},
+                LibraryItem.FileType.WORD: {".docx"},
             }
             if extension not in allowed.get(file_type, set()):
                 self.add_error(
@@ -208,10 +208,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
         return instance
 
 class AnnouncementForm(StyledFormMixin, forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.instance.pk and not self.is_bound:
-            self.fields["is_published"].initial = True
+    """Edit announcement content; publication is a separate staff action."""
 
     class Meta:
         model = Announcement
@@ -219,14 +216,11 @@ class AnnouncementForm(StyledFormMixin, forms.ModelForm):
             "title",
             "body",
             "category",
-            "is_featured",
-            "is_published",
-            "published_at",
         )
         widgets = {
             "body": forms.Textarea(attrs={"rows": 6}),
-            "published_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+
 
 class AdminCreatedUserForm(BaseAccountCreationForm):
     def __init__(self, *args, **kwargs):

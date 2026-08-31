@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 
 from library.forms import AnnouncementForm, LibraryItemForm
@@ -141,11 +142,10 @@ class StaffAnnouncementCreateView(StaffFormView):
 
     def prepare_instance(self, instance):
         instance.created_by = self.request.user
-        self.success_message = (
-            "Announcement published."
-            if instance.is_published
-            else "Announcement saved as a draft."
-        )
+        instance.is_featured = False
+        instance.is_published = False
+        instance.published_at = None
+        self.success_message = "Announcement saved as a draft. Review it, then select Publish."
         return instance
 
     def get_success_url(self, instance):
@@ -162,12 +162,58 @@ class StaffAnnouncementEditView(StaffAnnouncementCreateView):
         return get_object_or_404(Announcement, pk=self.kwargs["pk"])
 
     def prepare_instance(self, instance):
+        instance.is_featured = False
         self.success_message = (
-            "Announcement updated and published."
+            "Published announcement updated."
             if instance.is_published
-            else "Announcement updated as a draft."
+            else "Draft announcement updated. Select Publish when it is ready."
         )
         return instance
+
+
+class StaffAnnouncementPublishView(StaffRequiredMixin, View):
+    """Publish a reviewed draft so it becomes visible to every reader role."""
+
+    activity_recorder_class = ActivityRecorder
+
+    def post(self, request, pk):
+        announcement = get_object_or_404(Announcement, pk=pk)
+        announcement.is_featured = False
+        announcement.is_published = True
+        announcement.published_at = timezone.now()
+        announcement.save(
+            update_fields=("is_featured", "is_published", "published_at", "updated_at")
+        )
+        self.activity_recorder_class.record(
+            actor=request.user,
+            action=ActivityLog.Action.UPDATE,
+            object_type="announcement",
+            object_id=announcement.pk,
+            description=f"Published: {announcement.title}",
+        )
+        messages.success(request, f"{announcement.title} is now published.")
+        return redirect(f'{reverse("library:announcements")}#announcement-{announcement.pk}')
+
+
+class StaffAnnouncementUnpublishView(StaffRequiredMixin, View):
+    """Return an announcement to draft status."""
+
+    activity_recorder_class = ActivityRecorder
+
+    def post(self, request, pk):
+        announcement = get_object_or_404(Announcement, pk=pk)
+        announcement.is_published = False
+        announcement.published_at = None
+        announcement.save(update_fields=("is_published", "published_at", "updated_at"))
+        self.activity_recorder_class.record(
+            actor=request.user,
+            action=ActivityLog.Action.UPDATE,
+            object_type="announcement",
+            object_id=announcement.pk,
+            description=f"Unpublished: {announcement.title}",
+        )
+        messages.info(request, f"{announcement.title} is now a draft.")
+        return redirect(f'{reverse("library:announcements")}#announcement-{announcement.pk}')
 
 
 class StaffAnnouncementDeleteView(StaffRequiredMixin, View):

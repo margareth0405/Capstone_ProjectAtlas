@@ -90,8 +90,6 @@ class StaffCrudTests(LibraryTestCase):
             "title": "Staff announcement",
             "body": "This announcement was created in the staff portal.",
             "category": Announcement.Category.GENERAL,
-            "is_featured": "on",
-            "is_published": "on",
         }
         values.update(overrides)
         return values
@@ -188,9 +186,45 @@ class StaffCrudTests(LibraryTestCase):
             post_response.url,
             f'{reverse("library:announcements")}#announcement-{announcement.pk}',
         )
-        self.assertTrue(announcement.is_featured)
-        self.assertTrue(announcement.is_published)
+        self.assertFalse(announcement.is_featured)
+        self.assertFalse(announcement.is_published)
+        self.assertIsNone(announcement.published_at)
+        self.assertNotContains(get_response, "Is featured")
+        self.assertNotContains(get_response, "Is published")
 
+    def test_staff_can_publish_reviewed_draft_for_public_roles(self):
+        create_response = self.client.post(
+            reverse("library:staff_announcement_create"),
+            self.announcement_payload(
+                title="Publish after review",
+                category=Announcement.Category.OTHER,
+            ),
+        )
+        announcement = Announcement.objects.get(title="Publish after review")
+        self.assertFalse(announcement.is_published)
+        self.assertNotContains(
+            self.client.get(reverse("library:announcements")),
+            "Is published",
+        )
+
+        publish_response = self.client.post(
+            reverse("library:staff_announcement_publish", args=[announcement.pk])
+        )
+        self.assertEqual(publish_response.status_code, 302)
+        announcement.refresh_from_db()
+        self.assertTrue(announcement.is_published)
+        self.assertIsNotNone(announcement.published_at)
+
+        self.client.logout()
+        for role in ("guest", Profile.Role.STUDENT, Profile.Role.TEACHER):
+            with self.subTest(role=role):
+                if role != "guest":
+                    self.client.force_login(
+                        self.create_user(email=f"publish-{role}@example.com", role=role)
+                    )
+                response = self.client.get(reverse("library:announcements"))
+                self.assertContains(response, announcement.title)
+                self.client.logout()
     def test_staff_sees_draft_with_edit_and_delete_controls(self):
         draft = self.create_announcement(
             title="Administrator draft",

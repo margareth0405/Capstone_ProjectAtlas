@@ -33,7 +33,7 @@ class ReaderAuthPresentationTests(LibraryTestCase):
             with self.subTest(subtitle=subtitle):
                 self.assertNotContains(response, subtitle)
 
-    def test_login_pages_have_no_role_toggle_and_keep_role_in_hidden_field(self):
+    def test_login_pages_show_role_choices_and_keep_role_in_hidden_field(self):
         for role, heading in (
             (Profile.Role.STUDENT, "Student Login"),
             (Profile.Role.TEACHER, "Teacher Login"),
@@ -59,7 +59,7 @@ class ReaderAuthPresentationTests(LibraryTestCase):
                 self.assertNotContains(response, "role-selection-note")
                 self.assertNotContains(response, "toggle-btn")
 
-    def test_register_pages_have_no_role_toggle_and_keep_role_in_hidden_field(self):
+    def test_register_pages_show_role_choices_and_keep_role_in_hidden_field(self):
         for role, heading in (
             (Profile.Role.STUDENT, "Student Registration"),
             (Profile.Role.TEACHER, "Teacher Registration"),
@@ -84,6 +84,19 @@ class ReaderAuthPresentationTests(LibraryTestCase):
                 self.assertNotContains(response, "role-selection-note")
                 self.assertNotContains(response, "toggle-btn")
 
+    def test_login_and_registration_offer_password_visibility_controls(self):
+        login_response = self.client.get(reverse("library:login"))
+        register_response = self.client.get(reverse("library:register"))
+
+        self.assertContains(login_response, 'class="auth-role-switch"')
+        self.assertContains(login_response, 'data-password-toggle="id_password"')
+        self.assertContains(register_response, 'class="auth-role-switch"')
+        self.assertContains(register_response, 'data-password-toggle="id_password1"')
+        self.assertContains(register_response, 'data-password-toggle="id_password2"')
+        self.assertContains(login_response, f'{reverse("library:login")}?role=student')
+        self.assertContains(login_response, f'{reverse("library:login")}?role=teacher')
+        self.assertContains(register_response, f'{reverse("library:register")}?role=student')
+        self.assertContains(register_response, f'{reverse("library:register")}?role=teacher')
     def test_invalid_teacher_login_post_preserves_hidden_role(self):
         response = self.client.post(
             reverse("library:login"),

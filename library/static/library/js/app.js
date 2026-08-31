@@ -145,14 +145,34 @@
     if (!url || !csrfToken || csrfToken === "NOTPROVIDED") return;
 
     var lastPingAt = 0;
+    var locationKey = window.location.pathname + window.location.search;
+    var storageKey = "atlas:last-counted-location";
 
-    function isReloadNavigation() {
+    function navigationType() {
       var entries = window.performance && window.performance.getEntriesByType
         ? window.performance.getEntriesByType("navigation")
         : [];
-      if (entries.length) return entries[0].type === "reload";
-      return Boolean(window.performance && window.performance.navigation
-        && window.performance.navigation.type === 1);
+      if (entries.length) return entries[0].type;
+      if (window.performance && window.performance.navigation) {
+        return window.performance.navigation.type === 1 ? "reload" : "navigate";
+      }
+      return "navigate";
+    }
+
+    function wasAlreadyCounted() {
+      try {
+        return window.sessionStorage.getItem(storageKey) === locationKey;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function rememberLocation() {
+      try {
+        window.sessionStorage.setItem(storageKey, locationKey);
+      } catch (error) {
+        // Tracking remains functional when browser storage is unavailable.
+      }
     }
 
     function ping(eventName) {
@@ -174,7 +194,11 @@
       }).catch(function () {});
     }
 
-    if (!isReloadNavigation()) ping("page_view");
+    if (navigationType() !== "reload" && !wasAlreadyCounted()) {
+      ping("page_view");
+    }
+    rememberLocation();
+
     window.setInterval(function () { ping("heartbeat"); }, 45000);
     document.addEventListener("visibilitychange", function () {
       if (
@@ -184,7 +208,9 @@
         ping("heartbeat");
       }
     });
-  }  document.addEventListener("DOMContentLoaded", function () {
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
     initializeMessages();
     initializeSidebar();
     initializeScrollTop();

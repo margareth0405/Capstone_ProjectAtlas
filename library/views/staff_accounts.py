@@ -1,4 +1,4 @@
-"""Administrator account and download-record management views."""
+"""Administrator account management views."""
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from library.forms import AdminCreatedUserForm
-from library.models import ActivityLog, DownloadEvent
+from library.models import ActivityLog
 from library.services import PageContextBuilder
 from library.services.activity import ActivityRecorder
 
@@ -79,28 +79,4 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
                 description=email,
             )
             messages.info(request, f"Account deleted for {email}.")
-        return redirect("library:staff_portal")
-
-
-class StaffDownloadDeleteView(StaffRequiredMixin, View):
-    """Delete one download record without deleting its resource or user."""
-
-    activity_recorder_class = ActivityRecorder
-
-    def post(self, request, pk):
-        event = get_object_or_404(
-            DownloadEvent.objects.select_related("user", "item"),
-            pk=pk,
-        )
-        user_label = event.user.email if event.user else "Unknown user"
-        description = f"{event.item.title} — {user_label}"
-        event.delete()
-        self.activity_recorder_class.record(
-            actor=request.user,
-            action=ActivityLog.Action.DELETE,
-            object_type="download record",
-            object_id=pk,
-            description=description,
-        )
-        messages.info(request, "Download record deleted.")
         return redirect("library:staff_portal")

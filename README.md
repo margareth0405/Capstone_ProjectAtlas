@@ -2,7 +2,7 @@
 
 ATLAS is a role-aware digital library for guests, students, teachers, and
 administrators. Django owns authentication, permissions, validation, catalog
-records, downloads, announcements, contact messages, staff activity history,
+records, protected resource views, announcements, contact messages, staff activity history,
 website-usage analytics, and the administrator AI Detection service.
 
 The active interface is server-rendered HTML and CSS with presentation-only
@@ -18,23 +18,22 @@ JavaScript. Node.js is not required.
 - View published announcements on both the Announcements page and the Library page.
 - Submit support messages to atlastshs@gmail.com.
 - Register and sign in as a student or teacher.
-- Download PDF or Word resources and save Bookmarks when authenticated.
+- Read extractable PDF or Word content inside ATLAS as a guest or member; authenticated readers can also save Bookmarks.
 
 ### Administrators
 
 - Create, edit, and delete PDF or Word library resources.
 - Enter a publication month and year, with an optional exact day; ATLAS records the system-added date automatically.
-- Create, review, edit, publish, unpublish, and delete announcements. Changes appear after the save redirect without a manual browser refresh.
+- Save announcements as drafts, review them, then publish, unpublish, edit, or delete them. The administrator form contains only title, body, and category, including Other.
 - Create student and teacher accounts.
 - Search accounts by name or email.
 - Filter accounts by student, teacher, or administrator.
 - Sort accounts from newest to oldest or oldest to newest.
 - Delete reader accounts while protecting the active administrator and
   superusers.
-- Review and delete download records.
-- Review a dated audit history of resource, account, announcement, and download
-  actions.
-- Review a responsive side-by-side website-usage chart and visit history by date, including active time, sessions, visitors, page views, and each session's last page.
+- Review which guest, student, teacher, or administrator opened each protected resource.
+- Review a dated audit history of resource, account, and announcement actions.
+- Review a responsive side-by-side website-usage chart and searchable visit history by date and account type, including active time, sessions, distinct visitors, deduplicated page views, and each session's last page.
 - Analyze pasted text, PDF files, and Word (.docx) files with the
   administrator-only AI Detection service.
 
@@ -66,17 +65,18 @@ sort newest-to-oldest or oldest-to-newest. Administrators can create student or
 teacher accounts from the portal. Additional administrator accounts must be
 created with createsuperuser or Django Admin.
 
-Published announcements created in the Administrator Portal appear on the
-announcement pages used by guests, students, and teachers. Draft announcements
-remain hidden from non-staff users.
- The Library page also shows the newest published announcements and links each
+New announcements are saved as drafts and remain hidden from guests, students,
+and teachers. After an administrator reviews and publishes one, it appears on
+their Announcement and Library pages. Other is available as a category.
+
+The Library page also shows the newest published announcements and links each
 one to its full announcement. Administrator create, edit, publish, unpublish,
 and delete actions use Django's POST-redirect-GET flow, so the returned page
 already contains the saved state without requiring a manual refresh.
 
 ## Library resource records
 
-The branded resource form accepts one uploaded PDF (.pdf) or Word (.doc/.docx)
+The branded resource form accepts one uploaded PDF (.pdf) or Word (.docx)
 file. File format is a visible PDF/Word toggle. File size and external URL are
 not part of new resource entry or editing. Older database columns are retained
 internally only so an upgrade cannot destroy legacy data; they are hidden from
@@ -86,6 +86,15 @@ Use Details for a short description or abstract. Publication date requires a
 month and year and accepts an optional day. If the day is omitted, ATLAS stores
 the first day of that month internally while displaying only the month and
 year. Created at is the automatic date and time when the record entered ATLAS.
+
+Guests, students, and teachers do not receive a file-download action. The Read
+resource action extracts text on the server and displays it inside ATLAS without
+serving the original upload. Direct /media/ routing is disabled even in development so uploaded library files are not public URLs. PDF and .docx text are supported; image-only PDFs
+need OCR, and legacy .doc files should be replaced with .docx for protected
+reading. Resource viewing history records the resource, visitor, account type,
+and first/last view time, while refreshes within the active session are
+deduplicated.
+
 ## Technology
 
 - Python 3.12
@@ -99,7 +108,7 @@ year. Created at is the automatic date and time when the record entered ATLAS.
 
 ## Local setup on Windows PowerShell
 
-~~~powershell
+```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -107,7 +116,7 @@ Copy-Item .env.example .env
 # Edit .env with your PostgreSQL and administrator-path settings.
 python manage.py migrate
 python manage.py runserver
-~~~
+```
 
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
@@ -125,9 +134,9 @@ The repository contains a Windows startup script and matching VS Code tasks.
 - Press F5 and select ATLAS: Start Django to run with the debugger.
 - Without VS Code, run:
 
-  ~~~powershell
+  ```powershell
   powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1
-  ~~~
+  ```
 
 The first run creates .venv and installs dependencies. Later runs reinstall
 only when requirements.txt changes. The script always runs Django with the
@@ -141,14 +150,14 @@ password, Django secret, or Gmail App Password.
 
 Minimum development settings:
 
-~~~dotenv
+```dotenv
 DJANGO_SECRET_KEY=replace-with-a-long-random-secret
 DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 DJANGO_ADMIN_PATH=replace-with-a-private-admin-path
 DATABASE_URL=postgresql://atlas_user:strong-password@localhost:5432/atlas
 DB_SSL_REQUIRE=False
-~~~
+```
 
 For a hosted PostgreSQL service, use the provider's complete connection URL and
 set DB_SSL_REQUIRE=True when TLS is required.
@@ -164,15 +173,15 @@ email.
 The console backend is safe for local development but prints messages instead
 of delivering them:
 
-~~~dotenv
+```dotenv
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 SUPPORT_EMAIL=atlastshs@gmail.com
 SUPPORT_HOURS=Monday–Friday, 8:00 AM–5:00 PM
-~~~
+```
 
 For real Gmail delivery, create a Google App Password and use:
 
-~~~dotenv
+```dotenv
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 DEFAULT_FROM_EMAIL=ATLAS <atlastshs@gmail.com>
 SUPPORT_EMAIL=atlastshs@gmail.com
@@ -181,7 +190,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=atlastshs@gmail.com
 EMAIL_HOST_PASSWORD=your-google-app-password
-~~~
+```
 
 Do not use the normal Gmail password. If delivery fails, ATLAS keeps the form
 visible, shows an error, and does not record the message as successfully sent.
@@ -193,16 +202,16 @@ The administrator login is intentionally absent from public navigation.
 1. Set a private DJANGO_ADMIN_PATH value in .env.
 2. Apply migrations and create a superuser:
 
-   ~~~powershell
+   ```powershell
    python manage.py migrate
    python manage.py createsuperuser
-   ~~~
+   ```
 
 3. Start Django and open:
 
-   ~~~text
+   ```text
    http://127.0.0.1:8000/<DJANGO_ADMIN_PATH>/
-   ~~~
+   ```
 
 4. After signing in, open /staff/ for the branded Administrator Portal.
 
@@ -214,14 +223,9 @@ administrators through createsuperuser or Django Admin.
 The idempotent command below creates catalog records, announcements, and reader
 accounts:
 
-~~~powershell
+```powershell
 python manage.py seed_atlas
-~~~
-
-| Role | Email | Password | Entry point |
-| --- | --- | --- | --- |
-| Student | student@atlas.edu | password123 | /login/ |
-| Teacher | teacher@deped.gov.ph | password123 | /login/ |
+```
 
 The seed command never creates an administrator. Replace development passwords
 before sharing an environment.
@@ -241,7 +245,7 @@ ATLAS follows Django's OOP conventions:
 Dependencies flow from views and middleware to services and models. Models do
 not import templates or views.
 
-~~~text
+```text
 atlas/
 |-- settings.py                         Environment-based Django configuration
 +-- urls.py                             Root routing and private Django Admin
@@ -260,16 +264,17 @@ library/
 |   |-- navigation.py                   SafeRedirectService
 |   |-- staff_portal.py                 StaffUserDirectory, UsageAnalytics,
 |   |                                    and StaffPortalContextService
-|   +-- usage.py                        WebsiteUsageTracker
+|   |-- usage.py                        WebsiteUsageTracker
+|   +-- resource_views.py                ResourceViewTracker
 |-- views/
 |   |-- authentication.py               Registration, login, guest, and logout
-|   |-- catalog.py                      Catalog, bookmarks, and downloads
+|   |-- catalog.py                      Catalog, bookmarks, and protected reading
 |   |-- public.py                       Dashboard, announcements, contact, and usage heartbeat
 |   |-- mixins.py                       Context and staff permission mixins
 |   |-- staff.py                        Stable administrator-view import facade
 |   |-- staff_dashboard.py              Administrator homepage
 |   |-- staff_crud.py                   Resource and announcement CRUD
-|   |-- staff_accounts.py               Accounts and download records
+|   |-- staff_accounts.py               Account creation and deletion
 |   +-- staff_ai.py                     AI Detection workflow
 |-- migrations/                         Database schema history
 |-- management/commands/                Administrative CLI commands
@@ -283,7 +288,7 @@ templates/library/
 library/static/library/
 |-- css/                                Shared and role-specific styles
 +-- js/app.js                           Presentation-only browser behavior
-~~~
+```
 
 library.views.staff re-exports the administrator view classes. This facade keeps
 route imports stable while each implementation lives in its
@@ -306,21 +311,27 @@ selected past date is not mixed with today, and displays:
 - Account-type chart: active minutes grouped into guest, student, teacher, and
   administrator roles.
 
-A reload-aware browser event records a page view after a new navigation. A
-lightweight heartbeat is sent every 45 seconds only while an ATLAS page is
-visible and the browser is online. Tracking does not inspect keystrokes, other
-websites, background applications, or activity outside ATLAS. Historical rows
-created before migration 0004 have zero page views and no last-page value
-because those values cannot be reconstructed.
+A new navigation records a page view once. Browser reload detection and a
+session-level last-location guard prevent refreshes from increasing page views.
+A lightweight heartbeat is sent every 45 seconds only while an ATLAS page is
+visible and online. Active time is based on those visible heartbeats, sessions
+split after 15 idle minutes or at a local-calendar day boundary, and guest
+visitors are counted by distinct browser session. Tracking does not inspect
+keystrokes, other websites, background applications, or activity outside
+ATLAS. Historical rows created before migration 0004 have zero page views and
+no last-page value because those values cannot be reconstructed.
 
-### Activity history versus download history
+### Activity, visit, and resource-view history
 
-| Record | Purpose | What deleting the record does |
-| --- | --- | --- |
-| Activity history | Audits resource, account, announcement, and download create/update/delete actions, including the administrator responsible. | The portal currently treats these as audit records; it does not use them as the content itself. |
-| Download history | Records which signed-in account downloaded which library resource and the exact time. | Deletes only the audit row. It does not delete the resource or account, revoke access, or remove a copy already saved by the user. |
-| Website visit history | Stores session start, last activity, active seconds, page views, last page, role, and date. | Used only for the Administrator Portal usage report. |
+| Record | Purpose |
+| --- | --- |
+| Activity history | Audits important resource, account, and announcement changes, including the responsible administrator. |
+| Website visit history | Stores session start, last visible activity, active seconds, deduplicated page views, last page, role, and date. It can be searched by visitor and filtered by account type. |
+| Resource viewing history | Records who opened a specific protected resource, their account type, and the first/last view time. Repeated refreshes inside the 15-minute active window update one record. |
 
+The former download endpoint and Download history panel are no longer active.
+Existing legacy database rows are left intact during upgrade to avoid
+destructive data loss, but ATLAS does not create or expose new download records.
 ActivityRecorder creates new audit entries at the time an action occurs. Events
 from before the audit feature was installed are not reconstructed retroactively.
 
@@ -328,40 +339,41 @@ from before the audit feature was installed are not reconstructed retroactively.
 
 Run migrations after pulling or copying these changes:
 
-~~~powershell
+```powershell
 python manage.py migrate
-~~~
+```
 
 Migration 0003 adds administrator activity and website-visit history. Migration
-0004 adds page-view counts and last-page tracking. Migration 0005 adds the
-publication date, optional-day indicator, and PDF/Word format choices for
-library resources. Do not manually add these columns; Django migrations handle
+0004 adds page-view counts and last-page tracking. Migration 0005 adds resource
+publication dates and PDF/Word format choices. Migration 0006 adds the Other
+announcement category, Bookmark display names, and resource-view history. Do not manually add these columns; Django migrations handle
 both new and existing installations.
+
 ## Important commands
 
-~~~powershell
+```powershell
 python manage.py check
 python manage.py check_database
 python manage.py makemigrations --check --dry-run
 python manage.py test
 python manage.py collectstatic --noinput
-~~~
+```
 
 Focused announcement, catalog, resource, and administrator tests:
 
-~~~powershell
+```powershell
 python manage.py test library.tests.test_staff_views library.tests.test_public_views library.tests.test_staff_features
-~~~
+```
 
 ## Troubleshooting missing Python modules
 
 Use the project interpreter for every Django command:
 
-~~~powershell
+```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py check
-~~~
+```
 
 If PowerShell reports No module named django, allauth, docx, pypdf, psycopg,
 whitenoise, or dotenv, the command is using the wrong interpreter or the
@@ -371,7 +383,7 @@ package named docx; the correct dependency is python-docx.
 
 ## Production checklist
 
-~~~dotenv
+```dotenv
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=library.example.edu
 DJANGO_CSRF_TRUSTED_ORIGINS=https://library.example.edu
@@ -381,13 +393,13 @@ SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=True
 DB_SSL_REQUIRE=True
-~~~
+```
 
 Also:
 
 - Use a unique production DJANGO_SECRET_KEY.
 - Configure real SMTP credentials and test delivery.
-- Use durable media storage for uploaded resources.
+- Use durable private media storage for uploaded resources; do not map MEDIA_ROOT to a public web-server URL.
 - Run migrations and collectstatic.
 - Replace demonstration passwords.
 - Keep DJANGO_ADMIN_PATH private.

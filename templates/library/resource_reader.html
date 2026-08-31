@@ -1,0 +1,30 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}Read {{ item.title }} · ATLAS{% endblock %}
+{% block breadcrumb %}Protected resource reader{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:item_detail' item.pk as item_detail_url %}
+  <article class="resource-reader-card">
+    <header class="resource-reader-header">
+      <div>
+        <a class="btn-back inline-back" href="{{ item_detail_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to resource details</a>
+        <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
+        <h1>{{ item.title }}</h1>
+        <p>By {{ item.author }} · {{ item.get_file_type_display }}</p>
+      </div>
+      <span class="protected-reader-badge"><i class="fas fa-shield-halved" aria-hidden="true"></i> Protected reading view</span>
+    </header>
+
+    <div class="reader-privacy-note" role="note">
+      <i class="fas fa-lock" aria-hidden="true"></i>
+      <span>The original file is not offered for download. ATLAS displays extractable text inside this protected reading page.</span>
+    </div>
+
+    {% if resource_content %}
+      <section class="resource-reader-content" aria-label="Text of {{ item.title }}">{{ resource_content|linebreaksbr }}</section>
+    {% else %}
+      <section class="django-empty-state"><i class="fas fa-file-circle-exclamation" aria-hidden="true"></i><h2>Preview unavailable</h2><p>{{ reader_error }}</p></section>
+    {% endif %}
+  </article>
+{% endblock %}

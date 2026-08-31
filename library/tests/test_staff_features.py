@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from docx import Document
 
-from library.models import ActivityLog, Profile, WebsiteVisit
+from library.models import ActivityLog, Profile, ResourceViewEvent, WebsiteVisit
 from library.tests.base import LibraryTestCase
 from library.views.staff_ai import StaffAIDetectionView
 
@@ -137,14 +137,14 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
     def test_refresh_request_does_not_add_a_page_view(self):
         dashboard_url = reverse("library:dashboard")
         self.client.get(dashboard_url)
-        visit = WebsiteVisit.objects.get(user=self.staff)
-        self.assertEqual(visit.page_views, 0)
+        self.assertFalse(WebsiteVisit.objects.filter(user=self.staff).exists())
 
         page_view_response = self.client.post(
             reverse("library:usage_heartbeat"),
             {"event": "page_view", "path": dashboard_url},
         )
         self.assertEqual(page_view_response.status_code, 204)
+        visit = WebsiteVisit.objects.get(user=self.staff)
         visit.refresh_from_db()
         self.assertEqual(visit.page_views, 1)
         self.assertEqual(visit.last_path, dashboard_url)
@@ -152,11 +152,92 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         self.client.get(dashboard_url)
         self.client.post(
             reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": dashboard_url},
+        )
+        self.client.post(
+            reverse("library:usage_heartbeat"),
             {"event": "heartbeat", "path": dashboard_url},
         )
         visit.refresh_from_db()
         self.assertEqual(visit.page_views, 1)
 
+    def test_visitors_count_distinct_guest_sessions_and_signed_in_users(self):
+        WebsiteVisit.objects.create(
+            session_key="same-guest",
+            user=None,
+            role=WebsiteVisit.Role.GUEST,
+        )
+        WebsiteVisit.objects.create(
+            session_key="same-guest",
+            user=None,
+            role=WebsiteVisit.Role.GUEST,
+        )
+        reader = self.create_user(email="unique-reader@example.com")
+        WebsiteVisit.objects.create(
+            session_key="reader-one",
+            user=reader,
+            role=WebsiteVisit.Role.STUDENT,
+        )
+        WebsiteVisit.objects.create(
+            session_key="reader-two",
+            user=reader,
+            role=WebsiteVisit.Role.STUDENT,
+        )
+
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertEqual(response.context["usage_summary"]["sessions"], 4)
+        self.assertEqual(response.context["usage_summary"]["visitors"], 2)
+
+    def test_visit_history_search_and_account_type_filter(self):
+        teacher = self.create_user(
+            email="find-this-teacher@example.com",
+            role=Profile.Role.TEACHER,
+        )
+        teacher_visit = WebsiteVisit.objects.create(
+            session_key="teacher-filter-session",
+            user=teacher,
+            role=WebsiteVisit.Role.TEACHER,
+        )
+        WebsiteVisit.objects.create(
+            session_key="guest-filter-session",
+            user=None,
+            role=WebsiteVisit.Role.GUEST,
+        )
+
+        response = self.client.get(
+            reverse("library:staff_portal"),
+            {"usage_q": "find-this", "usage_role": WebsiteVisit.Role.TEACHER},
+        )
+
+        self.assertEqual(list(response.context["visit_history"]), [teacher_visit])
+        self.assertContains(response, "find-this-teacher@example.com")
+        self.assertContains(response, 'name="usage_role"')
+
+    def test_resource_view_history_can_filter_by_role_and_resource(self):
+        teacher = self.create_user(
+            email="resource-teacher@example.com",
+            role=Profile.Role.TEACHER,
+        )
+        item = self.create_item(title="Filtered Atlas Resource")
+        event = ResourceViewEvent.objects.create(
+            item=item,
+            user=teacher,
+            session_key="resource-filter-session",
+            role=WebsiteVisit.Role.TEACHER,
+        )
+
+        response = self.client.get(
+            reverse("library:staff_portal"),
+            {
+                "resource_view_q": "Filtered Atlas",
+                "resource_view_role": WebsiteVisit.Role.TEACHER,
+            },
+        )
+
+        self.assertEqual(list(response.context["resource_view_history"]), [event])
+        self.assertContains(response, "Resource viewing history")
+        self.assertNotContains(response, "Download history")
     def test_usage_event_rejects_external_style_path(self):
         response = self.client.post(
             reverse("library:usage_heartbeat"),

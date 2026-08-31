@@ -20,7 +20,7 @@
         {% for favorite in favorites %}
           {% with item=favorite.item %}
             {% url 'library:item_detail' item.pk as item_detail_url %}
-            {% url 'library:download' item.pk as download_url %}
+            {% url 'library:resource_reader' item.pk as resource_reader_url %}
             {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
             <article class="favorite-card">
               <div class="card-top">
@@ -37,7 +37,7 @@
               <p class="card-copies"><i class="fas fa-file" aria-hidden="true"></i> {{ item.file_type|default:'PDF' }}</p>
               <div class="card-actions">
                 <a class="btn-details" href="{{ item_detail_url|default:'#' }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
-                <a class="btn-download" href="{{ download_url|default:'#' }}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>
+                <a class="btn-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>
               </div>
             </article>
           {% endwith %}

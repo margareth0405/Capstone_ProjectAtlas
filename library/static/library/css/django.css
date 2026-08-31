@@ -718,3 +718,78 @@ a.role-btn,
         grid-template-columns: 1fr;
     }
 }
+/* Protected in-site resource reader. */
+.resource-reader-card {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(1.1rem, 3vw, 2rem);
+  border: 1px solid rgba(123, 32, 51, 0.14);
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(49, 32, 35, 0.08);
+}
+
+.resource-reader-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ebe4e1;
+}
+
+.resource-reader-header h1 {
+  margin: 0.6rem 0 0.25rem;
+  color: #4f1725;
+}
+
+.protected-reader-badge,
+.reader-privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #632035;
+  background: #fbf3e5;
+  border: 1px solid #ead5ae;
+  border-radius: 0.8rem;
+}
+
+.protected-reader-badge {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.75rem;
+  font-weight: 700;
+}
+
+.reader-privacy-note {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+}
+
+.resource-reader-content {
+  max-height: 68vh;
+  overflow: auto;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid #e5dfdc;
+  border-radius: 0.9rem;
+  color: #282225;
+  background: #fcfbfa;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.03rem;
+  line-height: 1.75;
+  white-space: normal;
+}
+
+.usage-history-filters,
+.resource-view-filters {
+  margin: 0 0 1rem;
+}
+
+@media (max-width: 720px) {
+  .resource-reader-header {
+    flex-direction: column;
+  }
+
+  .protected-reader-badge {
+    align-self: flex-start;
+  }
+}

@@ -28,7 +28,7 @@
     <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Library resources</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
-      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-download" aria-hidden="true"></i></span><strong>{{ download_count|default:0 }}</strong><span>Downloads recorded</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book-reader" aria-hidden="true"></i></span><strong>{{ resource_view_count|default:0 }}</strong><span>Resource views</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open support messages</span></article>
     </section>
 
@@ -89,11 +89,18 @@
             {% for announcement in announcements|slice:":6" %}
               {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
               {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
+              {% url 'library:staff_announcement_publish' announcement.pk as publish_url %}
+              {% url 'library:staff_announcement_unpublish' announcement.pk as unpublish_url %}
               <article>
                 <div><strong>{{ announcement.title }}</strong><small>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display|default:announcement.category }}{% if not announcement.is_published %} · Draft{% endif %}</small></div>
                 <div class="resource-actions">
+                  {% if announcement.is_published %}
+                    <form action="{{ unpublish_url }}" method="post" class="inline-action-form" data-confirm-form="Return ‘{{ announcement.title|escape }}’ to draft status?">{% csrf_token %}<button class="btn-edit" type="submit" aria-label="Unpublish {{ announcement.title }}"><i class="fas fa-eye-slash" aria-hidden="true"></i></button></form>
+                  {% else %}
+                    <form action="{{ publish_url }}" method="post" class="inline-action-form" data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?">{% csrf_token %}<button class="btn-edit" type="submit" aria-label="Publish {{ announcement.title }}"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></form>
+                  {% endif %}
                   <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
-                  <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’?">
+                  <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone.">
                     {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ announcement.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
                   </form>
                 </div>
@@ -136,7 +143,7 @@
       <div class="user-table-card">
         <div class="table-responsive">
           <table class="user-activity-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Date created</th><th>Last sign-in</th><th>Downloads</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Date created</th><th>Last sign-in</th><th>Resources viewed</th><th>Actions</th></tr></thead>
             <tbody>
               {% for account in users %}
                 {% url 'library:staff_user_delete' account.pk as user_delete_url %}
@@ -152,7 +159,7 @@
                   </td>
                   <td>{{ account.date_joined|date:'M j, Y, g:i a' }}</td>
                   <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
-                  <td><span class="login-count-badge">{{ account.download_total|default:0 }}</span></td>
+                  <td><span class="login-count-badge">{{ account.resource_view_total|default:0 }}</span></td>
                   <td class="resource-actions">
                     {% if account.pk != request.user.pk and not account.is_superuser %}
                       <form action="{{ user_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone.">
@@ -203,6 +210,21 @@
 
       <div class="usage-history-panel">
         <div class="usage-history-heading"><h3>Visit history</h3><span>{{ analytics_date }}</span></div>
+        <form class="staff-filter-bar usage-history-filters" method="get" action="#usage" data-auto-submit>
+          <input type="hidden" name="analytics_date" value="{{ analytics_date }}">
+          <div class="form-group">
+            <label for="usageSearch">Search visitor</label>
+            <input class="form-control" id="usageSearch" type="search" name="usage_q" value="{{ selected_usage_query }}" placeholder="Name, email, or session">
+          </div>
+          <div class="form-group">
+            <label for="usageRole">Account type</label>
+            <select class="form-select" id="usageRole" name="usage_role">
+              <option value="">All account types</option>
+              {% for value, label in usage_role_choices %}<option value="{{ value }}"{% if selected_usage_role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          {% if selected_usage_query or selected_usage_role %}<a class="btn btn-outline-secondary" href="?analytics_date={{ analytics_date }}#usage">Clear</a>{% endif %}
+        </form>
         <div class="table-responsive">
           <table class="staff-compact-table">
             <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th><th>Page views</th><th>Last page</th></tr></thead>
@@ -226,21 +248,35 @@
     </section>
 
     <div class="staff-management-grid staff-history-grid">
-      <section class="staff-panel" id="downloads" aria-labelledby="downloadsHeading">
-        <div class="staff-panel-heading"><div><span class="section-kicker">Records</span><h2 id="downloadsHeading">Download history</h2></div></div>
+      <section class="staff-panel" id="resource-views" aria-labelledby="resourceViewsHeading">
+        <div class="staff-panel-heading"><div><span class="section-kicker">Privacy-safe access log</span><h2 id="resourceViewsHeading">Resource viewing history</h2></div></div>
+        <form class="staff-filter-bar resource-view-filters" method="get" action="#resource-views" data-auto-submit>
+          <div class="form-group">
+            <label for="resourceViewSearch">Search resource or user</label>
+            <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Resource, name, or email">
+          </div>
+          <div class="form-group">
+            <label for="resourceViewRole">Account type</label>
+            <select class="form-select" id="resourceViewRole" name="resource_view_role">
+              <option value="">All account types</option>
+              {% for value, label in usage_role_choices %}<option value="{{ value }}"{% if selected_resource_view_role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="#resource-views">Clear</a>{% endif %}
+        </form>
         <div class="table-responsive">
           <table class="staff-compact-table">
-            <thead><tr><th>Resource</th><th>User</th><th>Date</th><th>Action</th></tr></thead>
+            <thead><tr><th>Resource</th><th>Visitor</th><th>Account type</th><th>First viewed</th><th>Last viewed</th></tr></thead>
             <tbody>
-              {% for download in downloads %}
-                {% url 'library:staff_download_delete' download.pk as download_delete_url %}
+              {% for resource_view in resource_view_history %}
                 <tr>
-                  <td><strong>{{ download.item.title }}</strong></td>
-                  <td>{{ download.user.email|default:'Unknown user' }}</td>
-                  <td>{{ download.downloaded_at|date:'M j, Y, g:i a' }}</td>
-                  <td><form action="{{ download_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete this download record?">{% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete download record"><i class="fas fa-trash" aria-hidden="true"></i></button></form></td>
+                  <td><strong>{{ resource_view.item.title }}</strong><small>{{ resource_view.item.call_number }}</small></td>
+                  <td>{{ resource_view.display_name }}</td>
+                  <td><span class="user-role-badge {{ resource_view.role }}">{{ resource_view.get_role_display }}</span></td>
+                  <td>{{ resource_view.first_viewed_at|date:'M j, Y, g:i a' }}</td>
+                  <td>{{ resource_view.last_viewed_at|date:'M j, Y, g:i a' }}</td>
                 </tr>
-              {% empty %}<tr><td colspan="4" class="empty-user-row">No downloads recorded.</td></tr>{% endfor %}
+              {% empty %}<tr><td colspan="5" class="empty-user-row">No resource views match these filters.</td></tr>{% endfor %}
             </tbody>
           </table>
         </div>

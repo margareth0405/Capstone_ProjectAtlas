@@ -20,6 +20,10 @@
         <i class="fas fa-user-graduate"></i>
       </div>
 
+      <nav class="auth-role-switch" aria-label="Choose account type">
+        <a class="{% if auth_role == 'student' %}active{% endif %}" href="{{ login_url }}?role=student{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-user-graduate" aria-hidden="true"></i> Student</a>
+        <a class="{% if auth_role == 'teacher' %}active{% endif %}" href="{{ login_url }}?role=teacher{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Teacher</a>
+      </nav>
       <span class="account-type-badge reader-account">
         {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account
       </span>

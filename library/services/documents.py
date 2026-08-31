@@ -32,6 +32,24 @@ class DocumentTextExtractor:
             )
         return normalized[: self.maximum_characters]
 
+    def extract_for_reading(self, uploaded_file):
+        """Extract readable text without exposing the original uploaded file."""
+
+        extension = Path(uploaded_file.name).suffix.lower()
+        if extension == ".pdf":
+            text = self._extract_pdf(uploaded_file)
+        elif extension == ".docx":
+            text = self._extract_docx(uploaded_file)
+        else:
+            raise DocumentExtractionError(
+                "This older Word format cannot be displayed safely. Ask the library administrator to replace it with a .docx file."
+            )
+        normalized = self._normalize(text)
+        if not normalized:
+            raise DocumentExtractionError(
+                "No readable text was found. Scanned image-only PDFs require OCR before they can be displayed."
+            )
+        return normalized[:200000]
     @staticmethod
     def _extract_pdf(uploaded_file):
         try:

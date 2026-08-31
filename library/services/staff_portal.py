@@ -10,9 +10,9 @@ from library.models import (
     ActivityLog,
     Announcement,
     ContactMessage,
-    DownloadEvent,
     LibraryItem,
     Profile,
+    ResourceViewEvent,
     WebsiteVisit,
 )
 
@@ -46,7 +46,7 @@ class StaffUserDirectory:
         users = (
             get_user_model()
             .objects.select_related("profile")
-            .annotate(download_total=Count("download_events", distinct=True))
+            .annotate(resource_view_total=Count("resource_view_events", distinct=True))
         )
         if self.query:
             users = users.filter(
@@ -67,7 +67,7 @@ class StaffUserDirectory:
 
 
 class UsageAnalytics:
-    """Aggregate per-role website usage for one calendar date."""
+    """Aggregate and filter website usage for one local calendar date."""
 
     role_colors = {
         WebsiteVisit.Role.GUEST: "#d39b45",
@@ -76,8 +76,19 @@ class UsageAnalytics:
         WebsiteVisit.Role.ADMINISTRATOR: "#7b2033",
     }
 
-    def __init__(self, requested_date=""):
-        self.selected_date = self.parse_date(requested_date)
+    def __init__(self, parameters):
+        self.parameters = parameters
+        self.selected_date = self.parse_date(parameters.get("analytics_date", "").strip())
+
+    @property
+    def query(self):
+        return self.parameters.get("usage_q", "").strip()
+
+    @property
+    def role(self):
+        requested = self.parameters.get("usage_role", "").strip()
+        valid = {value for value, _label in WebsiteVisit.Role.choices}
+        return requested if requested in valid else ""
 
     @staticmethod
     def parse_date(requested_date):
@@ -97,6 +108,20 @@ class UsageAnalytics:
             started_at__gte=day_start,
             started_at__lt=day_end,
         )
+
+    def filtered_visits(self, visits):
+        filtered = visits
+        if self.role:
+            filtered = filtered.filter(role=self.role)
+        if self.query:
+            filtered = filtered.filter(
+                Q(user__first_name__icontains=self.query)
+                | Q(user__last_name__icontains=self.query)
+                | Q(user__email__icontains=self.query)
+                | Q(user__username__icontains=self.query)
+                | Q(session_key__icontains=self.query)
+            )
+        return filtered
 
     def role_usage(self, visits):
         totals = {
@@ -137,12 +162,17 @@ class UsageAnalytics:
             sessions=Count("id"),
             signed_in_users=Count("user", distinct=True),
         )
-        guest_sessions = visits.filter(user__isnull=True).count()
+        guest_visitors = (
+            visits.filter(user__isnull=True)
+            .values("session_key")
+            .distinct()
+            .count()
+        )
         return {
             "minutes": round((totals["total_seconds"] or 0) / 60, 1),
             "page_views": totals["total_page_views"] or 0,
             "sessions": totals["sessions"] or 0,
-            "visitors": (totals["signed_in_users"] or 0) + guest_sessions,
+            "visitors": (totals["signed_in_users"] or 0) + guest_visitors,
         }
 
     @staticmethod
@@ -162,21 +192,52 @@ class UsageAnalytics:
         )
 
 
+class ResourceViewDirectory:
+    """Search and filter staff-visible resource-reading history."""
+
+    def __init__(self, parameters):
+        self.parameters = parameters
+
+    @property
+    def query(self):
+        return self.parameters.get("resource_view_q", "").strip()
+
+    @property
+    def role(self):
+        requested = self.parameters.get("resource_view_role", "").strip()
+        valid = {value for value, _label in WebsiteVisit.Role.choices}
+        return requested if requested in valid else ""
+
+    def build(self):
+        events = ResourceViewEvent.objects.select_related("item", "user")
+        if self.role:
+            events = events.filter(role=self.role)
+        if self.query:
+            events = events.filter(
+                Q(item__title__icontains=self.query)
+                | Q(item__call_number__icontains=self.query)
+                | Q(user__first_name__icontains=self.query)
+                | Q(user__last_name__icontains=self.query)
+                | Q(user__email__icontains=self.query)
+            )
+        return events
+
+
 class StaffPortalContextService:
     """Build the non-form context required by the administrator homepage."""
 
-    role_choices = (
+    account_role_choices = (
         ("student", "Student"),
         ("teacher", "Teacher"),
         ("administrator", "Administrator"),
     )
+    usage_role_choices = WebsiteVisit.Role.choices
 
     def __init__(self, request):
         self.request = request
         self.directory = StaffUserDirectory(request.GET)
-        self.analytics = UsageAnalytics(
-            request.GET.get("analytics_date", "").strip()
-        )
+        self.analytics = UsageAnalytics(request.GET)
+        self.resource_views = ResourceViewDirectory(request.GET)
 
     def build(self):
         users = self.directory.build()
@@ -192,19 +253,24 @@ class StaffPortalContextService:
             "recent_announcements": Announcement.objects.all()[:6],
             "users": users,
             "user_count": all_users.count(),
-            "download_count": DownloadEvent.objects.count(),
+            "resource_view_count": ResourceViewEvent.objects.count(),
             "message_count": ContactMessage.objects.filter(is_resolved=False).count(),
-            "downloads": DownloadEvent.objects.select_related("user", "item")[:20],
+            "resource_view_history": self.resource_views.build()[:50],
             "activity_history": ActivityLog.objects.select_related("actor")[:60],
-            "visit_history": visits.order_by("-last_seen_at")[:50],
+            "visit_history": self.analytics.filtered_visits(visits).order_by("-last_seen_at")[:50],
             "role_usage": role_usage,
             "usage_summary": usage_summary,
             "usage_chart_gradient": self.analytics.chart_gradient(role_usage),
             "analytics_date": self.analytics.selected_date.isoformat(),
+            "selected_usage_query": self.analytics.query,
+            "selected_usage_role": self.analytics.role,
+            "selected_resource_view_query": self.resource_views.query,
+            "selected_resource_view_role": self.resource_views.role,
             "selected_user_query": self.directory.query,
             "selected_user_role": self.directory.role,
             "selected_user_sort": self.directory.sort,
-            "user_role_choices": self.role_choices,
+            "user_role_choices": self.account_role_choices,
+            "usage_role_choices": self.usage_role_choices,
         }
 
     @staticmethod

@@ -5,7 +5,7 @@
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
-  {% url 'library:download' item.pk as download_url %}
+  {% url 'library:resource_reader' item.pk as resource_reader_url %}
   {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
   {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
 
@@ -34,13 +34,10 @@
     </section>
 
     <div class="resource-detail-actions">
-      {% if active_role == "guest" %}
-        {% url 'library:login' as login_url %}
-        <a class="btn btn-primary atlas-primary-action" href="{{ login_url|default:'/login/' }}"><i class="fas fa-lock" aria-hidden="true"></i> Sign in to download</a>
-      {% elif item.downloadable %}
-        <a class="btn-download detail-download" href="{{ download_url }}"><i class="fas fa-download" aria-hidden="true"></i> Download resource</a>
+      {% if item.resource %}
+        <a class="btn-download detail-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>
       {% else %}
-        <span class="guest-restricted"><i class="fas fa-circle-info" aria-hidden="true"></i> File not yet uploaded</span>
+        <span class="guest-restricted"><i class="fas fa-circle-info" aria-hidden="true"></i> Protected reading content is not yet available</span>
       {% endif %}
 
       {% if active_role == "student" or active_role == "teacher" %}

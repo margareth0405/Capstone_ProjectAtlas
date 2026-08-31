@@ -25,7 +25,7 @@ urlpatterns = [
         views.FavoriteToggleView.as_view(),
         name="favorite_toggle",
     ),
-    path("library/<int:pk>/download/", views.DownloadView.as_view(), name="download"),
+    path("library/<int:pk>/read/", views.ResourceReaderView.as_view(), name="resource_reader"),
     path("favorites/", views.FavoritesView.as_view(), name="favorites"),
     path("announcements/", views.AnnouncementsView.as_view(), name="announcements"),
     path("contact/", views.ContactView.as_view(), name="contact"),
@@ -61,6 +61,16 @@ urlpatterns = [
         name="staff_announcement_edit",
     ),
     path(
+        "staff/announcements/<int:pk>/publish/",
+        views.StaffAnnouncementPublishView.as_view(),
+        name="staff_announcement_publish",
+    ),
+    path(
+        "staff/announcements/<int:pk>/unpublish/",
+        views.StaffAnnouncementUnpublishView.as_view(),
+        name="staff_announcement_unpublish",
+    ),
+    path(
         "staff/announcements/<int:pk>/delete/",
         views.StaffAnnouncementDeleteView.as_view(),
         name="staff_announcement_delete",
@@ -74,10 +84,5 @@ urlpatterns = [
         "staff/users/<int:pk>/delete/",
         views.StaffUserDeleteView.as_view(),
         name="staff_user_delete",
-    ),
-    path(
-        "staff/downloads/<int:pk>/delete/",
-        views.StaffDownloadDeleteView.as_view(),
-        name="staff_download_delete",
     ),
 ]

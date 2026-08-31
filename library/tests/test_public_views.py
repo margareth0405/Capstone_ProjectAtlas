@@ -1,13 +1,17 @@
 """Guest pages and member-only catalog actions."""
 
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 
-from library.models import ContactMessage, DownloadEvent, Favorite, Profile
+from library.models import ContactMessage, Favorite, Profile, ResourceViewEvent
+
+from library.views.catalog import ResourceReaderView
 
 from .base import LibraryTestCase
 
@@ -202,32 +206,66 @@ class FavoriteTests(LibraryTestCase):
         )
 
 
-class DownloadTests(LibraryTestCase):
+class ResourceReaderTests(LibraryTestCase):
+    class StubExtractor:
+        def extract_for_reading(self, resource):
+            return "Protected resource text shown inside ATLAS."
+
     def setUp(self):
-        self.item = self.create_item()
-        self.url = reverse("library:download", args=[self.item.pk])
-
-    def test_anonymous_user_cannot_download(self):
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("library:login"), response.url)
-        self.assertEqual(DownloadEvent.objects.count(), 0)
-
-    def test_authenticated_get_redirects_to_resource_and_records_download(self):
-        user = self.create_user(email="downloader@example.com")
-        self.client.force_login(user)
-
-        response = self.client.get(
-            self.url,
-            HTTP_USER_AGENT="Atlas test browser",
-            REMOTE_ADDR="127.0.0.1",
+        self.item = self.create_item(
+            external_url="",
+            resource=SimpleUploadedFile(
+                "protected.pdf",
+                b"%PDF-1.4 protected fixture",
+                content_type="application/pdf",
+            ),
         )
+        self.url = reverse("library:resource_reader", args=[self.item.pk])
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, self.item.external_url)
-        event = DownloadEvent.objects.get()
-        self.assertEqual(event.user, user)
+    def test_catalog_has_read_action_and_no_download_action_for_every_role(self):
+        for role in ("guest", Profile.Role.STUDENT, Profile.Role.TEACHER):
+            with self.subTest(role=role):
+                if role != "guest":
+                    self.client.force_login(
+                        self.create_user(email=f"reader-{role}@example.com", role=role)
+                    )
+                response = self.client.get(reverse("library:catalog"))
+                self.assertContains(response, "Read resource")
+                self.assertNotContains(response, ">Download<")
+                self.client.logout()
+
+    def test_reader_displays_extracted_text_and_deduplicates_refreshes(self):
+        teacher = self.create_user(
+            email="viewer-teacher@example.com",
+            role=Profile.Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+
+        with patch.object(ResourceReaderView, "extractor_class", self.StubExtractor):
+            first_response = self.client.get(self.url)
+            refresh_response = self.client.get(self.url)
+
+        self.assertContains(first_response, "Protected resource text shown inside ATLAS.")
+        self.assertEqual(refresh_response.status_code, 200)
+        event = ResourceViewEvent.objects.get()
+        self.assertEqual(event.user, teacher)
         self.assertEqual(event.item, self.item)
-        self.assertEqual(event.user_agent, "Atlas test browser")
-        self.assertEqual(event.ip_address, "127.0.0.1")
+        self.assertEqual(event.role, Profile.Role.TEACHER)
+
+    def test_guest_can_read_and_is_recorded_as_guest(self):
+        with patch.object(ResourceReaderView, "extractor_class", self.StubExtractor):
+            response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        event = ResourceViewEvent.objects.get()
+        self.assertIsNone(event.user)
+        self.assertEqual(event.role, "guest")
+
+    def test_original_media_file_is_not_publicly_routed(self):
+        response = self.client.get(f"/media/{self.item.resource.name}")
+
+        self.assertEqual(response.status_code, 404)
+    def test_old_download_path_is_not_available(self):
+        response = self.client.get(f"/library/{self.item.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)

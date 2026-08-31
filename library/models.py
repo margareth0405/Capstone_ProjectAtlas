@@ -84,10 +84,6 @@ class LibraryItem(models.Model):
                 "Provide either an uploaded resource or an external URL, not both."
             )
 
-    @property
-    def downloadable(self):
-        return bool(self.resource or self.external_url)
-
 
     @property
     def publication_date_display(self):
@@ -114,6 +110,8 @@ class Favorite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        verbose_name = "Bookmark"
+        verbose_name_plural = "Bookmarks"
         ordering = ("-created_at",)
         constraints = [
             models.UniqueConstraint(
@@ -156,6 +154,7 @@ class Announcement(models.Model):
         MAINTENANCE = "maintenance", "Maintenance"
         RESOURCE = "resource", "Resource"
         URGENT = "urgent", "Urgent"
+        OTHER = "other", "Other"
 
     title = models.CharField(max_length=255)
     body = models.TextField()
@@ -289,6 +288,50 @@ class WebsiteVisit(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.get_role_display()})"
+
+
+class ResourceViewEvent(models.Model):
+    """A deduplicated record of a visitor reading one library resource."""
+
+    item = models.ForeignKey(
+        LibraryItem,
+        on_delete=models.CASCADE,
+        related_name="view_events",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resource_view_events",
+    )
+    session_key = models.CharField(max_length=40, db_index=True)
+    role = models.CharField(
+        max_length=20,
+        choices=WebsiteVisit.Role.choices,
+        db_index=True,
+    )
+    first_viewed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_viewed_at = models.DateTimeField(auto_now=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-last_viewed_at", "-id")
+        indexes = [
+            models.Index(
+                fields=("item", "last_viewed_at"),
+                name="resource_view_item_idx",
+            )
+        ]
+
+    @property
+    def display_name(self):
+        if self.user:
+            return self.user.get_full_name() or self.user.email or self.user.username
+        return "Guest visitor"
+
+    def __str__(self):
+        return f"{self.display_name} viewed {self.item.title}"
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def ensure_user_profile(sender, instance, created, **kwargs):

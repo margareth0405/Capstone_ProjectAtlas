@@ -1,26 +1,18 @@
-"""Catalog browsing, favorites, and download views."""
-
-from pathlib import Path
+"""Catalog browsing, bookmarks, and privacy-safe resource reading."""
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
-from django.utils import timezone
 
-from library.models import (
-    ActivityLog,
-    Announcement,
-    DownloadEvent,
-    Favorite,
-    LibraryItem,
-)
-from library.services.activity import ActivityRecorder
+from library.models import Announcement, Favorite, LibraryItem
 from library.services import CatalogQueryService, SafeRedirectService
+from library.services.documents import DocumentExtractionError, DocumentTextExtractor
+from library.services.resource_views import ResourceViewTracker
 
 from .mixins import PageContextMixin
 
@@ -40,8 +32,6 @@ class CatalogView(PageContextMixin, TemplateView):
                     "item_id", flat=True
                 )
             )
-        for item in items:
-            item.is_favorite = item.pk in favorite_ids
         context.update(
             {
                 "items": items,
@@ -73,6 +63,42 @@ class ItemDetailView(PageContextMixin, TemplateView):
             self.request.user.is_authenticated
             and not self.request.user.is_staff
             and Favorite.objects.filter(user=self.request.user, item=item).exists()
+        )
+        return context
+
+
+class ResourceReaderView(PageContextMixin, TemplateView):
+    """Show extracted document text without serving the original file."""
+
+    template_name = "library/resource_reader.html"
+    active_page = "catalog"
+    extractor_class = DocumentTextExtractor
+    tracker_class = ResourceViewTracker
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        item = get_object_or_404(LibraryItem, pk=self.kwargs["pk"])
+        content = ""
+        reader_error = ""
+
+        self.tracker_class().record(self.request, item)
+        if not item.resource:
+            reader_error = "This resource does not have a protected document available to read."
+        else:
+            try:
+                item.resource.open("rb")
+                content = self.extractor_class().extract_for_reading(item.resource)
+            except (DocumentExtractionError, OSError) as exc:
+                reader_error = str(exc)
+            finally:
+                item.resource.close()
+
+        context.update(
+            {
+                "item": item,
+                "resource_content": content,
+                "reader_error": reader_error,
+            }
         )
         return context
 
@@ -109,41 +135,3 @@ class FavoriteToggleView(View):
             favorite.delete()
             messages.info(request, f"Removed the bookmark for {item.title}.")
         return redirect(SafeRedirectService.resolve(request, "library:catalog"))
-
-
-class DownloadView(View):
-    def get(self, request, pk):
-        if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
-        item = get_object_or_404(LibraryItem, pk=pk)
-        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-        ip_address = (
-            forwarded.split(",")[0].strip()
-            if forwarded
-            else request.META.get("REMOTE_ADDR")
-        )
-        event = DownloadEvent.objects.create(
-            user=request.user,
-            item=item,
-            ip_address=ip_address or None,
-            user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
-        )
-        ActivityRecorder.record(
-            actor=request.user,
-            action=ActivityLog.Action.DOWNLOAD,
-            object_type="library resource",
-            object_id=item.pk,
-            description=f"{item.title} (download record #{event.pk})",
-        )
-        if item.resource:
-            return FileResponse(
-                item.resource.open("rb"),
-                as_attachment=True,
-                filename=Path(item.resource.name).name,
-            )
-        if item.external_url:
-            return redirect(item.external_url)
-        messages.warning(
-            request, "This catalog record does not have a file attached yet."
-        )
-        return redirect("library:item_detail", pk=item.pk)

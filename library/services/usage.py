@@ -1,6 +1,6 @@
-"""Website visit tracking used by middleware and administrator analytics."""
+"""Website visit tracking used by browser activity events and analytics."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.utils import timezone
 
@@ -8,7 +8,7 @@ from library.models import Profile, WebsiteVisit
 
 
 class WebsiteUsageTracker:
-    """Track active time, page views, and the latest page for one session."""
+    """Track visible-page activity, unique navigations, and active sessions."""
 
     idle_limit = timedelta(minutes=15)
     model = WebsiteVisit
@@ -25,6 +25,10 @@ class WebsiteUsageTracker:
             request.session.save()
 
         now = timezone.now()
+        local_day_start = timezone.make_aware(
+            datetime.combine(timezone.localdate(now), time.min),
+            timezone.get_current_timezone(),
+        )
         user = request.user if request.user.is_authenticated else None
         role = self.role_for(user)
         path = (page_path or request.path)[:255] if page_view else ""
@@ -32,6 +36,7 @@ class WebsiteUsageTracker:
             self.model.objects.filter(
                 session_key=request.session.session_key,
                 user=user,
+                started_at__gte=local_day_start,
                 last_seen_at__gte=now - self.idle_limit,
             )
             .order_by("-last_seen_at")
@@ -52,7 +57,7 @@ class WebsiteUsageTracker:
         visit.last_seen_at = now
         visit.role = role
         update_fields = ["duration_seconds", "last_seen_at", "role"]
-        if page_view:
+        if page_view and path != visit.last_path:
             visit.page_views += 1
             visit.last_path = path
             update_fields.extend(("page_views", "last_path"))
