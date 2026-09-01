@@ -25,7 +25,8 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "pages",
         "published_on",
         "publication_day_known",
-        "resource",
+        "cover_image",
+        "resource_abstract",
         "created_by",
         "created_at",
         "updated_at",
@@ -36,7 +37,8 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "collection",
         "file_type",
         "published_on",
-        "resource",
+        "cover_image",
+        "resource_abstract",
         "created_at",
     )
     list_filter = ("collection", "file_type", "published_on", "created_at")

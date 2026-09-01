@@ -388,6 +388,36 @@ a.role-btn,
   margin: 1.5rem 0;
 }
 
+.resource-detail-identity {
+  align-items: flex-start;
+  display: flex;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.resource-detail-cover {
+  flex: 0 0 9rem;
+  margin: 0;
+  text-align: center;
+}
+
+.resource-detail-cover img {
+  background: #f8f3f1;
+  border: 1px solid #e3d8d3;
+  border-radius: 12px;
+  height: 12rem;
+  object-fit: contain;
+  width: 9rem;
+}
+
+.resource-detail-cover figcaption {
+  color: #7b716d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+  text-transform: uppercase;
+}
+
 .resource-detail-header h1 { margin: 0.7rem 0 0.25rem; color: var(--maroon-800); }
 .resource-byline { color: #706763; }
 .resource-format-icon { color: var(--maroon-300); font-size: 4rem; }
@@ -405,7 +435,24 @@ a.role-btn,
 .resource-metadata dt { color: #807672; font-size: 0.68rem; text-transform: uppercase; }
 .resource-metadata dd { margin: 0.2rem 0 0; font-weight: 700; overflow-wrap: anywhere; }
 .resource-description { margin: 1.5rem 0; }
+.abstract-file-action { display: inline-flex; margin-top: 0.75rem; }
 .detail-download { display: inline-flex; align-items: center; }
+
+.favorite-cover-link {
+  background: #f8f3f1;
+  border: 1px solid #eadfda;
+  border-radius: 12px;
+  display: block;
+  height: 10rem;
+  margin-bottom: 0.8rem;
+  overflow: hidden;
+}
+
+.favorite-cover-image {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
 
 .django-favorites-page { margin: 1rem 3.5rem 3rem; }
 .django-favorites-grid { margin-top: 1.5rem; }
@@ -606,6 +653,37 @@ a.role-btn,
     justify-content: space-between;
 }
 
+.catalog-cover-link,
+.catalog-cover-placeholder {
+    align-items: center;
+    background: linear-gradient(145deg, #f8f3f1, #eee5e1);
+    border: 1px solid #eadfda;
+    border-radius: 12px;
+    display: flex;
+    height: 13rem;
+    justify-content: center;
+    margin-top: 0.85rem;
+    overflow: hidden;
+}
+
+.catalog-cover-image {
+    height: 100%;
+    object-fit: contain;
+    width: 100%;
+}
+
+.catalog-cover-placeholder {
+    color: #958781;
+    flex-direction: column;
+    font-size: 0.72rem;
+    gap: 0.45rem;
+}
+
+.catalog-cover-placeholder i {
+    color: var(--maroon-300);
+    font-size: 2.2rem;
+}
+
 .resource-format-badge {
     align-items: center;
     background: var(--maroon-50);
@@ -791,5 +869,10 @@ a.role-btn,
 
   .protected-reader-badge {
     align-self: flex-start;
+  }
+
+  .resource-detail-identity {
+    align-items: center;
+    flex-direction: column;
   }
 }

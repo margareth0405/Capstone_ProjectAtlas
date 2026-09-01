@@ -13,15 +13,15 @@
       {% include "library/includes/form_errors.html" with form=form %}
       <div class="admin-form-grid">
         {% for field in form %}
-          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'resource' or field.name == 'file_type' %} admin-full-field{% endif %}">
-            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
+          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'cover_image' or field.name == 'resource_abstract' or field.name == 'file_type' %} admin-full-field{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required or field.name == 'resource_abstract' %} <span aria-hidden="true">*</span>{% endif %}</label>
             {{ field }}
             {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
             {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         {% endfor %}
       </div>
-      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>The description field is where the resource description or abstract should be entered. The date added to ATLAS is generated automatically.</span></div>
+      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. The date added to ATLAS is generated automatically.</span></div>
       <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url|default:'#' }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save resource</button></div>
     </form>
   </div>

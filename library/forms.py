@@ -120,6 +120,11 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
 class LibraryItemForm(StyledFormMixin, forms.ModelForm):
     """Validate uploaded PDF/Word resources and publication precision."""
 
+    maximum_cover_size = 5 * 1024 * 1024
+    maximum_document_size = 10 * 1024 * 1024
+    supported_cover_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    supported_document_extensions = {".pdf", ".docx"}
+
     publication_month = forms.RegexField(
         regex=r"^\d{4}-(0[1-9]|1[0-2])$",
         label="Publication month and year",
@@ -142,9 +147,10 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             "title",
             "author",
             "details",
+            "cover_image",
+            "resource_abstract",
             "file_type",
             "pages",
-            "resource",
         )
         widgets = {
             "details": forms.Textarea(
@@ -154,16 +160,32 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
                 }
             ),
             "file_type": forms.RadioSelect,
+            "cover_image": forms.ClearableFileInput(
+                attrs={"accept": "image/jpeg,image/png,image/webp"}
+            ),
+            "resource_abstract": forms.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+            ),
+        }
+        labels = {
+            "cover_image": "Cover (optional)",
+            "resource_abstract": "Resource abstract",
+            "file_type": "Resource abstract format",
         }
         help_texts = {
             "details": "Add a concise description or abstract for readers.",
-            "resource": "Upload one PDF or Word (.docx) file.",
+            "cover_image": "Upload an optional JPG, PNG, or WebP cover image up to 5 MB.",
+            "resource_abstract": "Upload the required PDF or Word (.docx) resource abstract, up to 10 MB.",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["file_type"].widget.attrs["class"] = "resource-format-toggle"
-        self.fields["resource"].required = not bool(self.instance.pk and self.instance.resource)
+        self.fields["resource_abstract"].required = not bool(
+            self.instance.pk and self.instance.resource_abstract
+        )
         if self.instance.pk and self.instance.published_on and not self.is_bound:
             self.fields["publication_month"].initial = self.instance.published_on.strftime("%Y-%m")
             if self.instance.publication_day_known:
@@ -180,10 +202,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             except ValueError:
                 self.add_error("publication_day", "Enter a valid day for the selected month.")
 
-        uploaded_replacement = cleaned.get("resource")
-        if uploaded_replacement and self.instance.external_url:
-            self.instance.external_url = ""
-        upload = uploaded_replacement or self.instance.resource
+        upload = cleaned.get("resource_abstract") or self.instance.resource_abstract
         file_type = cleaned.get("file_type")
         if upload:
             extension = Path(upload.name).suffix.lower()
@@ -193,10 +212,32 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             }
             if extension not in allowed.get(file_type, set()):
                 self.add_error(
-                    "resource",
-                    "The uploaded file must match the selected PDF or Word format.",
+                    "resource_abstract",
+                    "The Resource abstract must match the selected PDF or Word format.",
                 )
         return cleaned
+
+    def clean_cover_image(self):
+        cover = self.cleaned_data.get("cover_image")
+        if not cover:
+            return cover
+        if Path(cover.name).suffix.lower() not in self.supported_cover_extensions:
+            raise ValidationError("Upload a JPG, PNG, or WebP cover image.")
+        if cover.size > self.maximum_cover_size:
+            raise ValidationError("The cover image must be 5 MB or smaller.")
+        return cover
+
+    def clean_resource_abstract(self):
+        resource_abstract = self.cleaned_data.get("resource_abstract")
+        if resource_abstract is False:
+            raise ValidationError("Resource abstract cannot be removed without a replacement.")
+        if not resource_abstract:
+            return resource_abstract
+        if Path(resource_abstract.name).suffix.lower() not in self.supported_document_extensions:
+            raise ValidationError("Upload a PDF or Word (.docx) Resource abstract.")
+        if resource_abstract.size > self.maximum_document_size:
+            raise ValidationError("The Resource abstract must be 10 MB or smaller.")
+        return resource_abstract
 
     def save(self, commit=True):
         instance = super().save(commit=False)

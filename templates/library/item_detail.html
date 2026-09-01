@@ -5,17 +5,26 @@
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
-  {% url 'library:resource_reader' item.pk as resource_reader_url %}
+  {% url 'library:resource_abstract_reader' item.pk as resource_abstract_reader_url %}
+  {% url 'library:resource_cover' item.pk as resource_cover_url %}
   {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
   {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
 
   <article class="resource-detail-card">
     <a class="btn-back inline-back" href="{{ catalog_url|default:'#' }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to library</a>
     <header class="resource-detail-header">
-      <div>
-        <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
-        <h1>{{ item.title }}</h1>
-        <p class="resource-byline">by {{ item.author }}</p>
+      <div class="resource-detail-identity">
+        {% if item.cover_image %}
+          <figure class="resource-detail-cover">
+            <img src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}">
+            <figcaption>Cover</figcaption>
+          </figure>
+        {% endif %}
+        <div>
+          <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
+          <h1>{{ item.title }}</h1>
+          <p class="resource-byline">by {{ item.author }}</p>
+        </div>
       </div>
       <div class="resource-format-icon" aria-hidden="true"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}"></i></div>
     </header>
@@ -31,15 +40,12 @@
     <section class="resource-description" aria-labelledby="descriptionHeading">
       <h2 id="descriptionHeading">Description or abstract</h2>
       <p>{{ item.details|default:'No description or abstract is available for this resource.'|linebreaksbr }}</p>
+      {% if item.resource_abstract %}
+        <a class="btn-details abstract-file-action" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>
+      {% endif %}
     </section>
 
     <div class="resource-detail-actions">
-      {% if item.resource %}
-        <a class="btn-download detail-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>
-      {% else %}
-        <span class="guest-restricted"><i class="fas fa-circle-info" aria-hidden="true"></i> Protected reading content is not yet available</span>
-      {% endif %}
-
       {% if active_role == "student" or active_role == "teacher" %}
         <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
           {% csrf_token %}

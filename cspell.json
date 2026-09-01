@@ -11,11 +11,14 @@
     "makemigrations",
     "navigations",
     "noinput",
+    "nosniff",
+    "Pillow",
     "psycopg",
     "pypdf",
     "runserver",
     "safetensors",
     "venv",
+    "WebP",
     "whitenoise"
   ]
 }

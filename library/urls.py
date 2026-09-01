@@ -21,11 +21,20 @@ urlpatterns = [
     path("library/", views.CatalogView.as_view(), name="catalog"),
     path("library/<int:pk>/", views.ItemDetailView.as_view(), name="item_detail"),
     path(
+        "library/<int:pk>/cover/",
+        views.ResourceCoverView.as_view(),
+        name="resource_cover",
+    ),
+    path(
+        "library/<int:pk>/resource-abstract/read/",
+        views.ResourceAbstractReaderView.as_view(),
+        name="resource_abstract_reader",
+    ),
+    path(
         "library/<int:pk>/favorite/",
         views.FavoriteToggleView.as_view(),
         name="favorite_toggle",
     ),
-    path("library/<int:pk>/read/", views.ResourceReaderView.as_view(), name="resource_reader"),
     path("favorites/", views.FavoritesView.as_view(), name="favorites"),
     path("announcements/", views.AnnouncementsView.as_view(), name="announcements"),
     path("contact/", views.ContactView.as_view(), name="contact"),

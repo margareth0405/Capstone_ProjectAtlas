@@ -1,7 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}Read {{ item.title }} · ATLAS{% endblock %}
-{% block breadcrumb %}Protected resource reader{% endblock %}
+{% block title %}{{ reader_heading|default:'Read document' }} - {{ item.title }} - ATLAS{% endblock %}
+{% block breadcrumb %}{{ reader_heading|default:'Protected document reader' }}{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:item_detail' item.pk as item_detail_url %}
@@ -11,9 +11,9 @@
         <a class="btn-back inline-back" href="{{ item_detail_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to resource details</a>
         <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
         <h1>{{ item.title }}</h1>
-        <p>By {{ item.author }} · {{ item.get_file_type_display }}</p>
+        <p>By {{ item.author }} - {{ document_display_type|default:item.get_file_type_display }}</p>
       </div>
-      <span class="protected-reader-badge"><i class="fas fa-shield-halved" aria-hidden="true"></i> Protected reading view</span>
+      <span class="protected-reader-badge"><i class="fas fa-shield-halved" aria-hidden="true"></i> {{ reader_badge|default:'Protected reading view' }}</span>
     </header>
 
     <div class="reader-privacy-note" role="note">

@@ -20,9 +20,15 @@
         {% for favorite in favorites %}
           {% with item=favorite.item %}
             {% url 'library:item_detail' item.pk as item_detail_url %}
-            {% url 'library:resource_reader' item.pk as resource_reader_url %}
+            {% url 'library:resource_abstract_reader' item.pk as resource_abstract_reader_url %}
+            {% url 'library:resource_cover' item.pk as resource_cover_url %}
             {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
             <article class="favorite-card">
+              {% if item.cover_image %}
+                <a class="favorite-cover-link" href="{{ item_detail_url }}">
+                  <img class="favorite-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" loading="lazy">
+                </a>
+              {% endif %}
               <div class="card-top">
                 <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
                 <form action="{{ favorite_toggle_url|default:'' }}" method="post">
@@ -37,7 +43,7 @@
               <p class="card-copies"><i class="fas fa-file" aria-hidden="true"></i> {{ item.file_type|default:'PDF' }}</p>
               <div class="card-actions">
                 <a class="btn-details" href="{{ item_detail_url|default:'#' }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
-                <a class="btn-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>
+                {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
               </div>
             </article>
           {% endwith %}

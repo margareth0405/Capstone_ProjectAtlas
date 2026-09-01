@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from library.models import ContactMessage, Favorite, Profile, ResourceViewEvent
 
-from library.views.catalog import ResourceReaderView
+from library.views.catalog import ResourceAbstractReaderView
 
 from .base import LibraryTestCase
 
@@ -206,21 +206,21 @@ class FavoriteTests(LibraryTestCase):
         )
 
 
-class ResourceReaderTests(LibraryTestCase):
+class ResourceAbstractReaderTests(LibraryTestCase):
     class StubExtractor:
         def extract_for_reading(self, resource):
-            return "Protected resource text shown inside ATLAS."
+            return "Protected resource abstract shown inside ATLAS."
 
     def setUp(self):
         self.item = self.create_item(
             external_url="",
-            resource=SimpleUploadedFile(
-                "protected.pdf",
-                b"%PDF-1.4 protected fixture",
+            resource_abstract=SimpleUploadedFile(
+                "protected-abstract.pdf",
+                b"%PDF-1.4 protected abstract fixture",
                 content_type="application/pdf",
             ),
         )
-        self.url = reverse("library:resource_reader", args=[self.item.pk])
+        self.url = reverse("library:resource_abstract_reader", args=[self.item.pk])
 
     def test_catalog_has_read_action_and_no_download_action_for_every_role(self):
         for role in ("guest", Profile.Role.STUDENT, Profile.Role.TEACHER):
@@ -230,8 +230,9 @@ class ResourceReaderTests(LibraryTestCase):
                         self.create_user(email=f"reader-{role}@example.com", role=role)
                     )
                 response = self.client.get(reverse("library:catalog"))
-                self.assertContains(response, "Read resource")
+                self.assertContains(response, "Read resource abstract")
                 self.assertNotContains(response, ">Download<")
+                self.assertNotContains(response, "fa-book-reader")
                 self.client.logout()
 
     def test_reader_displays_extracted_text_and_deduplicates_refreshes(self):
@@ -241,11 +242,11 @@ class ResourceReaderTests(LibraryTestCase):
         )
         self.client.force_login(teacher)
 
-        with patch.object(ResourceReaderView, "extractor_class", self.StubExtractor):
+        with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             first_response = self.client.get(self.url)
             refresh_response = self.client.get(self.url)
 
-        self.assertContains(first_response, "Protected resource text shown inside ATLAS.")
+        self.assertContains(first_response, "Protected resource abstract shown inside ATLAS.")
         self.assertEqual(refresh_response.status_code, 200)
         event = ResourceViewEvent.objects.get()
         self.assertEqual(event.user, teacher)
@@ -253,7 +254,7 @@ class ResourceReaderTests(LibraryTestCase):
         self.assertEqual(event.role, Profile.Role.TEACHER)
 
     def test_guest_can_read_and_is_recorded_as_guest(self):
-        with patch.object(ResourceReaderView, "extractor_class", self.StubExtractor):
+        with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
@@ -262,10 +263,89 @@ class ResourceReaderTests(LibraryTestCase):
         self.assertEqual(event.role, "guest")
 
     def test_original_media_file_is_not_publicly_routed(self):
-        response = self.client.get(f"/media/{self.item.resource.name}")
+        response = self.client.get(f"/media/{self.item.resource_abstract.name}")
 
         self.assertEqual(response.status_code, 404)
     def test_old_download_path_is_not_available(self):
         response = self.client.get(f"/library/{self.item.pk}/download/")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_old_full_resource_reader_path_is_not_available(self):
+        response = self.client.get(f"/library/{self.item.pk}/read/")
+
+        self.assertEqual(response.status_code, 404)
+
+
+class ResourceAttachmentsTests(LibraryTestCase):
+    class StubExtractor:
+        def extract_for_reading(self, resource):
+            return "The uploaded abstract text is displayed inside ATLAS."
+
+    def setUp(self):
+        self.cover_bytes = (
+            b"\x89PNG\r\n\x1a\n"
+            b"\x00\x00\x00\rIHDR"
+            b"\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x02\x00\x00\x00\x90wS\xde"
+        )
+        self.item = self.create_item(
+            external_url="",
+            cover_image=SimpleUploadedFile(
+                "catalog-cover.png",
+                self.cover_bytes,
+                content_type="image/png",
+            ),
+            resource_abstract=SimpleUploadedFile(
+                "catalog-abstract.pdf",
+                b"%PDF-1.4 abstract fixture",
+                content_type="application/pdf",
+            ),
+        )
+
+    def test_catalog_and_detail_show_cover_and_abstract_reader(self):
+        catalog_response = self.client.get(reverse("library:catalog"))
+        detail_response = self.client.get(
+            reverse("library:item_detail", args=[self.item.pk])
+        )
+        cover_url = reverse("library:resource_cover", args=[self.item.pk])
+        abstract_url = reverse("library:resource_abstract_reader", args=[self.item.pk])
+
+        self.assertContains(catalog_response, cover_url)
+        self.assertContains(catalog_response, "Cover of Django Testing Handbook")
+        self.assertContains(catalog_response, abstract_url)
+        self.assertContains(catalog_response, "Read resource abstract")
+        self.assertContains(detail_response, cover_url)
+        self.assertContains(detail_response, "Cover")
+        self.assertContains(detail_response, abstract_url)
+
+    def test_cover_is_served_inline_through_controlled_route(self):
+        response = self.client.get(
+            reverse("library:resource_cover", args=[self.item.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertIn("inline", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), self.cover_bytes)
+
+    def test_guest_can_read_uploaded_abstract_inside_atlas(self):
+        with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
+            response = self.client.get(
+                reverse("library:resource_abstract_reader", args=[self.item.pk])
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "The uploaded abstract text is displayed inside ATLAS.",
+        )
+        self.assertContains(response, "Protected resource abstract")
+        self.assertEqual(ResourceViewEvent.objects.get().role, "guest")
+
+    def test_attachment_media_paths_are_not_public(self):
+        for field_name in ("cover_image", "resource_abstract"):
+            field = getattr(self.item, field_name)
+            with self.subTest(field_name=field_name):
+                response = self.client.get(f"/media/{field.name}")
+                self.assertEqual(response.status_code, 404)

@@ -55,6 +55,13 @@ class LibraryItem(models.Model):
     )
     file_size = models.CharField(max_length=32, blank=True)
     pages = models.PositiveIntegerField(default=0)
+    cover_image = models.ImageField(
+        upload_to="library/covers/%Y/%m/",
+        blank=True,
+    )
+    resource_abstract = models.FileField(
+        upload_to="library/abstracts/%Y/%m/",
+    )
     resource = models.FileField(upload_to="library/resources/%Y/%m/", blank=True)
     published_on = models.DateField(null=True, blank=True, db_index=True)
     publication_day_known = models.BooleanField(default=False)

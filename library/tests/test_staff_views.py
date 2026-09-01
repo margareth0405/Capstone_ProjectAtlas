@@ -1,8 +1,11 @@
 """Authorization and CRUD behavior for the ATLAS staff portal."""
 
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from PIL import Image
 
 from library.models import Announcement, LibraryItem, Profile
 
@@ -78,8 +81,8 @@ class StaffCrudTests(LibraryTestCase):
             "pages": 42,
             "publication_month": "2026-02",
             "publication_day": "14",
-            "resource": SimpleUploadedFile(
-                "research.pdf", b"%PDF-1.4 test resource", content_type="application/pdf"
+            "resource_abstract": SimpleUploadedFile(
+                "research.pdf", b"%PDF-1.4 test abstract", content_type="application/pdf"
             ),
         }
         values.update(overrides)
@@ -93,6 +96,12 @@ class StaffCrudTests(LibraryTestCase):
         }
         values.update(overrides)
         return values
+
+    @staticmethod
+    def cover_upload(name="cover.png"):
+        stream = BytesIO()
+        Image.new("RGB", (24, 36), color=(114, 28, 47)).save(stream, format="PNG")
+        return SimpleUploadedFile(name, stream.getvalue(), content_type="image/png")
 
     def test_staff_item_create_get_is_read_only_and_post_creates_item(self):
         url = reverse("library:staff_item_create")
@@ -117,7 +126,7 @@ class StaffCrudTests(LibraryTestCase):
                 file_type=LibraryItem.FileType.WORD,
                 publication_month="2026-07",
                 publication_day="",
-                resource=SimpleUploadedFile(
+                resource_abstract=SimpleUploadedFile(
                     "research.docx",
                     b"word document fixture",
                     content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -130,6 +139,62 @@ class StaffCrudTests(LibraryTestCase):
         self.assertEqual(item.published_on.isoformat(), "2026-07-01")
         self.assertFalse(item.publication_day_known)
         self.assertEqual(item.publication_date_display, "July 2026")
+
+    def test_resource_accepts_optional_cover_and_required_resource_abstract(self):
+        response = self.client.post(
+            reverse("library:staff_item_create"),
+            self.item_payload(
+                call_number="COVER-2026-001",
+                cover_image=self.cover_upload(),
+                resource_abstract=SimpleUploadedFile(
+                    "abstract.pdf",
+                    b"%PDF-1.4 abstract fixture",
+                    content_type="application/pdf",
+                ),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item = LibraryItem.objects.get(call_number="COVER-2026-001")
+        self.assertTrue(item.cover_image.name.endswith(".png"))
+        self.assertTrue(item.resource_abstract.name.endswith(".pdf"))
+
+    def test_resource_abstract_is_required_for_new_resources(self):
+        payload = self.item_payload(call_number="NO-ABSTRACT-001")
+        payload.pop("resource_abstract")
+
+        response = self.client.post(reverse("library:staff_item_create"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
+        self.assertFalse(
+            LibraryItem.objects.filter(call_number="NO-ABSTRACT-001").exists()
+        )
+
+    def test_resource_rejects_invalid_cover_and_abstract_formats(self):
+        response = self.client.post(
+            reverse("library:staff_item_create"),
+            self.item_payload(
+                call_number="BAD-ATTACHMENTS-001",
+                cover_image=SimpleUploadedFile(
+                    "not-an-image.png",
+                    b"not an image",
+                    content_type="image/png",
+                ),
+                resource_abstract=SimpleUploadedFile(
+                    "abstract.txt",
+                    b"unsupported abstract",
+                    content_type="text/plain",
+                ),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "valid image")
+        self.assertContains(response, "Upload a PDF or Word (.docx) Resource abstract.")
+        self.assertFalse(
+            LibraryItem.objects.filter(call_number="BAD-ATTACHMENTS-001").exists()
+        )
 
     def test_resource_rejects_file_that_does_not_match_selected_format(self):
         response = self.client.post(

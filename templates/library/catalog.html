@@ -85,7 +85,8 @@
       <div class="catalog-resource-grid">
         {% for item in items %}
           {% url 'library:item_detail' item.pk as item_detail_url %}
-          {% url 'library:resource_reader' item.pk as resource_reader_url %}
+          {% url 'library:resource_abstract_reader' item.pk as resource_abstract_reader_url %}
+          {% url 'library:resource_cover' item.pk as resource_cover_url %}
           {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
           {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
           {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
@@ -94,6 +95,15 @@
               <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
               <span class="resource-format-badge"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}" aria-hidden="true"></i> {{ item.get_file_type_display|default:item.file_type }}</span>
             </div>
+            {% if item.cover_image %}
+              <a class="catalog-cover-link" href="{{ item_detail_url }}" aria-label="View details for {{ item.title }}">
+                <img class="catalog-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" loading="lazy">
+              </a>
+            {% else %}
+              <div class="catalog-cover-placeholder" aria-label="No cover image available">
+                <i class="fas fa-book-open" aria-hidden="true"></i><span>No cover</span>
+              </div>
+            {% endif %}
             <div class="catalog-card-copy">
               <h2><a href="{{ item_detail_url }}">{{ item.title }}</a></h2>
               <p class="catalog-card-author"><i class="fas fa-user-pen" aria-hidden="true"></i> {{ item.author }}</p>
@@ -105,7 +115,7 @@
             </dl>
             <div class="catalog-card-actions">
               <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
-              {% if item.resource %}<a class="btn-download" href="{{ resource_reader_url }}"><i class="fas fa-book-reader" aria-hidden="true"></i> Read resource</a>{% endif %}
+              {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
               {% if active_role == "student" or active_role == "teacher" %}
                 <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
                   {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">

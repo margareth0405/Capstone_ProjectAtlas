@@ -18,11 +18,13 @@ JavaScript. Node.js is not required.
 - View published announcements on both the Announcements page and the Library page.
 - Submit support messages to atlastshs@gmail.com.
 - Register and sign in as a student or teacher.
-- Read extractable PDF or Word content inside ATLAS as a guest or member; authenticated readers can also save Bookmarks.
+- Read PDF or Word Resource abstracts inside ATLAS as a guest or member; authenticated readers can also save Bookmarks.
 
 ### Administrators
 
-- Create, edit, and delete PDF or Word library resources.
+- Create, edit, and delete library resource records.
+- Optionally attach a validated JPG, PNG, or WebP cover and upload one required,
+  protected PDF or Word (.docx) Resource abstract for each new resource.
 - Enter a publication month and year, with an optional exact day; ATLAS records the system-added date automatically.
 - Save announcements as drafts, review them, then publish, unpublish, edit, or delete them. The administrator form contains only title, body, and category, including Other.
 - Create student and teacher accounts.
@@ -82,20 +84,31 @@ already contains the saved state without requiring a manual refresh.
 
 ## Library resource records
 
-The branded resource form accepts one uploaded PDF (.pdf) or Word (.docx)
-file. File format is a visible PDF/Word toggle. File size and external URL are
-not part of new resource entry or editing. Older database columns are retained
+The branded resource form accepts one required Resource abstract in PDF (.pdf)
+or Word (.docx) format, up to 10 MB. It also accepts an optional Cover image
+(JPG, PNG, or WebP, up to 5 MB). Resource abstract format is a visible PDF/Word
+toggle. The former full Resource upload, file size, and external URL are not
+part of new resource entry or editing. Older database columns are retained
 internally only so an upgrade cannot destroy legacy data; they are hidden from
 the branded staff form and Django Admin.
 
-Use Details for a short description or abstract. Publication date requires a
-month and year and accepts an optional day. If the day is omitted, ATLAS stores
-the first day of that month internally while displaying only the month and
-year. Created at is the automatic date and time when the record entered ATLAS.
+Use Details for a short text description or summary. The required Resource
+abstract is displayed through ATLAS's protected text reader; the original
+upload is not offered as a download. Cover images are delivered
+inline through a controlled Django endpoint because direct /media/ routing
+remains disabled. Guests, students, teachers, and administrators see covers
+and Resource abstract actions in the connected catalog and resource-detail pages.
 
-Guests, students, and teachers do not receive a file-download action. The Read
-resource action extracts text on the server and displays it inside ATLAS without
-serving the original upload. Direct /media/ routing is disabled even in development so uploaded library files are not public URLs. PDF and .docx text are supported; image-only PDFs
+Publication date requires a month and year and accepts an optional day. If the
+day is omitted, ATLAS stores the first day of that month internally while
+displaying only the month and year. Created at is the automatic date and time
+when the record entered ATLAS.
+
+Guests, students, and teachers do not receive a file-download or full-resource
+action. The Read resource abstract action extracts text on the server and
+displays it inside ATLAS without serving the original upload. Direct /media/
+routing is disabled even in development, so uploaded library files are not
+public URLs. PDF and .docx text are supported; image-only PDFs
 need OCR, and legacy .doc files should be replaced with .docx for protected
 reading. Resource viewing history records the resource, visitor, account type,
 and first/last view time, while refreshes within the active session are
@@ -110,6 +123,7 @@ deduplicated.
 - WhiteNoise for deployed static assets
 - pypdf for PDF text extraction
 - python-docx for Word (.docx) text extraction
+- Pillow for cover-image validation
 - PyTorch for local CPU model inference
 - Hugging Face Transformers for the local RoBERTa detector
 - HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
@@ -359,8 +373,11 @@ python manage.py migrate
 Migration 0003 adds administrator activity and website-visit history. Migration
 0004 adds page-view counts and last-page tracking. Migration 0005 adds resource
 publication dates and PDF/Word format choices. Migration 0006 adds the Other
-announcement category, Bookmark display names, and resource-view history. Do not manually add these columns; Django migrations handle
-both new and existing installations.
+announcement category, Bookmark display names, and resource-view history.
+Migration 0007 adds cover-image and abstract-file storage to library resources.
+Migration 0008 safely renames the abstract field to Resource abstract without
+deleting existing uploads. Do not manually add or rename these columns; Django
+migrations handle both new and existing installations.
 
 ## Important commands
 
