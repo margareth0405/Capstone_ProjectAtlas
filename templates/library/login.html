@@ -40,19 +40,20 @@
         {% include "library/includes/form_errors.html" with form=form %}
 
         <div class="form-group">
-          <label for="id_email"><i class="fas fa-envelope" aria-hidden="true"></i> Email</label>
+          <label for="id_email"><i class="fas fa-envelope" aria-hidden="true"></i> {% if auth_role == "teacher" %}DepEd email{% else %}Email{% endif %}</label>
           <input
             type="email"
             name="email"
             id="id_email"
             class="form-control{% if form.email.errors %} is-invalid{% endif %}"
             value="{{ form.email.value|default_if_none:'' }}"
-            placeholder="Enter your school email address"
+            placeholder="{% if auth_role == 'teacher' %}Example: juan.delacruz@deped.gov.ph{% else %}Example: student@example.com{% endif %}"
             autocomplete="email"
-            aria-describedby="{% if form.email.errors %}emailErrors{% endif %}"
+            aria-describedby="{% if auth_role == 'teacher' %}teacherEmailHelp{% endif %}{% if form.email.errors %}{% if auth_role == 'teacher' %} {% endif %}emailErrors{% endif %}"
             required
             autofocus
           >
+          {% if auth_role == "teacher" %}<small class="form-helper" id="teacherEmailHelp">Teacher sign-in accepts official @deped.gov.ph accounts only.</small>{% endif %}
           {% if form.email.errors %}
             <div class="invalid-feedback d-block" id="emailErrors">
               {% for error in form.email.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
@@ -68,15 +69,16 @@
               name="password"
               id="id_password"
               class="form-control{% if form.password.errors %} is-invalid{% endif %}"
-              placeholder="Enter your password"
+              minlength="6"
               autocomplete="current-password"
-              aria-describedby="{% if form.password.errors %}passwordErrors{% endif %}"
+              aria-describedby="loginPasswordHelp{% if form.password.errors %} passwordErrors{% endif %}"
               required
             >
             <button class="password-toggle" type="button" data-password-toggle="id_password" aria-label="Show password">
               <i class="fas fa-eye" aria-hidden="true"></i>
             </button>
           </div>
+          <small class="form-helper" id="loginPasswordHelp">Passwords contain at least 6 characters.</small>
           {% if form.password.errors %}
             <div class="invalid-feedback d-block" id="passwordErrors">
               {% for error in form.password.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}

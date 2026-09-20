@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$PrepareOnly,
+    [switch]$UseSQLite,
+    [switch]$OpenBrowser,
     [string]$Address = "127.0.0.1:8000"
 )
 
@@ -14,6 +16,12 @@ $requirementsFile = Join-Path $projectRoot "requirements.txt"
 $requirementsMarker = Join-Path $venvDirectory ".atlas-requirements.sha256"
 
 Set-Location $projectRoot
+
+if ($UseSQLite) {
+    $localDatabase = (Join-Path $projectRoot "db.sqlite3").Replace("\", "/")
+    $env:DATABASE_URL = "sqlite:///$localDatabase"
+    Write-Host "Quick-start mode: using the local development database." -ForegroundColor Yellow
+}
 
 if (-not (Test-Path -LiteralPath $venvPython)) {
     Write-Host "Creating the ATLAS virtual environment..." -ForegroundColor Cyan
@@ -71,5 +79,29 @@ if ($LASTEXITCODE -ne 0) {
     throw "Database migration failed."
 }
 
-& $venvPython manage.py runserver $Address
-exit $LASTEXITCODE
+$browserJob = $null
+if ($OpenBrowser) {
+    $browserUrl = "http://$Address/"
+    $browserJob = Start-Job -ScriptBlock {
+        param($TargetUrl)
+        for ($attempt = 0; $attempt -lt 30; $attempt += 1) {
+            try {
+                Invoke-WebRequest -Uri $TargetUrl -UseBasicParsing -TimeoutSec 1 | Out-Null
+                Start-Process $TargetUrl
+                return
+            } catch {
+                Start-Sleep -Milliseconds 500
+            }
+        }
+    } -ArgumentList $browserUrl
+}
+
+try {
+    & $venvPython manage.py runserver $Address
+    exit $LASTEXITCODE
+} finally {
+    if ($browserJob) {
+        Stop-Job -Job $browserJob -ErrorAction SilentlyContinue
+        Remove-Job -Job $browserJob -Force -ErrorAction SilentlyContinue
+    }
+}

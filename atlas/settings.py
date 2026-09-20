@@ -114,7 +114,11 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    },
+    {"NAME": "library.validators.PasswordCharacterValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -169,6 +173,9 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com")
 SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
+TEACHER_EMAIL_DOMAINS = tuple(
+    env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph")
+)
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)

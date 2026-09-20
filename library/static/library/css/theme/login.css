@@ -448,9 +448,124 @@
 .form-helper {
   display: block;
   margin-top: 0.35rem;
-  color: #888;
-  font-size: 0.7rem;
-  line-height: 1.4;
+  color: #625956;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.password-guidance {
+  margin: -0.25rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d8cfca;
+  border-radius: 12px;
+  background: #fbf8f5;
+  color: #403a38;
+  text-align: left;
+}
+
+.password-guidance-title {
+  margin: 0 0 0.55rem;
+  color: #382f2c;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.password-checklist {
+  display: grid;
+  gap: 0.38rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: #5f5754;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.password-checklist li i {
+  flex: 0 0 auto;
+  margin-top: 0.18rem;
+  color: #817773;
+  font-size: 0.72rem;
+}
+
+.password-checklist li.is-met,
+.password-checklist li.is-met i {
+  color: #176b36;
+}
+
+.password-checklist li.is-unmet,
+.password-checklist li.is-unmet i {
+  color: #9c233d;
+}
+
+.password-strength {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.password-strength-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #d8d0cb;
+}
+
+.password-strength-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #817773;
+  transition: width 180ms ease, background-color 180ms ease;
+}
+
+.password-strength-label {
+  color: #514946;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.password-strength[data-level="weak"] .password-strength-track span {
+  background: #9c233d;
+}
+
+.password-strength[data-level="weak"] strong {
+  color: #9c233d;
+}
+
+.password-strength[data-level="fair"] .password-strength-track span {
+  background: #946200;
+}
+
+.password-strength[data-level="fair"] strong {
+  color: #765000;
+}
+
+.password-strength[data-level="strong"] .password-strength-track span {
+  background: #176b36;
+}
+
+.password-strength[data-level="strong"] strong {
+  color: #176b36;
+}
+
+.atlas-high-contrast .password-guidance {
+  border: 2px solid #111;
+  background: #fff;
+  color: #111;
+}
+
+.atlas-high-contrast .password-guidance :where(p, li, span) {
+  color: #111;
 }
 
 .form-group .form-control:not(:placeholder-shown):invalid {

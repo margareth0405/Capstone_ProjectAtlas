@@ -348,7 +348,7 @@ class StaffCrudTests(LibraryTestCase):
             url,
             {
                 "full_name": "New Teacher",
-                "email": "new-teacher@example.com",
+                "email": "new-teacher@deped.gov.ph",
                 "role": Profile.Role.TEACHER,
                 "password1": TEST_PASSWORD,
                 "password2": TEST_PASSWORD,
@@ -360,7 +360,7 @@ class StaffCrudTests(LibraryTestCase):
 
         self.assertEqual(post_response.status_code, 302)
         self.assertEqual(get_user_model().objects.count(), starting_count + 1)
-        user = get_user_model().objects.get(email="new-teacher@example.com")
+        user = get_user_model().objects.get(email="new-teacher@deped.gov.ph")
         self.assertTrue(user.check_password(TEST_PASSWORD))
         self.assertNotEqual(user.password, TEST_PASSWORD)
         self.assertFalse(user.is_staff)

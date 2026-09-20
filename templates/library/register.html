@@ -45,7 +45,7 @@
             id="id_full_name"
             class="form-control{% if form.full_name.errors %} is-invalid{% endif %}"
             value="{{ form.full_name.value|default_if_none:'' }}"
-            placeholder="Enter your full name"
+            placeholder="Example: Juan Dela Cruz"
             autocomplete="name"
             required
             autofocus
@@ -54,21 +54,22 @@
         </div>
 
         <div class="form-group">
-          <label for="id_email"><i class="fas fa-envelope" aria-hidden="true"></i> Email</label>
+          <label for="id_email"><i class="fas fa-envelope" aria-hidden="true"></i> {% if auth_role == "teacher" %}DepEd email{% else %}Email{% endif %}</label>
           <input
             type="email"
             name="email"
             id="id_email"
             class="form-control{% if form.email.errors %} is-invalid{% endif %}"
             value="{{ form.email.value|default_if_none:'' }}"
-            placeholder="Enter your school email address"
+            placeholder="{% if auth_role == 'teacher' %}Example: juan.delacruz@deped.gov.ph{% else %}Example: student@example.com{% endif %}"
             autocomplete="email"
+            aria-describedby="registerEmailHelp{% if form.email.errors %} registerEmailErrors{% endif %}"
             required
           >
-          <small class="form-helper">
-            {% if auth_role == "teacher" %}Use a Gmail or deped.gov.ph address.{% else %}Students use a Gmail address.{% endif %}
+          <small class="form-helper" id="registerEmailHelp">
+            {% if auth_role == "teacher" %}Teachers must use an official @deped.gov.ph email address. Gmail addresses are not accepted.{% else %}Use an active email address that you can open for verification.{% endif %}
           </small>
-          {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          {% if form.email.errors %}<div class="invalid-feedback d-block" id="registerEmailErrors">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
         </div>
 
         <div class="form-row">
@@ -80,35 +81,52 @@
                 name="password1"
                 id="id_password1"
                 class="form-control{% if form.password1.errors %} is-invalid{% endif %}"
-                placeholder="Create a password with at least 8 characters"
-                minlength="8"
+                minlength="6"
                 autocomplete="new-password"
+                aria-describedby="passwordRequirements{% if form.password1.errors %} password1Errors{% endif %}"
                 required
               >
               <button class="password-toggle" type="button" data-password-toggle="id_password1" aria-label="Show password">
                 <i class="fas fa-eye" aria-hidden="true"></i>
               </button>
             </div>
-            {% if form.password1.errors %}<div class="invalid-feedback d-block">{% for error in form.password1.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            {% if form.password1.errors %}<div class="invalid-feedback d-block" id="password1Errors">{% for error in form.password1.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group">
-            <label for="id_password2"><i class="fas fa-check-circle" aria-hidden="true"></i> Confirm</label>
+            <label for="id_password2"><i class="fas fa-check-circle" aria-hidden="true"></i> Confirm password</label>
             <div class="password-field">
               <input
               type="password"
               name="password2"
               id="id_password2"
               class="form-control{% if form.password2.errors %} is-invalid{% endif %}"
-              placeholder="Enter the same password again"
-              minlength="8"
+              minlength="6"
               autocomplete="new-password"
+              aria-describedby="passwordConfirmationHelp{% if form.password2.errors %} password2Errors{% endif %}"
               required
             >
               <button class="password-toggle" type="button" data-password-toggle="id_password2" aria-label="Show confirmation password">
                 <i class="fas fa-eye" aria-hidden="true"></i>
               </button>
             </div>
-            {% if form.password2.errors %}<div class="invalid-feedback d-block">{% for error in form.password2.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            <small class="form-helper" id="passwordConfirmationHelp">Enter the same password again.</small>
+            {% if form.password2.errors %}<div class="invalid-feedback d-block" id="password2Errors">{% for error in form.password2.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="password-guidance" id="passwordRequirements" data-password-guidance aria-live="polite">
+          <p class="password-guidance-title">Your password must include:</p>
+          <ul class="password-checklist" aria-label="Password requirements">
+            <li data-password-rule="length"><i class="fas fa-circle" aria-hidden="true"></i><span>At least 6 characters</span></li>
+            <li data-password-rule="number"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one number</span></li>
+            <li data-password-rule="special"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one special character, such as !, @, #, or $</span></li>
+            <li data-password-rule="match"><i class="fas fa-circle" aria-hidden="true"></i><span>Both password fields match</span></li>
+          </ul>
+          <div class="password-strength" data-password-strength data-level="empty">
+            <div class="password-strength-track" role="progressbar" aria-label="Password strength" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+              <span data-password-strength-bar></span>
+            </div>
+            <span class="password-strength-label">Strength: <strong data-password-strength-label>Not entered</strong></span>
           </div>
         </div>
 

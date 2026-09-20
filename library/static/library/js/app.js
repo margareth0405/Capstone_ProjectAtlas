@@ -61,6 +61,37 @@
 
     initializeControls() {
       this.syncButtons();
+      var toolbar = document.querySelector("[data-accessibility-toolbar]");
+      var trigger = toolbar && toolbar.querySelector("[data-accessibility-trigger]");
+      var panel = toolbar && toolbar.querySelector(".accessibility-panel");
+
+      function setPanelOpen(isOpen) {
+        if (!trigger || !panel) return;
+        panel.hidden = !isOpen;
+        trigger.setAttribute("aria-expanded", String(isOpen));
+      }
+
+      if (trigger && panel) {
+        trigger.addEventListener("click", () => {
+          var opening = panel.hidden;
+          setPanelOpen(opening);
+          if (opening) {
+            var firstOption = panel.querySelector("button");
+            if (firstOption) firstOption.focus();
+          }
+        });
+        document.addEventListener("click", (event) => {
+          if (!panel.hidden && toolbar && !toolbar.contains(event.target)) {
+            setPanelOpen(false);
+          }
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !panel.hidden) {
+            setPanelOpen(false);
+            trigger.focus();
+          }
+        });
+      }
       document.querySelectorAll("[data-text-size-toggle]").forEach((button) => {
         button.addEventListener("click", () => {
           this.toggle("largeText", (enabled) => (
@@ -76,6 +107,96 @@
         });
       });
     }
+  }
+
+  class PasswordFeedback {
+    constructor(guidance) {
+      this.guidance = guidance;
+      this.form = guidance.closest("form");
+      this.password = this.form && this.form.querySelector("#id_password1");
+      this.confirmation = this.form && this.form.querySelector("#id_password2");
+      this.strength = guidance.querySelector("[data-password-strength]");
+      this.strengthBar = guidance.querySelector("[data-password-strength-bar]");
+      this.strengthLabel = guidance.querySelector("[data-password-strength-label]");
+      this.progress = guidance.querySelector("[role='progressbar']");
+    }
+
+    requirements() {
+      var password = this.password ? this.password.value : "";
+      var confirmation = this.confirmation ? this.confirmation.value : "";
+      return {
+        length: password.length >= 6,
+        number: /\d/.test(password),
+        special: /[^\w\s]/.test(password),
+        match: password.length > 0 && confirmation.length > 0 && password === confirmation,
+      };
+    }
+
+    updateRule(name, isMet, hasInput) {
+      var item = this.guidance.querySelector("[data-password-rule='" + name + "']");
+      if (!item) return;
+      var icon = item.querySelector("i");
+      var label = item.querySelector("span");
+      item.classList.toggle("is-met", isMet);
+      item.classList.toggle("is-unmet", hasInput && !isMet);
+      if (icon) {
+        icon.className = isMet
+          ? "fas fa-circle-check"
+          : (hasInput ? "fas fa-circle-xmark" : "fas fa-circle");
+      }
+      if (label) {
+        item.setAttribute(
+          "aria-label",
+          label.textContent + ": " + (isMet ? "met" : (hasInput ? "not met" : "not checked"))
+        );
+      }
+    }
+
+    strengthFor(password, rules) {
+      if (!password) return { score: 0, label: "Not entered", level: "empty" };
+      var metCount = [rules.length, rules.number, rules.special].filter(Boolean).length;
+      if (metCount < 3) {
+        return { score: Math.max(1, metCount), label: "Weak", level: "weak" };
+      }
+      var hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
+      if (password.length >= 10 && hasMixedCase) {
+        return { score: 4, label: "Strong", level: "strong" };
+      }
+      return { score: 3, label: "Fair", level: "fair" };
+    }
+
+    update() {
+      if (!this.password || !this.confirmation) return;
+      var rules = this.requirements();
+      var passwordHasInput = this.password.value.length > 0;
+      var confirmationHasInput = this.confirmation.value.length > 0;
+      this.updateRule("length", rules.length, passwordHasInput);
+      this.updateRule("number", rules.number, passwordHasInput);
+      this.updateRule("special", rules.special, passwordHasInput);
+      this.updateRule("match", rules.match, passwordHasInput || confirmationHasInput);
+
+      var result = this.strengthFor(this.password.value, rules);
+      if (this.strength) this.strength.dataset.level = result.level;
+      if (this.strengthBar) this.strengthBar.style.width = (result.score / 4 * 100) + "%";
+      if (this.strengthLabel) this.strengthLabel.textContent = result.label;
+      if (this.progress) {
+        this.progress.setAttribute("aria-valuenow", String(result.score));
+        this.progress.setAttribute("aria-valuetext", result.label);
+      }
+    }
+
+    initialize() {
+      if (!this.password || !this.confirmation) return;
+      this.password.addEventListener("input", () => this.update());
+      this.confirmation.addEventListener("input", () => this.update());
+      this.update();
+    }
+  }
+
+  function initializePasswordFeedback() {
+    document.querySelectorAll("[data-password-guidance]").forEach((guidance) => {
+      new PasswordFeedback(guidance).initialize();
+    });
   }
 
   var accessibilityPreferences = new AccessibilityPreferences();
@@ -720,6 +841,7 @@
     initializeSidebar();
     initializeScrollTop();
     initializePasswordToggles();
+    initializePasswordFeedback();
     initializeConfirmations();
     initializeCopyAndShare();
     initializeAutomaticFilters();

@@ -123,7 +123,7 @@
       <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>
         <div class="form-group">
           <label for="userSearch">Search users</label>
-          <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Name or email">
+          <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Example: Maria or maria@example.com">
         </div>
         <div class="form-group">
           <label for="userRole">Account type</label>
@@ -216,7 +216,7 @@
           <input type="hidden" name="analytics_date" value="{{ analytics_date }}">
           <div class="form-group">
             <label for="usageSearch">Search visitor</label>
-            <input class="form-control" id="usageSearch" type="search" name="usage_q" value="{{ selected_usage_query }}" placeholder="Name, email, or session">
+            <input class="form-control" id="usageSearch" type="search" name="usage_q" value="{{ selected_usage_query }}" placeholder="Example: Maria, email, or session ID">
           </div>
           <div class="form-group">
             <label for="usageRole">Account type</label>
@@ -255,7 +255,7 @@
         <form class="staff-filter-bar resource-view-filters" method="get" action="{{ staff_portal_url }}#resource-views" data-auto-submit>
           <div class="form-group">
             <label for="resourceViewSearch">Search resource or user</label>
-            <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Resource, name, or email">
+            <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Example: resource title or reader email">
           </div>
           <div class="form-group">
             <label for="resourceViewRole">Account type</label>

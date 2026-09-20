@@ -12,6 +12,7 @@ from django.utils import timezone
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .models import Announcement, ContactMessage, LibraryItem, Profile
+from .services.accounts import AccountEmailPolicy
 
 
 User = get_user_model()
@@ -38,28 +39,43 @@ class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
     full_name = forms.CharField(
         max_length=150,
         widget=forms.TextInput(
-            attrs={"placeholder": "Enter your full name", "autocomplete": "name"}
+            attrs={"placeholder": "Example: Juan Dela Cruz", "autocomplete": "name"}
         ),
     )
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
-                "placeholder": "Enter your school email address",
+                "placeholder": "Example: name@deped.gov.ph or student@example.com",
                 "autocomplete": "email",
             }
         )
     )
     role = forms.ChoiceField(choices=Profile.Role.choices)
+    email_policy_class = AccountEmailPolicy
 
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("full_name", "email", "role", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].widget.attrs.update({"minlength": "6"})
+        self.fields["password2"].widget.attrs.update({"minlength": "6"})
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("An account with this email already exists.")
         return email
+
+    def clean(self):
+        cleaned = super().clean()
+        email = cleaned.get("email", "")
+        role = cleaned.get("role", "")
+        error = self.email_policy_class().error_for(email=email, role=role)
+        if error:
+            self.add_error("email", error)
+        return cleaned
 
     def _profile_defaults(self):
         return {"role": self.cleaned_data["role"]}
@@ -111,19 +127,27 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
-                "placeholder": "Enter your school email address",
+                "placeholder": "Example: student@example.com",
                 "autocomplete": "email",
             }
         )
     )
     password = forms.CharField(
         strip=False,
+        min_length=6,
+        error_messages={
+            "min_length": "Your password must be at least 6 characters long.",
+        },
         widget=forms.PasswordInput(
-            attrs={"placeholder": "Enter your password", "autocomplete": "current-password"}
+            attrs={
+                "autocomplete": "current-password",
+                "minlength": "6",
+            }
         ),
     )
     role = forms.ChoiceField(choices=Profile.Role.choices)
     privacy_consent = forms.BooleanField(required=True)
+    email_policy_class = AccountEmailPolicy
 
     def __init__(self, request=None, *args, **kwargs):
         self.request = request
@@ -136,9 +160,18 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
             return cleaned
         email = cleaned.get("email", "").strip().lower()
         password = cleaned.get("password")
+        email_error = self.email_policy_class().error_for(
+            email=email,
+            role=cleaned.get("role", ""),
+        )
+        if email_error:
+            self.add_error("email", email_error)
+            return cleaned
         self.user_cache = authenticate(self.request, email=email, password=password)
         if self.user_cache is None:
-            raise ValidationError("Invalid email or password.")
+            raise ValidationError(
+                "Incorrect email or password. Check your details and try again."
+            )
         if not self.user_cache.is_active:
             raise ValidationError("This account is inactive.")
         if self.user_cache.is_staff or self.user_cache.is_superuser:
@@ -414,21 +447,20 @@ class ContactForm(StyledFormMixin, forms.ModelForm):
         fields = ("name", "email", "subject", "message")
         widgets = {
             "name": forms.TextInput(
-                attrs={"placeholder": "Enter your full name", "autocomplete": "name"}
+                attrs={"placeholder": "Example: Maria Santos", "autocomplete": "name"}
             ),
             "email": forms.EmailInput(
                 attrs={
-                    "placeholder": "Enter the email where we can reply",
+                    "placeholder": "Example: maria.santos@example.com",
                     "autocomplete": "email",
                 }
             ),
             "subject": forms.TextInput(
-                attrs={"placeholder": "Briefly describe what you need help with"}
+                attrs={"placeholder": "Example: Help opening a resource"}
             ),
             "message": forms.Textarea(
                 attrs={
                     "rows": 6,
-                    "placeholder": "Describe the issue, page, and steps that led to it. Do not include passwords.",
                 }
             ),
         }

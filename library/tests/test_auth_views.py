@@ -115,6 +115,23 @@ class RegistrationTests(LibraryTestCase):
         self.assertEqual(user.profile.role, Profile.Role.TEACHER)
         self.assertFalse(user.is_staff)
 
+    def test_teacher_registration_rejects_non_deped_email(self):
+        response = self.client.post(
+            reverse("library:register"),
+            self.registration_payload(
+                email="teacher@gmail.com", role=Profile.Role.TEACHER
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Teacher accounts must use an official @deped.gov.ph email address.",
+        )
+        self.assertFalse(
+            get_user_model().objects.filter(email="teacher@gmail.com").exists()
+        )
+
     def test_registration_requires_privacy_consent(self):
         payload = self.registration_payload()
         payload.pop("privacy_consent")
@@ -125,6 +142,47 @@ class RegistrationTests(LibraryTestCase):
         self.assertFalse(
             get_user_model().objects.filter(email="jamie@gmail.com").exists()
         )
+
+    def test_registration_enforces_each_password_requirement(self):
+        cases = (
+            ("Aa1!", "This password is too short. It must contain at least 6 characters."),
+            ("Atlas!", "Your password must contain at least one number."),
+            ("Atlas1", "Your password must contain at least one special character."),
+        )
+
+        for index, (password, expected_error) in enumerate(cases):
+            with self.subTest(password=password):
+                email = f"password-check-{index}@example.com"
+                response = self.client.post(
+                    reverse("library:register"),
+                    self.registration_payload(
+                        email=email,
+                        password1=password,
+                        password2=password,
+                    ),
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                self.assertFalse(
+                    get_user_model().objects.filter(email=email).exists()
+                )
+
+    def test_registration_accepts_six_character_password_at_boundary(self):
+        password = "Aa1!bc"
+
+        response = self.client.post(
+            reverse("library:register"),
+            self.registration_payload(
+                email="six-character@example.com",
+                password1=password,
+                password2=password,
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        user = get_user_model().objects.get(email="six-character@example.com")
+        self.assertTrue(user.check_password(password))
 
     def test_public_registration_cannot_create_an_administrator(self):
         response = self.client.post(
@@ -186,6 +244,65 @@ class LoginAndSessionTests(LibraryTestCase):
             self.user.profile.privacy_consent_version,
             settings.PRIVACY_CONSENT_VERSION,
         )
+
+    def test_teacher_login_rejects_legacy_non_deped_account(self):
+        teacher = self.create_user(
+            email="legacy-teacher@gmail.com",
+            role=Profile.Role.TEACHER,
+        )
+
+        response = self.client.post(
+            reverse("library:login"),
+            {
+                "email": teacher.email,
+                "password": TEST_PASSWORD,
+                "role": Profile.Role.TEACHER,
+                "privacy_consent": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Teacher accounts must use an official @deped.gov.ph email address.",
+        )
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_login_explains_six_character_minimum(self):
+        response = self.client.post(
+            reverse("library:login"),
+            {
+                "email": self.user.email,
+                "password": "A1!",
+                "role": Profile.Role.STUDENT,
+                "privacy_consent": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Your password must be at least 6 characters long.",
+        )
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_login_uses_clear_incorrect_credentials_message(self):
+        response = self.client.post(
+            reverse("library:login"),
+            {
+                "email": self.user.email,
+                "password": "Wrong1!",
+                "role": Profile.Role.STUDENT,
+                "privacy_consent": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Incorrect email or password. Check your details and try again.",
+        )
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_dashboard_redirects_anonymous_users_to_login(self):
         response = self.client.get(reverse("library:dashboard"))

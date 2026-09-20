@@ -97,6 +97,32 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertContains(login_response, f'{reverse("library:login")}?role=teacher')
         self.assertContains(register_response, f'{reverse("library:register")}?role=student')
         self.assertContains(register_response, f'{reverse("library:register")}?role=teacher')
+
+    def test_registration_shows_live_password_checklist_and_strength(self):
+        response = self.client.get(reverse("library:register"))
+
+        self.assertContains(response, 'minlength="6"', count=2)
+        self.assertContains(response, 'data-password-rule="length"')
+        self.assertContains(response, 'data-password-rule="number"')
+        self.assertContains(response, 'data-password-rule="special"')
+        self.assertContains(response, 'data-password-rule="match"')
+        self.assertContains(response, 'data-password-strength')
+        self.assertContains(response, 'aria-label="Password strength"')
+        self.assertNotContains(response, "Example format: 12+ characters")
+
+    def test_password_feedback_uses_an_encapsulated_controller(self):
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "app.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("class PasswordFeedback", script)
+        self.assertIn('special: /[^\\w\\s]/.test(password)', script)
+        self.assertIn('this.updateRule("match"', script)
     def test_invalid_teacher_login_post_preserves_hidden_role(self):
         response = self.client.post(
             reverse("library:login"),

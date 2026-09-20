@@ -123,13 +123,28 @@ class FormFeedbackTests(LibraryTestCase):
         self.assertContains(response, "Please correct the following:")
         self.assertContains(response, "Your message was not sent")
 
-    def test_forms_use_instructional_placeholders(self):
+    def test_forms_use_example_placeholders(self):
         login = self.client.get(reverse("library:login"))
+        teacher_login = self.client.get(
+            f'{reverse("library:login")}?role=teacher'
+        )
+        teacher_registration = self.client.get(
+            f'{reverse("library:register")}?role=teacher'
+        )
         contact = self.client.get(reverse("library:contact"))
 
-        self.assertContains(login, 'placeholder="Enter your school email address"')
-        self.assertContains(login, 'placeholder="Enter your password"')
-        self.assertContains(contact, 'placeholder="Briefly describe what you need help with"')
+        self.assertContains(login, 'placeholder="Example: student@example.com"')
+        self.assertContains(login, "Passwords contain at least 6 characters.")
+        self.assertNotContains(login, 'placeholder="Example: your account password"')
+        self.assertContains(
+            teacher_login,
+            'placeholder="Example: juan.delacruz@deped.gov.ph"',
+        )
+        self.assertContains(
+            teacher_registration,
+            "Gmail addresses are not accepted.",
+        )
+        self.assertContains(contact, 'placeholder="Example: Help opening a resource"')
         self.assertContains(contact, "Do not include passwords.")
 
 
@@ -137,10 +152,13 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
     def test_reading_preferences_are_available_on_every_page(self):
         response = self.client.get(reverse("library:landing"))
 
+        self.assertContains(response, "data-accessibility-trigger")
+        self.assertContains(response, 'id="accessibilityPanel"')
         self.assertContains(response, 'aria-label="Reading preferences"')
         self.assertContains(response, "data-text-size-toggle")
         self.assertContains(response, "data-contrast-toggle")
         self.assertContains(response, 'aria-pressed="false"', count=2)
+        self.assertNotContains(response, 'class="reading-preferences"')
 
     def test_accessibility_preferences_use_an_encapsulated_controller(self):
         script = (

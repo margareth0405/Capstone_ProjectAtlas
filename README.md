@@ -82,6 +82,17 @@ loader, while bookmarks update optimistically and roll back automatically if
 the server rejects the request. All three behaviors retain normal non-JavaScript
 form and navigation fallbacks.
 
+The top-level Display menu provides persistent Large text and High contrast
+options on every page. It is keyboard accessible and keeps these controls out
+of the footer so they remain easy to find on desktop and mobile layouts.
+
+Registration enforces a password of at least six characters containing at
+least one number and one special character. A live checklist confirms each
+requirement, verifies that both password fields match, and displays a strength
+indicator without sending or storing the typed password. Login shows only the
+six-character minimum and returns a clear, account-safe incorrect-credentials
+message.
+
 The administrator account table displays each account's creation date and can
 sort newest-to-oldest or oldest-to-newest. Administrators can create student or
 teacher accounts from the portal. Additional administrator accounts must be
@@ -166,25 +177,34 @@ separately and requires roughly another 1.8 GB of disk space.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
+Teacher registration and teacher sign-in accept official `@deped.gov.ph`
+addresses only. Student accounts may use another active address that can receive
+the verification email.
 
 ## Start from VS Code
 
-The repository contains a Windows startup script and matching VS Code tasks.
+The repository contains a Windows one-key launcher and matching VS Code tasks.
 
-- Press Ctrl+Shift+P, choose Tasks: Run Task, and select
-  ATLAS: Start Django.
-- Press Ctrl+Shift+B to use the default build task.
+- Press **Ctrl+Shift+B** to prepare the environment, migrate a private local
+  SQLite database, start ATLAS, and open it in your default browser.
+- Double-click **START_ATLAS.cmd** for the same quick-start experience without
+  opening VS Code.
+- Press Ctrl+Shift+P, choose Tasks: Run Task, then select
+  **ATLAS: Start with configured database** when you want to use PostgreSQL
+  from `.env` instead of the quick-start database.
 - Press F5 and select ATLAS: Start Django to run with the debugger.
 - Without VS Code, run:
 
   ```powershell
-  powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1
+  powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1 -UseSQLite -OpenBrowser
   ```
 
 The first run creates .venv and installs dependencies. Later runs reinstall
 only when requirements.txt changes. The script always runs Django with the
 virtual-environment interpreter and applies pending migrations before starting
-the server. This avoids using a different global Python installation.
+the server. This avoids using a different global Python installation. Quick
+Start stores local-only data in the ignored `db.sqlite3` file; deployment and
+the configured-database task continue to use `DATABASE_URL` from `.env`.
 
 ## Environment configuration
 
@@ -200,7 +220,11 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 DJANGO_ADMIN_PATH=replace-with-a-private-admin-path
 DATABASE_URL=postgresql://atlas_user:strong-password@localhost:5432/atlas
 DB_SSL_REQUIRE=False
+TEACHER_EMAIL_DOMAINS=deped.gov.ph
 ```
+
+`TEACHER_EMAIL_DOMAINS` is a comma-separated allowlist. Keep the default for a
+DepEd-only teacher portal; any listed domain and its subdomains are accepted.
 
 For a hosted PostgreSQL service, use the provider's complete connection URL and
 set DB_SSL_REQUIRE=True when TLS is required.

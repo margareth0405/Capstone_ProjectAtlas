@@ -46,23 +46,24 @@
         <div class="contact-form-grid">
           <div class="form-group">
             <label for="id_name">Name</label>
-            <input type="text" name="name" id="id_name" class="form-control{% if form.name.errors %} is-invalid{% endif %}" value="{{ form.name.value|default:contact_name|default_if_none:'' }}" placeholder="Enter your full name" autocomplete="name" required>
+            <input type="text" name="name" id="id_name" class="form-control{% if form.name.errors %} is-invalid{% endif %}" value="{{ form.name.value|default:contact_name|default_if_none:'' }}" placeholder="Example: Maria Santos" autocomplete="name" required>
             {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group">
             <label for="id_contact_email">Email</label>
-            <input type="email" name="email" id="id_contact_email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" value="{{ form.email.value|default:contact_email|default_if_none:'' }}" placeholder="Enter the email where we can reply" autocomplete="email" required>
+            <input type="email" name="email" id="id_contact_email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" value="{{ form.email.value|default:contact_email|default_if_none:'' }}" placeholder="Example: maria.santos@example.com" autocomplete="email" required>
             {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group contact-subject-field">
             <label for="id_subject">Subject</label>
-            <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" placeholder="Briefly describe what you need help with" required>
+            <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" placeholder="Example: Help opening a resource" required>
             {% if form.subject.errors %}<div class="invalid-feedback d-block">{% for error in form.subject.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group contact-message-field">
             <label for="id_message">Message</label>
-            <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" placeholder="Describe the issue, page, and steps that led to it. Do not include passwords." required>{{ form.message.value|default_if_none:'' }}</textarea>
-            {% if form.message.errors %}<div class="invalid-feedback d-block">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" aria-describedby="contactMessageHelp{% if form.message.errors %} contactMessageErrors{% endif %}" required>{{ form.message.value|default_if_none:'' }}</textarea>
+            <small class="form-helper" id="contactMessageHelp">Example: I cannot open the resource abstract on the Library page. Do not include passwords.</small>
+            {% if form.message.errors %}<div class="invalid-feedback d-block" id="contactMessageErrors">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         </div>
         <button type="submit" class="btn btn-primary atlas-primary-action"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send message</button>

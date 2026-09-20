@@ -2,6 +2,37 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "ATLAS: Quick Start",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\start_atlas.ps1",
+        "-UseSQLite",
+        "-OpenBrowser"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
       "label": "ATLAS: Prepare Environment",
       "type": "process",
       "command": "powershell.exe",
@@ -30,10 +61,7 @@
       "label": "ATLAS: Check Database",
       "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-      "args": [
-        "manage.py",
-        "check_database"
-      ],
+      "args": ["manage.py", "check_database"],
       "dependsOn": "ATLAS: Prepare Environment",
       "dependsOrder": "sequence",
       "options": {
@@ -42,7 +70,7 @@
       "problemMatcher": []
     },
     {
-      "label": "ATLAS: Start Django",
+      "label": "ATLAS: Start with configured database",
       "type": "process",
       "command": "powershell.exe",
       "args": [
@@ -56,10 +84,6 @@
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
