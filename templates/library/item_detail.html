@@ -1,6 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}{{ item.title }} · ATLAS{% endblock %}
+{% block title %}{{ item.title }} | ATLAS{% endblock %}
+{% block meta_description %}View the abstract, author, publication details, and protected reading options for {{ item.title }} in ATLAS.{% endblock %}
 {% block breadcrumb %}Resource abstract{% endblock %}
 
 {% block dashboard_content %}
@@ -11,12 +12,12 @@
   {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
 
   <article class="resource-detail-card">
-    <a class="btn-back inline-back" href="{{ catalog_url|default:'#' }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to library</a>
+    <a class="btn-back inline-back" href="{{ catalog_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to library</a>
     <header class="resource-detail-header">
       <div class="resource-detail-identity">
         {% if item.cover_image %}
           <figure class="resource-detail-cover">
-            <img src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}">
+            <img src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" width="240" height="320" decoding="async" fetchpriority="high">
             <figcaption>Cover</figcaption>
           </figure>
         {% endif %}
@@ -47,9 +48,9 @@
 
     <div class="resource-detail-actions">
       {% if active_role == "student" or active_role == "teacher" %}
-        <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
+        <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
           {% csrf_token %}
-          <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit"><i class="fas fa-bookmark" aria-hidden="true"></i> {% if is_favorite %}Remove bookmark{% else %}Bookmark{% endif %}</button>
+          <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Remove bookmark" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if is_favorite %}Remove bookmark{% else %}Bookmark{% endif %}</span></button>
         </form>
       {% endif %}
       {% if request.user.is_staff %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}

@@ -1,37 +1,39 @@
 {% extends "library/base.html" %}
 
-{% block title %}ATLAS · Academic e-Library{% endblock %}
+{% block title %}Academic e-Library | ATLAS{% endblock %}
+{% block meta_description %}Access ATLAS academic resources as a student, teacher, or guest.{% endblock %}
 {% block body_class %}atlas-auth-page{% endblock %}
 
 {% block body %}
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
   {% url 'library:guest_login' as guest_login_url %}
+  {% url 'library:privacy_terms' as privacy_terms_url %}
 
   <main class="login-container landing-container" id="mainContent" tabindex="-1">
     <section class="login-card landing-card" aria-labelledby="atlasTitle">
-      <div class="brand-icon" aria-hidden="true">
-        <i class="fas fa-flask"></i>
-      </div>
+      <a class="brand-icon brand-home-link" href="{% url 'library:landing' %}" aria-label="ATLAS home">
+        <i class="fas fa-flask" aria-hidden="true"></i>
+      </a>
       <p class="eyebrow">Academic e-Library</p>
       <h1 id="atlasTitle">ATLAS</h1>
       <p class="tagline">Academic Teaching, Learning, and Archival System</p>
       <p class="sub">Choose how you would like to continue.</p>
 
       <div class="role-buttons landing-role-grid">
-        <a class="role-btn" href="{{ login_url|default:'/login/' }}?role=student">
+        <a class="role-btn" href="{{ login_url }}?role=student">
           <i class="fas fa-user-graduate" aria-hidden="true"></i>
           <span class="role-label">Student</span>
           <i class="fas fa-chevron-right role-chevron" aria-hidden="true"></i>
         </a>
 
-        <a class="role-btn" href="{{ login_url|default:'/login/' }}?role=teacher">
+        <a class="role-btn" href="{{ login_url }}?role=teacher">
           <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
           <span class="role-label">Teacher</span>
           <i class="fas fa-chevron-right role-chevron" aria-hidden="true"></i>
         </a>
 
-        <form action="{{ guest_login_url|default:'/guest/' }}" method="post" class="role-form">
+        <form action="{{ guest_login_url }}" method="post" class="role-form">
           {% csrf_token %}
           <button class="role-btn" type="submit">
             <i class="fas fa-user-friends" aria-hidden="true"></i>
@@ -44,14 +46,14 @@
       <div class="landing-actions">
         <p>
           New to ATLAS?
-          <a href="{{ register_url|default:'/register/' }}">Create an account</a>
+          <a href="{{ register_url }}">Create an account</a>
         </p>
 
       </div>
 
       <p class="privacy-summary">
         <i class="fas fa-shield-halved" aria-hidden="true"></i>
-        ATLAS asks registered users to accept its privacy and confidentiality statement before access.
+        ATLAS asks registered users to accept its <a href="{{ privacy_terms_url }}">Privacy Policy and Terms &amp; Conditions</a> before access.
       </p>
     </section>
   </main>

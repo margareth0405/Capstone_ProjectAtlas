@@ -1,14 +1,15 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
-{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Resource · ATLAS{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Resource | ATLAS{% endblock %}
+{% block meta_description %}Add or update an ATLAS library resource and its protected abstract.{% endblock %}
 {% block breadcrumb %}{% if form.instance.pk %}Edit Resource{% else %}Add Resource{% endif %}{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
   <div class="admin-form-page">
     <header class="django-page-header"><div><span class="section-kicker">Library management</span><h1>{% if form.instance.pk %}Edit resource{% else %}Add a new resource{% endif %}</h1></div></header>
-    <form method="post" enctype="multipart/form-data" class="admin-object-form" novalidate>
+    <form method="post" enctype="multipart/form-data" class="admin-object-form" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is validating and optimizing the resource…">
       {% csrf_token %}
       {% include "library/includes/form_errors.html" with form=form %}
       <div class="admin-form-grid">
@@ -22,7 +23,7 @@
         {% endfor %}
       </div>
       <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. The date added to ATLAS is generated automatically.</span></div>
-      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url|default:'#' }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save resource</button></div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save resource</button></div>
     </form>
   </div>
 {% endblock %}

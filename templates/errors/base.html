@@ -1,0 +1,23 @@
+{% extends "library/base.html" %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block meta_description %}ATLAS could not complete this request. Use the available navigation to continue safely.{% endblock %}
+{% block body_class %}atlas-error-page{% endblock %}
+
+{% block body %}
+  {% url 'library:landing' as landing_url %}
+  {% url 'library:catalog' as catalog_url %}
+  <main class="error-page" id="mainContent" tabindex="-1">
+    <section class="error-card" aria-labelledby="errorTitle">
+      <div class="error-code">{% block error_code %}{% endblock %}</div>
+      <i class="fas {% block error_icon %}fa-circle-exclamation{% endblock %} error-icon" aria-hidden="true"></i>
+      <h1 id="errorTitle">{% block error_title %}Something went wrong{% endblock %}</h1>
+      <p>{% block error_message %}ATLAS could not complete this request.{% endblock %}</p>
+      {% block error_extra %}{% endblock %}
+      <div class="error-actions">
+        <a class="btn btn-primary atlas-primary-action" href="{{ landing_url }}">Return home</a>
+        <a class="btn btn-outline-secondary" href="{{ catalog_url }}">Browse the library</a>
+      </div>
+    </section>
+  </main>
+{% endblock %}

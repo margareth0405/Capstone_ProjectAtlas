@@ -36,6 +36,10 @@ class StaffUserCreateView(StaffRequiredMixin, View):
             )
             messages.success(request, f"Account created for {user.email}.")
             return redirect("library:staff_portal")
+        messages.error(
+            request,
+            "The account was not created. Review the highlighted fields.",
+        )
         return self._render(form)
 
     def _render(self, form):

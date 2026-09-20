@@ -1,16 +1,21 @@
 """Catalog browsing, bookmarks, and privacy-safe resource reading."""
 
+from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse, Http404
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.http import content_disposition_header
 from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from library.models import Announcement, Favorite, LibraryItem
 from library.services import CatalogQueryService, SafeRedirectService
@@ -129,14 +134,10 @@ class ResourceAbstractReaderView(ProtectedDocumentReaderView):
 
 
 class ResourceCoverView(View):
-    """Serve a validated cover inline while keeping MEDIA_ROOT private."""
+    """Serve a bounded WebP derivative while keeping MEDIA_ROOT private."""
 
-    content_types = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }
+    supported_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    maximum_dimensions = (800, 1200)
 
     def get(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
@@ -144,22 +145,41 @@ class ResourceCoverView(View):
         if not cover:
             raise Http404("Cover image not found.")
         extension = Path(cover.name).suffix.lower()
-        content_type = self.content_types.get(extension)
-        if not content_type:
+        if extension not in self.supported_extensions:
             raise Http404("Unsupported cover image.")
-        try:
-            cover.open("rb")
-        except OSError as exc:
-            raise Http404("Cover image not found.") from exc
-        response = FileResponse(
-            cover,
-            as_attachment=False,
-            filename=Path(cover.name).name,
-            content_type=content_type,
-        )
-        response["Cache-Control"] = "private, max-age=3600"
+        fingerprint = sha256(cover.name.encode()).hexdigest()
+        cache_key = f"atlas:cover:webp:{fingerprint}"
+        optimized_bytes = cache.get(cache_key)
+        if optimized_bytes is None:
+            optimized_bytes = self._optimize(cover)
+            cache.set(cache_key, optimized_bytes, timeout=86400)
+        filename = f"{Path(cover.name).stem}.webp"
+        response = HttpResponse(optimized_bytes, content_type="image/webp")
+        response["Content-Disposition"] = content_disposition_header(False, filename)
+        response["Cache-Control"] = "public, max-age=86400"
         response["X-Content-Type-Options"] = "nosniff"
         return response
+
+    def _optimize(self, cover):
+        try:
+            cover.open("rb")
+            with Image.open(cover) as source:
+                image = ImageOps.exif_transpose(source)
+                image.thumbnail(self.maximum_dimensions, Image.Resampling.LANCZOS)
+                if image.mode not in {"RGB", "RGBA"}:
+                    image = image.convert("RGBA" if "transparency" in image.info else "RGB")
+                output = BytesIO()
+                image.save(output, format="WEBP", quality=80, method=6)
+        except (
+            Image.DecompressionBombError,
+            OSError,
+            UnidentifiedImageError,
+            ValueError,
+        ) as exc:
+            raise Http404("Cover image not found.") from exc
+        finally:
+            cover.close()
+        return output.getvalue()
 
 
 class FavoritesView(PageContextMixin, TemplateView):
@@ -189,8 +209,20 @@ class FavoriteToggleView(View):
         item = get_object_or_404(LibraryItem, pk=pk)
         favorite, created = Favorite.objects.get_or_create(user=request.user, item=item)
         if created:
-            messages.success(request, f"Bookmarked {item.title}.")
+            message = f"Bookmarked {item.title}."
         else:
             favorite.delete()
-            messages.info(request, f"Removed the bookmark for {item.title}.")
+            message = f"Removed the bookmark for {item.title}."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {
+                    "bookmarked": created,
+                    "item_id": item.pk,
+                    "message": message,
+                }
+            )
+        if created:
+            messages.success(request, message)
+        else:
+            messages.info(request, message)
         return redirect(SafeRedirectService.resolve(request, "library:catalog"))

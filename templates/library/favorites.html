@@ -1,6 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}ATLAS · Bookmarks{% endblock %}
+{% block title %}My Bookmarks | ATLAS{% endblock %}
+{% block meta_description %}Review the academic resources saved to your ATLAS reading list.{% endblock %}
 {% block breadcrumb %}Bookmarks{% endblock %}
 
 {% block dashboard_content %}
@@ -12,7 +13,7 @@
         <span class="section-kicker">Your reading list</span>
         <h1><i class="fas fa-bookmark" aria-hidden="true"></i> Bookmarks</h1>
       </div>
-      <span class="favorite-count"><i class="fas fa-bookmark" aria-hidden="true"></i> {{ favorite_count|default:0 }} items</span>
+      <span class="favorite-count"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-favorite-count>{{ favorite_count|default:0 }}</span> items</span>
     </header>
 
     {% if favorites %}
@@ -26,14 +27,14 @@
             <article class="favorite-card">
               {% if item.cover_image %}
                 <a class="favorite-cover-link" href="{{ item_detail_url }}">
-                  <img class="favorite-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" loading="lazy">
+                  <img class="favorite-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" width="240" height="320" loading="lazy" decoding="async">
                 </a>
               {% endif %}
               <div class="card-top">
                 <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
-                <form action="{{ favorite_toggle_url|default:'' }}" method="post">
+                <form action="{{ favorite_toggle_url }}" method="post" data-optimistic-bookmark data-remove-bookmark-card>
                   {% csrf_token %}
-                  <button class="btn-remove-favorite" type="submit" aria-label="Remove {{ item.title }} from bookmarks">
+                  <button class="btn-remove-favorite" type="submit" aria-label="Remove {{ item.title }} from bookmarks" aria-pressed="true" data-bookmark-button data-label-on="Remove bookmark" data-label-off="Bookmark">
                     <i class="fas fa-times" aria-hidden="true"></i>
                   </button>
                 </form>
@@ -42,7 +43,7 @@
               <p class="card-author">{{ item.author }}</p>
               <p class="card-copies"><i class="fas fa-file" aria-hidden="true"></i> {{ item.file_type|default:'PDF' }}</p>
               <div class="card-actions">
-                <a class="btn-details" href="{{ item_detail_url|default:'#' }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
+                <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
                 {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
               </div>
             </article>
@@ -55,7 +56,7 @@
         <i class="fas fa-bookmark" aria-hidden="true"></i>
         <h2>No bookmarks yet</h2>
         <p>Choose “Bookmark” beside any library item to save it here.</p>
-        <a class="btn btn-primary atlas-primary-action" href="{{ catalog_url|default:'#' }}">
+        <a class="btn btn-primary atlas-primary-action" href="{{ catalog_url }}">
           <i class="fas fa-book-open" aria-hidden="true"></i> Browse the library
         </a>
       </div>

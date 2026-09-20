@@ -1,5 +1,7 @@
 {% extends "library/base.html" %}
 
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block meta_description %}Manage your secure ATLAS e-Library account and email verification settings.{% endblock %}
 {% block body_class %}atlas-auth-page{% endblock %}
 
 {% block body %}
@@ -9,9 +11,9 @@
       <a class="btn-back" href="{{ login_url }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to sign in
       </a>
-      <div class="brand-icon reader-icon" aria-hidden="true">
-        <i class="fas {% block account_icon %}fa-shield-halved{% endblock %}"></i>
-      </div>
+      <a class="brand-icon reader-icon brand-home-link" href="{% url 'library:landing' %}" aria-label="ATLAS home">
+        <i class="fas {% block account_icon %}fa-shield-halved{% endblock %}" aria-hidden="true"></i>
+      </a>
       {% block account_content %}{% endblock %}
     </section>
   </main>

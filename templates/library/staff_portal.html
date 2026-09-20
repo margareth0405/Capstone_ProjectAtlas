@@ -1,7 +1,8 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">{% endblock %}
-{% block title %}ATLAS · Staff Portal{% endblock %}
+{% block title %}Staff Portal | ATLAS{% endblock %}
+{% block meta_description %}Manage ATLAS resources, announcements, accounts, and privacy-conscious usage reports.{% endblock %}
 {% block breadcrumb %}Staff Portal{% endblock %}
 
 {% block dashboard_content %}
@@ -11,6 +12,7 @@
   {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
   {% url 'library:catalog' as catalog_url %}
   {% url 'library:announcements' as announcements_url %}
+  {% url 'library:staff_portal' as staff_portal_url %}
   {% url 'admin:index' as django_admin_url %}
 
   <div class="staff-portal">
@@ -20,8 +22,8 @@
         <h1><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator Portal</h1>
       </div>
       <div class="staff-header-actions">
-        <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
-        <a class="btn btn-outline-secondary rounded-pill" href="{{ django_admin_url|default:'#' }}"><i class="fas fa-gears" aria-hidden="true"></i> Django admin</a>
+        <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ django_admin_url }}"><i class="fas fa-gears" aria-hidden="true"></i> Django admin</a>
       </div>
     </header>
 
@@ -50,7 +52,7 @@
       <section class="staff-panel" aria-labelledby="resourceManagementHeading">
         <div class="staff-panel-heading">
           <div><span class="section-kicker">Collection</span><h2 id="resourceManagementHeading">Recent resources</h2></div>
-          <a href="{{ catalog_url|default:'#' }}">View all</a>
+          <a href="{{ catalog_url }}">View all</a>
         </div>
         {% if items %}
           <div class="table-responsive">
@@ -66,8 +68,8 @@
                     <td>{{ item.publication_date_display }}</td>
                     <td>{{ item.created_at|date:'M j, Y' }}</td>
                     <td class="resource-actions">
-                      <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
-                      <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">
+                      <a class="btn-edit" href="{{ edit_url }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                      <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">
                         {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ item.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
                       </form>
                     </td>
@@ -82,7 +84,7 @@
       <section class="staff-panel" aria-labelledby="announcementManagementHeading">
         <div class="staff-panel-heading">
           <div><span class="section-kicker">Communication</span><h2 id="announcementManagementHeading">Announcements</h2></div>
-          <a class="btn-register-admin" href="{{ staff_announcement_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Create</a>
+          <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Create</a>
         </div>
         {% if announcements %}
           <div class="staff-record-list">
@@ -99,15 +101,15 @@
                   {% else %}
                     <form action="{{ publish_url }}" method="post" class="inline-action-form" data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?">{% csrf_token %}<button class="btn-edit" type="submit" aria-label="Publish {{ announcement.title }}"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></form>
                   {% endif %}
-                  <a class="btn-edit" href="{{ edit_url|default:'#' }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
-                  <form action="{{ delete_url|default:'' }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone.">
+                  <a class="btn-edit" href="{{ edit_url }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                  <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone.">
                     {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ announcement.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
                   </form>
                 </div>
               </article>
             {% endfor %}
           </div>
-          <a class="staff-panel-footer-link" href="{{ announcements_url|default:'#' }}">Manage all announcements</a>
+          <a class="staff-panel-footer-link" href="{{ announcements_url }}">Manage all announcements</a>
         {% else %}<p class="staff-empty-copy">No announcements are available.</p>{% endif %}
       </section>
     </div>
@@ -115,10 +117,10 @@
     <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
       <div class="user-monitoring-header">
         <div><span class="section-kicker">Accounts</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2></div>
-        <a class="btn-register-admin" href="{{ staff_user_create_url|default:'#' }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
+        <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
       </div>
 
-      <form class="staff-filter-bar" method="get" action="#users" data-auto-submit>
+      <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>
         <div class="form-group">
           <label for="userSearch">Search users</label>
           <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Name or email">
@@ -210,7 +212,7 @@
 
       <div class="usage-history-panel">
         <div class="usage-history-heading"><h3>Visit history</h3><span>{{ analytics_date }}</span></div>
-        <form class="staff-filter-bar usage-history-filters" method="get" action="#usage" data-auto-submit>
+        <form class="staff-filter-bar usage-history-filters" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
           <input type="hidden" name="analytics_date" value="{{ analytics_date }}">
           <div class="form-group">
             <label for="usageSearch">Search visitor</label>
@@ -250,7 +252,7 @@
     <div class="staff-management-grid staff-history-grid">
       <section class="staff-panel" id="resource-views" aria-labelledby="resourceViewsHeading">
         <div class="staff-panel-heading"><div><span class="section-kicker">Privacy-safe access log</span><h2 id="resourceViewsHeading">Resource viewing history</h2></div></div>
-        <form class="staff-filter-bar resource-view-filters" method="get" action="#resource-views" data-auto-submit>
+        <form class="staff-filter-bar resource-view-filters" method="get" action="{{ staff_portal_url }}#resource-views" data-auto-submit>
           <div class="form-group">
             <label for="resourceViewSearch">Search resource or user</label>
             <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Resource, name, or email">
@@ -262,7 +264,7 @@
               {% for value, label in usage_role_choices %}<option value="{{ value }}"{% if selected_resource_view_role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
           </div>
-          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="#resource-views">Clear</a>{% endif %}
+          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#resource-views">Clear</a>{% endif %}
         </form>
         <div class="table-responsive">
           <table class="staff-compact-table">

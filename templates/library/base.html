@@ -2,25 +2,27 @@
 {% url 'library:landing' as landing_url %}
 {% url 'library:login' as login_url %}
 {% url 'library:register' as register_url %}
+{% url 'library:privacy_terms' as privacy_terms_url %}
+{% url 'library:catalog' as catalog_url %}
+{% url 'library:contact' as contact_url %}
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#4a111c">
+    <meta name="color-scheme" content="light">
     <meta
       name="description"
-      content="ATLAS — Academic Teaching, Learning, and Archival System"
+      content="{% block meta_description %}Explore academic resources, protected reading, announcements, and library support through the ATLAS e-Library.{% endblock %}"
     >
     {% block robots %}{% endblock %}
-    <title>{% block title %}ATLAS{% endblock %}</title>
+    <title>{% block title %}ATLAS | Academic e-Library{% endblock %}</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    >
+    <link rel="icon" href="{% static 'library/images/favicon.svg' %}" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
@@ -31,19 +33,85 @@
     >
     <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}">
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20260831-auth-controls">
-    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20260831-protected-reader">
+    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20260920-readable-ui">
     {% block role_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
   </head>
   <body class="{% block body_class %}atlas-page{% endblock %}">
     <a class="skip-link" href="#mainContent">Skip to main content</a>
 
+    <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-label="Loading ATLAS">
+      <span class="visually-hidden">Loading ATLAS</span>
+      <div class="page-loader-shell" aria-hidden="true">
+        <div class="skeleton-block skeleton-sidebar"></div>
+        <div class="skeleton-main">
+          <div class="skeleton-block skeleton-header"></div>
+          <div class="skeleton-block skeleton-title"></div>
+          <div class="skeleton-card-grid">
+            <div class="skeleton-block skeleton-card"></div>
+            <div class="skeleton-block skeleton-card"></div>
+            <div class="skeleton-block skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <noscript><style>.page-loader { display: none !important; }</style></noscript>
+
+    <div class="optimistic-status" id="optimisticStatus" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
     {% include "library/includes/messages.html" %}
 
     {% block body %}{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'library/js/app.js' %}?v=20260831-usage-dedup" defer></script>
+    <footer class="site-footer" aria-label="Site footer">
+      <a class="footer-brand" href="{{ landing_url }}" aria-label="ATLAS home">
+        <i class="fas fa-flask" aria-hidden="true"></i>
+        <span>ATLAS <small>e-Library</small></span>
+      </a>
+      <nav class="footer-navigation" aria-label="Footer navigation">
+        <a href="{{ landing_url }}">Home</a>
+        <a href="{{ catalog_url }}">Library</a>
+        <a href="{{ contact_url }}">Contact</a>
+        <a href="{{ privacy_terms_url }}">Privacy &amp; Terms</a>
+        <button type="button" data-cookie-settings>Cookie preferences</button>
+      </nav>
+      <div class="reading-preferences" role="group" aria-label="Reading preferences">
+        <span>Reading preferences</span>
+        <button type="button" data-text-size-toggle aria-pressed="false">
+          <i class="fas fa-text-height" aria-hidden="true"></i> Large text
+        </button>
+        <button type="button" data-contrast-toggle aria-pressed="false">
+          <i class="fas fa-circle-half-stroke" aria-hidden="true"></i> High contrast
+        </button>
+      </div>
+      <div class="footer-contact" aria-label="Support contact details">
+        <a href="mailto:{{ support_email }}"><i class="fas fa-envelope" aria-hidden="true"></i> {{ support_email }}</a>
+        {% if support_phone %}<a href="{{ support_phone_uri }}"><i class="fas fa-phone" aria-hidden="true"></i> {{ support_phone }}</a>{% endif %}
+      </div>
+    </footer>
+
+    <section
+      class="cookie-consent"
+      id="cookieConsent"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="cookieConsentTitle"
+      aria-describedby="cookieConsentDescription"
+      hidden
+    >
+      <div>
+        <h2 id="cookieConsentTitle"><i class="fas fa-cookie-bite" aria-hidden="true"></i> Cookie choices</h2>
+        <p id="cookieConsentDescription">ATLAS always uses essential security and session cookies. With your permission, it also records privacy-conscious website usage statistics.</p>
+        <a href="{{ privacy_terms_url }}#cookies">Read the cookie policy</a>
+      </div>
+      <div class="cookie-consent-actions">
+        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="essential">Essential only</button>
+        <button class="btn btn-primary atlas-primary-action" type="button" data-cookie-choice="analytics">Allow analytics</button>
+      </div>
+    </section>
+
+    <script src="{% static 'library/js/app.js' %}?v=20260920-readable-ui" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

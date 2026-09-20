@@ -1,6 +1,7 @@
 """Guest pages and member-only catalog actions."""
 
 from datetime import date
+from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,6 +9,7 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 
 from library.models import ContactMessage, Favorite, Profile, ResourceViewEvent
 
@@ -205,6 +207,25 @@ class FavoriteTests(LibraryTestCase):
             Favorite.objects.filter(user=user, item=self.item).exists()
         )
 
+    def test_ajax_favorite_toggle_returns_state_for_optimistic_ui(self):
+        user = self.create_user(email="optimistic-reader@example.com")
+        self.client.force_login(user)
+
+        added = self.client.post(
+            self.favorite_url(),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        removed = self.client.post(
+            self.favorite_url(),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(added.status_code, 200)
+        self.assertTrue(added.json()["bookmarked"])
+        self.assertEqual(added.json()["item_id"], self.item.pk)
+        self.assertFalse(removed.json()["bookmarked"])
+        self.assertIn("Bookmarked", added.json()["message"])
+
 
 class ResourceAbstractReaderTests(LibraryTestCase):
     class StubExtractor:
@@ -283,12 +304,11 @@ class ResourceAttachmentsTests(LibraryTestCase):
             return "The uploaded abstract text is displayed inside ATLAS."
 
     def setUp(self):
-        self.cover_bytes = (
-            b"\x89PNG\r\n\x1a\n"
-            b"\x00\x00\x00\rIHDR"
-            b"\x00\x00\x00\x01\x00\x00\x00\x01"
-            b"\x08\x02\x00\x00\x00\x90wS\xde"
+        cover_stream = BytesIO()
+        Image.new("RGB", (1200, 1800), color=(114, 28, 47)).save(
+            cover_stream, format="PNG"
         )
+        self.cover_bytes = cover_stream.getvalue()
         self.item = self.create_item(
             external_url="",
             cover_image=SimpleUploadedFile(
@@ -313,10 +333,13 @@ class ResourceAttachmentsTests(LibraryTestCase):
 
         self.assertContains(catalog_response, cover_url)
         self.assertContains(catalog_response, "Cover of Django Testing Handbook")
+        self.assertContains(catalog_response, 'width="320"')
+        self.assertContains(catalog_response, 'loading="lazy"')
         self.assertContains(catalog_response, abstract_url)
         self.assertContains(catalog_response, "Read resource abstract")
         self.assertContains(detail_response, cover_url)
         self.assertContains(detail_response, "Cover")
+        self.assertContains(detail_response, 'fetchpriority="high"')
         self.assertContains(detail_response, abstract_url)
 
     def test_cover_is_served_inline_through_controlled_route(self):
@@ -325,9 +348,14 @@ class ResourceAttachmentsTests(LibraryTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["Content-Type"], "image/webp")
         self.assertIn("inline", response["Content-Disposition"])
-        self.assertEqual(b"".join(response.streaming_content), self.cover_bytes)
+        self.assertEqual(response["Cache-Control"], "public, max-age=86400")
+        with Image.open(BytesIO(response.content)) as optimized:
+            self.assertEqual(optimized.format, "WEBP")
+            self.assertLessEqual(optimized.width, 800)
+            self.assertLessEqual(optimized.height, 1200)
+        self.assertLess(len(response.content), len(self.cover_bytes))
 
     def test_guest_can_read_uploaded_abstract_inside_atlas(self):
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):

@@ -66,6 +66,10 @@ class StaffFormView(StaffRequiredMixin, View):
             )
             messages.success(request, self.success_message)
             return redirect(self.get_success_url(instance))
+        messages.error(
+            request,
+            "The record was not saved. Review the highlighted fields.",
+        )
         return self.render_form(form)
 
     def render_form(self, form):

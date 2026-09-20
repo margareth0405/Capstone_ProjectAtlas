@@ -34,3 +34,8 @@ if settings.DEBUG:
     urlpatterns += [
         path('__reload__/', include('django_browser_reload.urls')),
     ]
+
+handler400 = "library.views.errors.bad_request"
+handler403 = "library.views.errors.permission_denied"
+handler404 = "library.views.errors.page_not_found"
+handler500 = "library.views.errors.server_error"

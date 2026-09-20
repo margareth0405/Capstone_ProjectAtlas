@@ -1,6 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}ATLAS · Library Collection{% endblock %}
+{% block title %}Library Collection | ATLAS{% endblock %}
+{% block meta_description %}Search and browse books, journals, research, activity sheets, and curriculum guides in ATLAS.{% endblock %}
 {% block breadcrumb %}Library{% endblock %}
 
 {% block dashboard_content %}
@@ -21,7 +22,7 @@
         </div>
       </div>
       {% if request.user.is_staff %}
-        <a class="btn-add-item" href="{{ staff_item_create_url|default:'#' }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
       {% endif %}
     </header>
 
@@ -29,7 +30,7 @@
       <section class="catalog-announcement-strip" aria-labelledby="catalogAnnouncementsHeading">
         <div class="catalog-section-heading">
           <h2 id="catalogAnnouncementsHeading"><i class="fas fa-bullhorn" aria-hidden="true"></i> Latest announcements</h2>
-          <a href="{{ announcements_url|default:'#' }}">View all</a>
+          <a href="{{ announcements_url }}">View all</a>
         </div>
         <div class="catalog-announcement-grid">
           {% for announcement in recent_announcements %}
@@ -45,17 +46,17 @@
     {% if active_role == "guest" %}
       <div class="guest-banner" role="note">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <p>You are browsing as a guest. You can read protected resources in ATLAS. <a class="login-prompt" href="{{ login_url|default:'/login/' }}">Sign in</a> as a student or teacher to use bookmarks.</p>
+        <p>You are browsing as a guest. You can read protected resources in ATLAS. <a class="login-prompt" href="{{ login_url }}">Sign in</a> as a student or teacher to use bookmarks.</p>
       </div>
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
         <i class="fas fa-eye" aria-hidden="true"></i>
         <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — protected reading and bookmarks</span>
-        <a href="{{ bookmarks_url|default:'#' }}">View bookmarks</a>
+        <a href="{{ bookmarks_url }}">View bookmarks</a>
       </div>
     {% endif %}
 
-    <form class="library-filters" action="{{ catalog_url|default:'' }}" method="get" role="search" data-auto-submit>
+    <form class="library-filters" action="{{ catalog_url }}" method="get" role="search" data-auto-submit>
       <div class="filter-group">
         <label for="collectionFilter">Collection type</label>
         <select id="collectionFilter" name="collection" class="form-select">
@@ -78,7 +79,7 @@
           <option value="published_oldest" {% if selected_sort == 'published_oldest' or selected_sort == 'oldest' %}selected{% endif %}>Published oldest–newest</option>
         </select>
       </div>
-      <div class="filter-actions"><a class="btn-filter btn-filter-outline" href="{{ catalog_url|default:'#' }}"><i class="fas fa-undo" aria-hidden="true"></i> Clear</a></div>
+      {% if query or selected_collection or selected_sort != 'title' %}<div class="filter-actions"><a class="btn-filter btn-filter-outline" href="{{ catalog_url }}"><i class="fas fa-undo" aria-hidden="true"></i> Clear filters</a></div>{% endif %}
     </form>
 
     {% if items %}
@@ -97,7 +98,7 @@
             </div>
             {% if item.cover_image %}
               <a class="catalog-cover-link" href="{{ item_detail_url }}" aria-label="View details for {{ item.title }}">
-                <img class="catalog-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" loading="lazy">
+                <img class="catalog-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" width="320" height="416" loading="lazy" decoding="async">
               </a>
             {% else %}
               <div class="catalog-cover-placeholder" aria-label="No cover image available">
@@ -117,9 +118,9 @@
               <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
               {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
               {% if active_role == "student" or active_role == "teacher" %}
-                <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form">
+                <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
                   {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit"><i class="fas fa-bookmark" aria-hidden="true"></i> {% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</button>
+                  <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit" aria-pressed="{% if item.pk in favorite_ids %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Bookmarked" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</span></button>
                 </form>
               {% elif request.user.is_staff %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
@@ -130,7 +131,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <div class="empty-state"><i class="fas fa-search" aria-hidden="true"></i><h2>No resources found</h2><p>Try a different search or collection filter.</p><a class="btn btn-outline-secondary rounded-pill" href="{{ catalog_url|default:'#' }}">Clear filters</a></div>
+      <div class="empty-state"><i class="fas fa-search" aria-hidden="true"></i><h2>No resources found</h2><p>Try a different search or collection filter.</p><a class="btn btn-outline-secondary rounded-pill" href="{{ catalog_url }}">Clear filters</a></div>
     {% endif %}
   </div>
 {% endblock %}

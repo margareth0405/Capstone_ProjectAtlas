@@ -1,24 +1,26 @@
 {% extends "library/base.html" %}
 
-{% block title %}ATLAS · Sign in{% endblock %}
+{% block title %}Sign In | ATLAS{% endblock %}
+{% block meta_description %}Sign in securely to your ATLAS student or teacher account.{% endblock %}
 {% block body_class %}atlas-auth-page{% endblock %}
 
 {% block body %}
   {% url 'library:landing' as landing_url %}
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
+  {% url 'library:privacy_terms' as privacy_terms_url %}
   {% url 'account_reset_password' as reset_password_url %}
   {% with auth_role=selected_role|default:'student' %}
 
   <main class="login-container" id="mainContent" tabindex="-1">
     <section class="login-card" aria-labelledby="loginTitle">
-      <a class="btn-back" href="{{ landing_url|default:'/' }}">
+      <a class="btn-back" href="{{ landing_url }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
       </a>
 
-      <div class="brand-icon reader-icon" aria-hidden="true">
-        <i class="fas fa-user-graduate"></i>
-      </div>
+      <a class="brand-icon reader-icon brand-home-link" href="{{ landing_url }}" aria-label="ATLAS home">
+        <i class="fas fa-user-graduate" aria-hidden="true"></i>
+      </a>
 
       <nav class="auth-role-switch" aria-label="Choose account type">
         <a class="{% if auth_role == 'student' %}active{% endif %}" href="{{ login_url }}?role=student{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-user-graduate" aria-hidden="true"></i> Student</a>
@@ -32,7 +34,7 @@
       </h1>
       <p class="sub">Access your ATLAS reading dashboard</p>
 
-      <form action="{{ login_url|default:'' }}" method="post" novalidate>
+      <form action="{{ login_url }}" method="post" novalidate>
         {% csrf_token %}
         <input type="hidden" name="role" value="{{ auth_role }}">
         {% include "library/includes/form_errors.html" with form=form %}
@@ -45,7 +47,7 @@
             id="id_email"
             class="form-control{% if form.email.errors %} is-invalid{% endif %}"
             value="{{ form.email.value|default_if_none:'' }}"
-            placeholder="{% if auth_role == 'teacher' %}teacher@deped.gov.ph{% else %}student@gmail.com{% endif %}"
+            placeholder="Enter your school email address"
             autocomplete="email"
             aria-describedby="{% if form.email.errors %}emailErrors{% endif %}"
             required
@@ -66,7 +68,7 @@
               name="password"
               id="id_password"
               class="form-control{% if form.password.errors %} is-invalid{% endif %}"
-              placeholder="Password"
+              placeholder="Enter your password"
               autocomplete="current-password"
               aria-describedby="{% if form.password.errors %}passwordErrors{% endif %}"
               required
@@ -93,7 +95,7 @@
             required
           >
           <label for="id_privacy_consent">
-            I agree to keep the information I access through ATLAS private. I understand that the personal information I provide will be used only for this website.
+            I agree to keep the information I access through ATLAS private and accept the <a href="{{ privacy_terms_url }}" target="_blank" rel="noopener">Privacy Policy and Terms &amp; Conditions</a>.
           </label>
         </div>
         {% if form.privacy_consent.errors %}
@@ -114,7 +116,7 @@
       </p>
       <p class="auth-switch">
         New student or teacher?
-        <a href="{{ register_url|default:'/register/' }}?role={{ auth_role }}">Create an account</a>
+        <a href="{{ register_url }}?role={{ auth_role }}">Create an account</a>
       </p>
 
       {% if demo_credentials %}<p class="demo-hint">{{ demo_credentials }}</p>{% endif %}

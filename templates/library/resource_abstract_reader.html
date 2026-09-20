@@ -1,6 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}{{ reader_heading|default:'Read document' }} - {{ item.title }} - ATLAS{% endblock %}
+{% block title %}{{ reader_heading|default:'Read document' }}: {{ item.title }} | ATLAS{% endblock %}
+{% block meta_description %}Read the protected resource abstract for {{ item.title }} inside ATLAS.{% endblock %}
 {% block breadcrumb %}{{ reader_heading|default:'Protected document reader' }}{% endblock %}
 
 {% block dashboard_content %}

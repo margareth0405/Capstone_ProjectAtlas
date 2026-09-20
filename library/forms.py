@@ -1,10 +1,15 @@
 from datetime import date
+from io import BytesIO
 from pathlib import Path
+import re
+
 from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.contrib.auth.forms import UserCreationForm
+from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .models import Announcement, ContactMessage, LibraryItem, Profile
 
@@ -30,8 +35,20 @@ class StyledFormMixin:
 class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
     """Shared account validation and persistence for reader account forms."""
 
-    full_name = forms.CharField(max_length=150)
-    email = forms.EmailField()
+    full_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={"placeholder": "Enter your full name", "autocomplete": "name"}
+        ),
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "placeholder": "Enter your school email address",
+                "autocomplete": "email",
+            }
+        )
+    )
     role = forms.ChoiceField(choices=Profile.Role.choices)
 
     class Meta(UserCreationForm.Meta):
@@ -64,6 +81,7 @@ class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
 
 
 class RegistrationForm(BaseAccountCreationForm):
+    website = forms.CharField(required=False, widget=forms.HiddenInput)
     privacy_consent = forms.BooleanField(
         required=True,
         label="I agree to the privacy and confidentiality statement.",
@@ -83,10 +101,27 @@ class RegistrationForm(BaseAccountCreationForm):
         )
         return defaults
 
+    def clean_website(self):
+        if self.cleaned_data.get("website"):
+            raise ValidationError("Invalid submission.")
+        return ""
+
 
 class RoleLoginForm(StyledFormMixin, forms.Form):
-    email = forms.EmailField()
-    password = forms.CharField(strip=False, widget=forms.PasswordInput)
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "placeholder": "Enter your school email address",
+                "autocomplete": "email",
+            }
+        )
+    )
+    password = forms.CharField(
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"placeholder": "Enter your password", "autocomplete": "current-password"}
+        ),
+    )
     role = forms.ChoiceField(choices=Profile.Role.choices)
     privacy_consent = forms.BooleanField(required=True)
 
@@ -122,6 +157,8 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
 
     maximum_cover_size = 5 * 1024 * 1024
     maximum_document_size = 10 * 1024 * 1024
+    maximum_cover_pixels = 20_000_000
+    maximum_cover_dimensions = (1200, 1800)
     supported_cover_extensions = {".jpg", ".jpeg", ".png", ".webp"}
     supported_document_extensions = {".pdf", ".docx"}
 
@@ -153,11 +190,23 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             "pages",
         )
         widgets = {
+            "call_number": forms.TextInput(
+                attrs={"placeholder": "Example: QA76.73-T001"}
+            ),
+            "title": forms.TextInput(
+                attrs={"placeholder": "Enter the complete resource title"}
+            ),
+            "author": forms.TextInput(
+                attrs={"placeholder": "Enter the author or organization"}
+            ),
             "details": forms.Textarea(
                 attrs={
                     "rows": 5,
-                    "placeholder": "Description or abstract can be entered here.",
+                    "placeholder": "Summarize what readers will learn from this resource.",
                 }
+            ),
+            "pages": forms.NumberInput(
+                attrs={"placeholder": "Example: 120", "min": "0", "inputmode": "numeric"}
             ),
             "file_type": forms.RadioSelect,
             "cover_image": forms.ClearableFileInput(
@@ -183,6 +232,9 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["file_type"].widget.attrs["class"] = "resource-format-toggle"
+        self.fields["publication_day"].widget.attrs.update(
+            {"placeholder": "Example: 15", "inputmode": "numeric"}
+        )
         self.fields["resource_abstract"].required = not bool(
             self.instance.pk and self.instance.resource_abstract
         )
@@ -225,7 +277,34 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             raise ValidationError("Upload a JPG, PNG, or WebP cover image.")
         if cover.size > self.maximum_cover_size:
             raise ValidationError("The cover image must be 5 MB or smaller.")
-        return cover
+        try:
+            cover.seek(0)
+            with Image.open(cover) as source:
+                if source.width * source.height > self.maximum_cover_pixels:
+                    raise ValidationError(
+                        "The cover image dimensions are too large."
+                    )
+                image = ImageOps.exif_transpose(source)
+                image.thumbnail(self.maximum_cover_dimensions, Image.Resampling.LANCZOS)
+                if image.mode not in {"RGB", "RGBA"}:
+                    image = image.convert("RGBA" if "transparency" in image.info else "RGB")
+                output = BytesIO()
+                image.save(output, format="WEBP", quality=82, method=6)
+        except ValidationError:
+            raise
+        except (
+            Image.DecompressionBombError,
+            OSError,
+            UnidentifiedImageError,
+            ValueError,
+        ) as exc:
+            raise ValidationError("Upload a valid JPG, PNG, or WebP cover image.") from exc
+        optimized = ContentFile(
+            output.getvalue(),
+            name=f"{Path(cover.name).stem}.webp",
+        )
+        optimized.content_type = "image/webp"
+        return optimized
 
     def clean_resource_abstract(self):
         resource_abstract = self.cleaned_data.get("resource_abstract")
@@ -259,7 +338,15 @@ class AnnouncementForm(StyledFormMixin, forms.ModelForm):
             "category",
         )
         widgets = {
-            "body": forms.Textarea(attrs={"rows": 6}),
+            "title": forms.TextInput(
+                attrs={"placeholder": "Enter a short, specific announcement title"}
+            ),
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 6,
+                    "placeholder": "Write the complete update readers need to know.",
+                }
+            ),
         }
 
 
@@ -325,9 +412,34 @@ class ContactForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = ContactMessage
         fields = ("name", "email", "subject", "message")
-        widgets = {"message": forms.Textarea(attrs={"rows": 6})}
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"placeholder": "Enter your full name", "autocomplete": "name"}
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "placeholder": "Enter the email where we can reply",
+                    "autocomplete": "email",
+                }
+            ),
+            "subject": forms.TextInput(
+                attrs={"placeholder": "Briefly describe what you need help with"}
+            ),
+            "message": forms.Textarea(
+                attrs={
+                    "rows": 6,
+                    "placeholder": "Describe the issue, page, and steps that led to it. Do not include passwords.",
+                }
+            ),
+        }
 
     def clean_website(self):
         if self.cleaned_data.get("website"):
             raise ValidationError("Invalid submission.")
         return ""
+
+    def clean_message(self):
+        message = self.cleaned_data["message"].strip()
+        if len(re.findall(r"(?:https?://|www\.)", message, flags=re.IGNORECASE)) > 3:
+            raise ValidationError("Please remove excessive links and try again.")
+        return message

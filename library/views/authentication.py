@@ -74,6 +74,11 @@ class RegisterView(RoleSelectionMixin, View):
                 email_verification=allauth_account_settings.EMAIL_VERIFICATION,
                 success_url=reverse("library:dashboard"),
             )
+        if request.method == "POST":
+            messages.error(
+                request,
+                "Registration was not completed. Review the highlighted fields.",
+            )
         return render(
             request,
             self.template_name,
@@ -124,6 +129,11 @@ class LoginView(RoleSelectionMixin, View):
                 ),
                 email=user.email,
             )
+        if request.method == "POST":
+            messages.error(
+                request,
+                "Sign-in was not completed. Review your details and try again.",
+            )
         return render(
             request,
             self.template_name,
@@ -141,6 +151,7 @@ class GuestLoginView(View):
         if request.user.is_authenticated:
             auth_logout(request)
         request.session["guest_mode"] = True
+        messages.success(request, "Guest access is ready. Welcome to ATLAS.")
         return redirect("library:dashboard")
 
 

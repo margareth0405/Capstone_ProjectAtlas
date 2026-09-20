@@ -3,6 +3,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
@@ -14,6 +15,10 @@ TEST_PASSWORD = "Atlas-Test-Pass-2026!"
 
 class LibraryTestCase(TestCase):
     """Create users through Django's authentication API in every test."""
+
+    def tearDown(self):
+        cache.clear()
+        super().tearDown()
 
     def create_user(
         self,

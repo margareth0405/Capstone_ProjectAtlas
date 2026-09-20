@@ -7,7 +7,9 @@ app_name = 'library'
 
 urlpatterns = [
     path("robots.txt", views.RobotsView.as_view(), name="robots_txt"),
+    path("sitemap.xml", views.SitemapView.as_view(), name="sitemap"),
     path("", views.LandingView.as_view(), name="landing"),
+    path("privacy-and-terms/", views.PrivacyTermsView.as_view(), name="privacy_terms"),
     path("register/", views.RegisterView.as_view(), name="register"),
     path("login/", views.LoginView.as_view(), name="login"),
     path("guest/", views.GuestLoginView.as_view(), name="guest_login"),

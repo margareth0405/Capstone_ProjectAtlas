@@ -75,6 +75,13 @@ account type, account order, and usage date filters submit automatically when a
 selection changes. Search fields submit 450 milliseconds after typing stops.
 The Clear or Reset link removes the active filters; there is no Apply button.
 
+File controls show the selected or dropped filename and size. The resource and
+Vanguard analysis forms display real browser upload progress followed by a
+separate server-processing state. Page navigation uses a responsive skeleton
+loader, while bookmarks update optimistically and roll back automatically if
+the server rejects the request. All three behaviors retain normal non-JavaScript
+form and navigation fallbacks.
+
 The administrator account table displays each account's creation date and can
 sort newest-to-oldest or oldest-to-newest. Administrators can create student or
 teacher accounts from the portal. Additional administrator accounts must be
@@ -217,10 +224,11 @@ settings use the standard resumable HTTP downloader on Windows and suppress the
 non-fatal symlink-cache warning; operators can explicitly set
 `HF_HUB_DISABLE_XET=0` after confirming Xet works on their network.
 
-## Contact email delivery
+## Contact details and email delivery
 
-The public Contact page lists email only; it does not display a phone number.
-Contact submissions are addressed to atlastshs@gmail.com. Each message
+The public Contact page and site footer use the configured support email and
+optionally show a click-to-call phone number. Contact submissions are addressed
+to atlastshs@gmail.com. Each message
 contains the visitor's name, submitted email, authenticated account email when
 available, subject, and message. Reply-To is set to the visitor's submitted
 email.
@@ -232,6 +240,7 @@ of delivering them:
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 SUPPORT_EMAIL=atlastshs@gmail.com
 SUPPORT_HOURS=Monday–Friday, 8:00 AM–5:00 PM
+SUPPORT_PHONE=+63 912 345 6789
 ```
 
 For real Gmail delivery, create a Google App Password and use:
@@ -240,6 +249,7 @@ For real Gmail delivery, create a Google App Password and use:
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 DEFAULT_FROM_EMAIL=ATLAS <atlastshs@gmail.com>
 SUPPORT_EMAIL=atlastshs@gmail.com
+SUPPORT_PHONE=+63 912 345 6789
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
@@ -293,7 +303,8 @@ ATLAS follows Django's OOP conventions:
 - Forms encapsulate input validation and safe persistence.
 - Class-based views coordinate HTTP requests and responses.
 - Mixins provide shared page context and staff authorization.
-- Service classes own reusable business logic and queries.
+- Service and presenter classes own reusable business logic, queries, and
+  display-safe configuration formatting.
 - Middleware delegates session tracking to a service object.
 - Views use replaceable service-class attributes for testability.
 
@@ -314,7 +325,8 @@ library/
 |   |-- ai_detection.py                 AIDetectionService and detector adapters
 |   |-- catalog.py                      CatalogQueryService
 |   |-- contact.py                      ContactEmailService
-|   |-- context.py                      GreetingNameResolver and PageContextBuilder
+|   |-- context.py                      GreetingNameResolver, PageContextBuilder,
+|   |                                    and SupportContactPresenter
 |   |-- documents.py                    DocumentTextExtractor
 |   |-- navigation.py                   SafeRedirectService
 |   |-- staff_portal.py                 StaffUserDirectory, UsageAnalytics,
@@ -443,6 +455,20 @@ package named docx; the correct dependency is python-docx.
 
 ## Production checklist
 
+ATLAS includes a public Privacy Policy and Terms page, consent-gated optional
+usage analytics, `robots.txt`, an HTTPS sitemap, themed HTTP error pages, GZip
+responses, and automatic WebP optimization for new cover uploads. Essential
+session and CSRF cookies remain available when a visitor declines optional
+analytics.
+
+Fixed-window rate limits protect general traffic, sign-in, registration,
+contact, password-reset/email actions, and AI Detection. The included Procfile
+uses one worker, so Django's default in-memory cache applies these limits
+consistently. A deployment with multiple workers or application instances must
+configure a shared atomic cache (for example Redis); otherwise each instance
+maintains a separate counter. Set `RATE_LIMIT_TRUST_PROXY=True` only when the
+application is behind a trusted proxy that replaces `X-Forwarded-For`.
+
 Linux deployment platforms can start ATLAS with the included `Procfile`. It
 uses one Gunicorn worker with four threads so the lazily loaded detector weights
 are held once per application instance instead of being duplicated across
@@ -475,6 +501,8 @@ SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=True
 SECURE_HSTS_PRELOAD=True
 DB_SSL_REQUIRE=True
+RATE_LIMIT_ENABLED=True
+RATE_LIMIT_TRUST_PROXY=True
 ```
 
 Also:
@@ -486,6 +514,10 @@ Also:
 - Run migrations and collectstatic.
 - Replace demonstration passwords.
 - Keep DJANGO_ADMIN_PATH private.
+- Confirm `/robots.txt`, `/sitemap.xml`, and `/privacy-and-terms/` use the final
+  production hostname.
+- Have the responsible institution review the policy wording and retention
+  practices before public launch.
 - Enable HSTS and HSTS preload only after HTTPS works correctly for the main
   domain and every subdomain; browser preload enrollment is difficult to undo.
 

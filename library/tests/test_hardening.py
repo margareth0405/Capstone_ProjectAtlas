@@ -1,0 +1,195 @@
+"""Security, privacy, performance, and public-error regression coverage."""
+
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.core import mail
+from django.test import RequestFactory, override_settings
+from django.urls import reverse
+
+from library.models import ContactMessage, WebsiteVisit
+from library.tests.base import LibraryTestCase
+from library.views import errors
+
+
+class PublicPolicyAndDiscoveryTests(LibraryTestCase):
+    def test_privacy_terms_and_cookie_controls_are_public(self):
+        response = self.client.get(reverse("library:privacy_terms"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Privacy Policy and Terms &amp; Conditions")
+        self.assertContains(response, "Change cookie preferences")
+
+        landing = self.client.get(reverse("library:landing"))
+        self.assertContains(landing, 'id="cookieConsent"')
+        self.assertContains(landing, 'data-cookie-choice="essential"')
+        self.assertContains(landing, 'data-cookie-choice="analytics"')
+        self.assertContains(landing, 'id="pageLoader"')
+        self.assertContains(landing, 'id="optimisticStatus"')
+
+    def test_robots_links_sitemap_without_disclosing_admin_path(self):
+        response = self.client.get(reverse("library:robots_txt"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sitemap: http://testserver/sitemap.xml")
+        self.assertContains(response, "Disallow: /staff/")
+        self.assertNotContains(response, reverse("admin:index"))
+
+    def test_sitemap_lists_public_pages_and_resources_with_https_urls(self):
+        item = self.create_item()
+
+        response = self.client.get(reverse("library:sitemap"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "https://testserver/privacy-and-terms/")
+        self.assertContains(
+            response,
+            f"https://testserver{reverse('library:item_detail', args=(item.pk,))}",
+        )
+        self.assertNotContains(response, "/staff/")
+
+    def test_public_markup_has_mobile_and_performance_basics(self):
+        landing = self.client.get(reverse("library:landing"))
+
+        self.assertContains(
+            landing,
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            html=True,
+        )
+        self.assertNotContains(landing, "fonts.googleapis.com")
+
+        self.client.post(reverse("library:guest_login"))
+        dashboard = self.client.get(reverse("library:dashboard"))
+        self.assertContains(dashboard, 'id="mobileToggle"')
+        self.assertContains(dashboard, 'aria-controls="sidebar"')
+
+
+class ErrorPageTests(LibraryTestCase):
+    def test_missing_page_uses_themed_404(self):
+        with self.settings(DEBUG=False):
+            response = self.client.get("/this-page-does-not-exist/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "errors/404.html")
+        self.assertContains(response, "This page could not be found", status_code=404)
+
+    def test_all_direct_error_handlers_render_without_database_content(self):
+        request = RequestFactory().get("/broken/")
+        request.user = AnonymousUser()
+        cases = (
+            (errors.bad_request, 400),
+            (errors.permission_denied, 403),
+            (errors.page_not_found, 404),
+            (errors.server_error, 500),
+        )
+
+        for handler, expected_status in cases:
+            with self.subTest(status=expected_status):
+                response = handler(request)
+                self.assertEqual(response.status_code, expected_status)
+                self.assertIn(str(expected_status).encode(), response.content)
+
+    def test_csrf_failure_has_actionable_message(self):
+        request = RequestFactory().post("/contact/")
+        request.user = AnonymousUser()
+
+        response = errors.csrf_failure(request, "test")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(b"Refresh the previous page", response.content)
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    RATE_LIMIT_ENABLED=True,
+    RATE_LIMIT_LOGIN_REQUESTS=2,
+    RATE_LIMIT_LOGIN_WINDOW=300,
+    RATE_LIMIT_GLOBAL_REQUESTS=100,
+)
+class AbuseProtectionTests(LibraryTestCase):
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_repeated_login_posts_receive_themed_429(self):
+        url = reverse("library:login")
+        payload = {
+            "email": "unknown@example.com",
+            "password": "incorrect",
+            "role": "student",
+            "privacy_consent": "on",
+        }
+
+        self.assertEqual(self.client.post(url, payload).status_code, 200)
+        self.assertEqual(self.client.post(url, payload).status_code, 200)
+        response = self.client.post(url, payload)
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response["Retry-After"], "300")
+        self.assertContains(response, "Please slow down", status_code=429)
+
+    def test_registration_honeypot_rejects_bot_submission(self):
+        payload = {
+            "full_name": "Spam Bot",
+            "email": "spam@example.com",
+            "role": "student",
+            "password1": "Atlas-Test-Pass-2026!",
+            "password2": "Atlas-Test-Pass-2026!",
+            "privacy_consent": "on",
+            "website": "https://spam.invalid",
+        }
+
+        response = self.client.post(reverse("library:register"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Invalid submission")
+
+    def test_contact_form_rejects_link_spam(self):
+        payload = {
+            "name": "Link Spammer",
+            "email": "spam@example.com",
+            "subject": "Links",
+            "message": " ".join(
+                f"https://spam{index}.invalid" for index in range(4)
+            ),
+        }
+
+        response = self.client.post(reverse("library:contact"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please remove excessive links")
+        self.assertEqual(ContactMessage.objects.count(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class TransportAndCompressionTests(LibraryTestCase):
+    @override_settings(DEBUG=False, SECURE_SSL_REDIRECT=True)
+    def test_http_is_redirected_to_https(self):
+        response = self.client.get(reverse("library:landing"))
+
+        self.assertEqual(response.status_code, 301)
+        self.assertTrue(response["Location"].startswith("https://"))
+
+    def test_large_html_responses_are_gzipped_when_supported(self):
+        response = self.client.get(
+            reverse("library:privacy_terms"),
+            HTTP_ACCEPT_ENCODING="gzip",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Encoding"], "gzip")
+
+
+class AnalyticsConsentTests(LibraryTestCase):
+    def test_server_ignores_usage_events_without_analytics_consent(self):
+        user = self.create_user(email="privacy-choice@example.com")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": "/dashboard/"},
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())

@@ -103,6 +103,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
             email="usage-staff@example.com", is_staff=True
         )
         self.client.force_login(self.staff)
+        self.client.cookies["atlas_cookie_consent"] = "analytics"
 
     def test_historical_usage_date_excludes_todays_visits(self):
         historical_date = timezone.localdate() - timedelta(days=7)
@@ -292,6 +293,8 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, "PDF")
         self.assertContains(page_response, "Word (.docx)")
         self.assertContains(page_response, 'enctype="multipart/form-data"')
+        self.assertContains(page_response, "data-async-upload")
+        self.assertContains(page_response, "Vanguard is analyzing")
         self.assertContains(page_response, 'class="ai-input-grid"')
         self.assertContains(page_response, 'class="staff-panel ai-detection-form-card"')
         self.assertContains(page_response, 'class="staff-panel ai-detection-result-card"')

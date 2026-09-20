@@ -28,24 +28,29 @@
 
   <div class="d-flex atlas-shell"{% if request.user.is_authenticated or request.session.guest_mode %} data-usage-heartbeat-url="{{ usage_heartbeat_url }}" data-usage-csrf-token="{{ csrf_token }}"{% endif %}>
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <a
-        class="sidebar-brand"
-        href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url|default:dashboard_url|default:'/' }}{% else %}{{ dashboard_url|default:'/' }}{% endif %}"
-        aria-label="ATLAS dashboard"
-      >
-        <i class="fas fa-flask" aria-hidden="true"></i>
-        <span class="brand-text">ATLAS <span>e-Library</span></span>
-      </a>
+      <div class="sidebar-header">
+        <a
+          class="sidebar-brand"
+          href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url }}{% else %}{{ dashboard_url }}{% endif %}"
+          aria-label="ATLAS dashboard"
+        >
+          <i class="fas fa-flask" aria-hidden="true"></i>
+          <span class="brand-text">ATLAS <span>e-Library</span></span>
+        </a>
+        <button class="sidebar-close" id="mobileMenuClose" type="button" aria-label="Close navigation menu">
+          <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
 
       <nav class="sidebar-nav">
         <a
-          href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url|default:dashboard_url|default:'/' }}{% else %}{{ dashboard_url|default:'/' }}{% endif %}"
+          href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url }}{% else %}{{ dashboard_url }}{% endif %}"
           {% if active_page == 'home' %}class="active" aria-current="page"{% endif %}
         >
           <i class="fas fa-home" aria-hidden="true"></i> HOME
         </a>
         <a
-          href="{{ catalog_url|default:'#' }}"
+          href="{{ catalog_url }}"
           {% if active_page == 'catalog' %}class="active" aria-current="page"{% endif %}
         >
           <i class="fas fa-book" aria-hidden="true"></i> LIBRARY
@@ -54,19 +59,19 @@
 
         {% if active_role == "student" or active_role == "teacher" %}
           <a
-            href="{{ favorites_url|default:'#' }}"
+            href="{{ favorites_url }}"
             {% if active_page == 'favorites' %}class="active" aria-current="page"{% endif %}
           >
             <i class="fas fa-bookmark" aria-hidden="true"></i> BOOKMARKS
             {% if favorite_count is not None %}
-              <span class="item-counter">{{ favorite_count }}</span>
+              <span class="item-counter" data-favorite-count>{{ favorite_count }}</span>
             {% endif %}
           </a>
         {% endif %}
 
         {% if active_role == "administrator" or request.user.is_staff %}
           <a
-            href="{{ staff_portal_url|default:'#' }}#users"
+            href="{{ staff_portal_url }}#users"
             {% if active_page == 'users' %}class="active" aria-current="page"{% endif %}
           >
             <i class="fas fa-users" aria-hidden="true"></i> USERS
@@ -78,20 +83,20 @@
 
         {% if active_role == "administrator" or request.user.is_staff %}
           <a
-            href="{{ staff_ai_detection_url|default:'#' }}"
+            href="{{ staff_ai_detection_url }}"
             {% if active_page == 'ai_detection' %}class="active" aria-current="page"{% endif %}
           >
             <i class="fas fa-robot" aria-hidden="true"></i> AI DETECTION
           </a>
         {% endif %}
         <a
-          href="{{ announcements_url|default:'#' }}"
+          href="{{ announcements_url }}"
           {% if active_page == 'announcements' %}class="active" aria-current="page"{% endif %}
         >
           <i class="fas fa-bullhorn" aria-hidden="true"></i> ANNOUNCEMENTS
         </a>
         <a
-          href="{{ contact_url|default:'#' }}"
+          href="{{ contact_url }}"
           {% if active_page == 'contact' %}class="active" aria-current="page"{% endif %}
         >
           <i class="fas fa-envelope" aria-hidden="true"></i> CONTACT
@@ -114,6 +119,7 @@
           type="button"
           aria-controls="sidebar"
           aria-expanded="false"
+          aria-label="Open navigation menu"
         >
           <i class="fas fa-bars" aria-hidden="true"></i>
           <span>MENU</span>
@@ -150,7 +156,7 @@
                 Account
               </a>
             {% endif %}
-            <form action="{{ logout_url|default:landing_url|default:'/' }}" method="post" class="logout-form">
+            <form action="{{ logout_url }}" method="post" class="logout-form">
               {% csrf_token %}
               <button class="btn btn-sm btn-outline-danger" type="submit">
                 <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
@@ -158,7 +164,7 @@
               </button>
             </form>
           {% else %}
-            <a class="btn btn-sm btn-outline-danger" href="{{ login_url|default:'/' }}">Sign in</a>
+            <a class="btn btn-sm btn-outline-danger" href="{{ login_url }}">Sign in</a>
           {% endif %}
         </div>
       </header>
@@ -167,7 +173,7 @@
         <nav aria-label="Breadcrumb">
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
-              <a href="{{ dashboard_url|default:'/' }}">Home</a>
+              <a href="{{ dashboard_url }}">Home</a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
               {% block breadcrumb %}Dashboard{% endblock %}

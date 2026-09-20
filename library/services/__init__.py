@@ -9,7 +9,7 @@ from .ai_detection import (
 )
 from .catalog import CatalogQueryService
 from .contact import ContactDeliveryError, ContactEmailService
-from .context import GreetingNameResolver, PageContextBuilder
+from .context import GreetingNameResolver, PageContextBuilder, SupportContactPresenter
 from .documents import DocumentExtractionError, DocumentTextExtractor
 from .navigation import SafeRedirectService
 from .staff_portal import (
@@ -28,6 +28,7 @@ __all__ = (
     "DocumentTextExtractor",
     "GreetingNameResolver",
     "PageContextBuilder",
+    "SupportContactPresenter",
     "SafeRedirectService",
     "StaffPortalContextService",
     "StaffUserDirectory",

@@ -1,6 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}ATLAS · Contact{% endblock %}
+{% block title %}Contact Library Support | ATLAS{% endblock %}
+{% block meta_description %}Contact the ATLAS library team for account, resource, or website support.{% endblock %}
 {% block breadcrumb %}Contact Us{% endblock %}
 
 {% block dashboard_content %}
@@ -23,6 +24,13 @@
         <h2>Support hours</h2>
         <p>{{ support_hours|default:'Monday–Friday, 8:00 AM–5:00 PM' }}</p>
       </article>
+      {% if support_phone %}
+        <article class="contact-method-card">
+          <i class="fas fa-phone" aria-hidden="true"></i>
+          <h2>Phone</h2>
+          <a href="{{ support_phone_uri }}">{{ support_phone }}</a>
+        </article>
+      {% endif %}
     </section>
 
     <section class="contact-form-card" aria-labelledby="contactFormHeading">
@@ -34,27 +42,26 @@
 
       <form action="{{ contact_url|default:'' }}" method="post" novalidate>
         {% csrf_token %}
-        {{ form.website }}
         {% include "library/includes/form_errors.html" with form=form %}
         <div class="contact-form-grid">
           <div class="form-group">
             <label for="id_name">Name</label>
-            <input type="text" name="name" id="id_name" class="form-control{% if form.name.errors %} is-invalid{% endif %}" value="{{ form.name.value|default:contact_name|default_if_none:'' }}" autocomplete="name" required>
+            <input type="text" name="name" id="id_name" class="form-control{% if form.name.errors %} is-invalid{% endif %}" value="{{ form.name.value|default:contact_name|default_if_none:'' }}" placeholder="Enter your full name" autocomplete="name" required>
             {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group">
             <label for="id_contact_email">Email</label>
-            <input type="email" name="email" id="id_contact_email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" value="{{ form.email.value|default:contact_email|default_if_none:'' }}" autocomplete="email" required>
+            <input type="email" name="email" id="id_contact_email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" value="{{ form.email.value|default:contact_email|default_if_none:'' }}" placeholder="Enter the email where we can reply" autocomplete="email" required>
             {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group contact-subject-field">
             <label for="id_subject">Subject</label>
-            <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" required>
+            <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" placeholder="Briefly describe what you need help with" required>
             {% if form.subject.errors %}<div class="invalid-feedback d-block">{% for error in form.subject.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group contact-message-field">
             <label for="id_message">Message</label>
-            <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" required>{{ form.message.value|default_if_none:'' }}</textarea>
+            <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" placeholder="Describe the issue, page, and steps that led to it. Do not include passwords." required>{{ form.message.value|default_if_none:'' }}</textarea>
             {% if form.message.errors %}<div class="invalid-feedback d-block">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         </div>

@@ -1,8 +1,33 @@
 """Build the navigation and summary context used across ATLAS pages."""
 
+import re
+
+from django.conf import settings
 from django.db.models import Count, Sum
 
 from library.models import Favorite, LibraryItem, Profile
+
+
+class SupportContactPresenter:
+    """Normalize configured support details for safe, reusable presentation."""
+
+    def __init__(self, *, email=None, hours=None, phone=None):
+        self.email = settings.SUPPORT_EMAIL if email is None else email
+        self.hours = settings.SUPPORT_HOURS if hours is None else hours
+        configured_phone = getattr(settings, "SUPPORT_PHONE", "")
+        self.phone = (configured_phone if phone is None else phone).strip()
+
+    def build(self):
+        return {
+            "support_email": self.email,
+            "support_hours": self.hours,
+            "support_phone": self.phone,
+            "support_phone_uri": self._phone_uri(),
+        }
+
+    def _phone_uri(self):
+        dialable = re.sub(r"[^\d+]", "", self.phone)
+        return f"tel:{dialable}" if dialable else ""
 
 
 class GreetingNameResolver:

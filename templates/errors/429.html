@@ -1,0 +1,7 @@
+{% extends "errors/base.html" %}
+{% block title %}Too Many Requests | ATLAS{% endblock %}
+{% block error_code %}429{% endblock %}
+{% block error_icon %}fa-hourglass-half{% endblock %}
+{% block error_title %}Please slow down{% endblock %}
+{% block error_message %}ATLAS received too many requests from this connection. Wait a moment before trying again.{% endblock %}
+{% block error_extra %}<p class="error-detail">Retry after approximately {{ retry_after|default:60 }} seconds.</p>{% endblock %}

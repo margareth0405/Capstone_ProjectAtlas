@@ -13,7 +13,9 @@ from .public import (
     AnnouncementsView,
     ContactView,
     DashboardView,
+    PrivacyTermsView,
     RobotsView,
+    SitemapView,
     UsageHeartbeatView,
 )
 from .staff import (

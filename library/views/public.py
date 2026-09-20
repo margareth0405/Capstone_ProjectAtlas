@@ -7,6 +7,9 @@ from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.contrib.sites.requests import RequestSite
+from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
@@ -14,6 +17,7 @@ from django.views.generic import TemplateView
 from library.forms import ContactForm
 from library.models import Announcement, LibraryItem
 from library.services.contact import ContactEmailService
+from library.sitemaps import sitemaps
 
 from .mixins import PageContextMixin
 
@@ -22,9 +26,51 @@ logger = logging.getLogger(__name__)
 
 class RobotsView(View):
     def get(self, request):
+        sitemap_url = request.build_absolute_uri(reverse("library:sitemap"))
         return HttpResponse(
-            "User-agent: *\nDisallow: /staff/\n", content_type="text/plain"
+            "\n".join(
+                (
+                    "User-agent: *",
+                    "Allow: /",
+                    "Disallow: /staff/",
+                    "Disallow: /accounts/",
+                    "Disallow: /login/",
+                    "Disallow: /register/",
+                    "Disallow: /guest/",
+                    "Disallow: /usage/",
+                    f"Sitemap: {sitemap_url}",
+                    "",
+                )
+            ),
+            content_type="text/plain; charset=utf-8",
         )
+
+
+class SitemapView(View):
+    """Generate public URLs from the current host, not a stale Site row."""
+
+    def get(self, request):
+        current_site = RequestSite(request)
+        urls = []
+        for sitemap_class in sitemaps.values():
+            urls.extend(sitemap_class().get_urls(site=current_site))
+        response = TemplateResponse(
+            request,
+            "sitemap.xml",
+            {"urlset": urls},
+            content_type="application/xml",
+        )
+        response["X-Robots-Tag"] = "noindex, noodp, noarchive"
+        return response
+
+
+class PrivacyTermsView(TemplateView):
+    template_name = "library/privacy_terms.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["support_email"] = settings.SUPPORT_EMAIL
+        return context
 
 
 class UsageHeartbeatView(View):
@@ -37,6 +83,9 @@ class UsageHeartbeatView(View):
             request.user.is_authenticated or request.session.get("guest_mode")
         ):
             return HttpResponse(status=403)
+
+        if request.COOKIES.get("atlas_cookie_consent") != "analytics":
+            return HttpResponse(status=204)
 
         event = request.POST.get("event", "")
         if event not in self.allowed_events:
@@ -159,6 +208,10 @@ class ContactView(PageContextMixin, TemplateView):
                     "We could not send your message right now. Please email "
                     f"{settings.SUPPORT_EMAIL} directly.",
                 )
+                messages.error(
+                    request,
+                    "Your message could not be sent. Use the support email shown on this page.",
+                )
             else:
                 contact_message.save()
                 messages.success(
@@ -166,4 +219,9 @@ class ContactView(PageContextMixin, TemplateView):
                     f"Your message has been sent to {settings.SUPPORT_EMAIL}.",
                 )
                 return redirect("library:contact")
+        else:
+            messages.error(
+                request,
+                "Your message was not sent. Review the highlighted fields.",
+            )
         return self.render_to_response(self.get_context_data(form=form))

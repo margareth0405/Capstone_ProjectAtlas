@@ -1,8 +1,18 @@
-{% if form.non_field_errors %}
-  <div class="form-alert" role="alert">
+{% for hidden_field in form.hidden_fields %}{{ hidden_field }}{% endfor %}
+{% if form.errors %}
+  <div class="form-alert form-error-summary" role="alert" tabindex="-1" data-form-error-summary>
     <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
     <div>
-      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      <strong>Please correct the following:</strong>
+      <ul>
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        {% for field in form.visible_fields %}
+          {% for error in field.errors %}<li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>{% endfor %}
+        {% endfor %}
+        {% for hidden_field in form.hidden_fields %}
+          {% for error in hidden_field.errors %}<li>{{ hidden_field.label }}: {{ error }}</li>{% endfor %}
+        {% endfor %}
+      </ul>
     </div>
   </div>
 {% endif %}

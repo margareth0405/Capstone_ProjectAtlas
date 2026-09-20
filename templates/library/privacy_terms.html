@@ -1,0 +1,80 @@
+{% extends "library/base.html" %}
+
+{% block title %}Privacy and Terms | ATLAS{% endblock %}
+{% block meta_description %}Read the ATLAS privacy policy, cookie practices, acceptable-use terms, and AI Detection notice.{% endblock %}
+{% block body_class %}atlas-legal-page{% endblock %}
+{% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+
+{% block body %}
+  {% url 'library:landing' as landing_url %}
+  <main class="legal-page" id="mainContent" tabindex="-1">
+    <a class="btn-back legal-back" href="{{ landing_url }}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to ATLAS
+    </a>
+
+    <header class="legal-hero">
+      <span class="section-kicker">Privacy, cookies, and acceptable use</span>
+      <h1>Privacy Policy and Terms &amp; Conditions</h1>
+      <p>Effective September 20, 2026 · Consent version {{ privacy_consent_version }}</p>
+    </header>
+
+    <div class="legal-layout">
+      <nav class="legal-toc" aria-label="Policy contents">
+        <strong>On this page</strong>
+        <a href="#privacy">Privacy</a>
+        <a href="#cookies">Cookies</a>
+        <a href="#retention">Retention and security</a>
+        <a href="#rights">Your choices</a>
+        <a href="#terms">Terms and conditions</a>
+        <a href="#ai-detection">AI Detection</a>
+      </nav>
+
+      <article class="legal-copy">
+        <section id="privacy">
+          <h2>1. Privacy</h2>
+          <p>ATLAS collects the information needed to operate an academic library account: your name, email address, account role, encrypted password credentials, consent record, bookmarks, and security or activity records associated with your use of the service.</p>
+          <p>We use this information to authenticate users, provide library features, protect the service, respond to support requests, and maintain accountable library operations. We do not sell personal information.</p>
+        </section>
+
+        <section id="cookies">
+          <h2>2. Cookies and website usage</h2>
+          <p>Essential cookies support sign-in, CSRF protection, security, and guest sessions. They are required for ATLAS to work and cannot be disabled through the consent banner.</p>
+          <p>Optional analytics records page views and active-session duration so authorized library staff can understand website usage. Optional analytics starts only after you select “Allow analytics.” You can change that choice at any time.</p>
+          <p>The browser may retrieve Bootstrap and icon files from established content-delivery networks. Those providers receive standard connection information, such as an IP address and user-agent, when serving the files.</p>
+          <button class="btn btn-outline-secondary rounded-pill" type="button" data-cookie-settings>Change cookie preferences</button>
+        </section>
+
+        <section id="retention">
+          <h2>3. Retention and security</h2>
+          <p>Records are retained only as long as needed for library operations, security, institutional requirements, and applicable obligations. ATLAS uses access controls, secure cookies in production, HTTPS, validation, rate limits, and restricted media routes to reduce unauthorized access.</p>
+          <p>Submitted AI Detection text and uploaded analysis documents are processed in memory and are not stored in the analysis record. Scores, model details, reviewer, source label, and analysis date may be retained for reproducibility.</p>
+        </section>
+
+        <section id="rights">
+          <h2>4. Your choices</h2>
+          <p>You may ask the library team to explain, correct, or review personal information associated with your account, subject to institutional retention requirements. Contact <a href="mailto:{{ support_email|default:'atlastshs@gmail.com' }}">{{ support_email|default:'atlastshs@gmail.com' }}</a> for privacy questions.</p>
+        </section>
+
+        <section id="terms">
+          <h2>5. Terms and conditions</h2>
+          <ul>
+            <li>Use ATLAS only for lawful academic, teaching, learning, and library purposes.</li>
+            <li>Keep your account credentials private and do not attempt to access another user’s account.</li>
+            <li>Respect copyright, licensing conditions, confidentiality, and restrictions shown with library resources.</li>
+            <li>Do not upload malware, automate abusive requests, scrape protected materials, spam forms, or interfere with service availability.</li>
+            <li>Access may be limited or suspended when necessary to protect users, content, or the service.</li>
+          </ul>
+        </section>
+
+        <section id="ai-detection">
+          <h2>6. AI Detection</h2>
+          <p>AI Detection produces an automated estimate that can be wrong. It is not proof of authorship and must not be the sole basis for an academic penalty. Authorized reviewers must consider context and other evidence.</p>
+        </section>
+
+        <aside class="legal-review-note" role="note">
+          This policy is an operational template for ATLAS. The responsible institution should review it against its actual practices and applicable requirements before public launch.
+        </aside>
+      </article>
+    </div>
+  </main>
+{% endblock %}

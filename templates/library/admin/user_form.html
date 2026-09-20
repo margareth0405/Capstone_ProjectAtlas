@@ -1,7 +1,8 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
-{% block title %}Create Account · ATLAS{% endblock %}
+{% block title %}Create Account | ATLAS{% endblock %}
+{% block meta_description %}Create an authorized ATLAS student or teacher account.{% endblock %}
 {% block breadcrumb %}Create Account{% endblock %}
 
 {% block dashboard_content %}
@@ -22,7 +23,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ staff_portal_url|default:'#' }}#users">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</button></div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#users">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</button></div>
     </form>
   </div>
 {% endblock %}

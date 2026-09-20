@@ -108,6 +108,8 @@ class StaffCrudTests(LibraryTestCase):
 
         get_response = self.client.get(url)
         self.assertEqual(get_response.status_code, 200)
+        self.assertContains(get_response, "data-async-upload")
+        self.assertContains(get_response, "ATLAS is validating and optimizing")
         self.assertEqual(LibraryItem.objects.count(), 0)
 
         post_response = self.client.post(url, self.item_payload())
@@ -156,7 +158,7 @@ class StaffCrudTests(LibraryTestCase):
 
         self.assertEqual(response.status_code, 302)
         item = LibraryItem.objects.get(call_number="COVER-2026-001")
-        self.assertTrue(item.cover_image.name.endswith(".png"))
+        self.assertTrue(item.cover_image.name.endswith(".webp"))
         self.assertTrue(item.resource_abstract.name.endswith(".pdf"))
 
     def test_resource_abstract_is_required_for_new_resources(self):

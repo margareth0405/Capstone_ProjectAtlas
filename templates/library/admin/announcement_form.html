@@ -1,7 +1,8 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
-{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement · ATLAS{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement | ATLAS{% endblock %}
+{% block meta_description %}Create or update an ATLAS library announcement.{% endblock %}
 {% block breadcrumb %}{% if form.instance.pk %}Edit Announcement{% else %}New Announcement{% endif %}{% endblock %}
 
 {% block dashboard_content %}
@@ -21,7 +22,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ announcements_url|default:'#' }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-bullhorn" aria-hidden="true"></i> Save announcement</button></div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ announcements_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-bullhorn" aria-hidden="true"></i> Save announcement</button></div>
     </form>
   </div>
 {% endblock %}
