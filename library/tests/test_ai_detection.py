@@ -1,37 +1,56 @@
-"""Unit tests for the local RoBERTa AI Detection service."""
+"""Unit tests for the replaceable local AI Detection service."""
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
-from library.services.ai_detection import AIDetectionError, RobertaAIDetector
+from library.services.ai_detection import (
+    AIDetectionError,
+    AIDetectionService,
+    VanguardDetector,
+)
 
 
-class RobertaAIDetectorTests(SimpleTestCase):
+class FakePipeline:
+    def __init__(self, predictions, commit_hash="detector-commit-123"):
+        self.predictions = predictions
+        self.model = SimpleNamespace(
+            config=SimpleNamespace(_commit_hash=commit_hash)
+        )
+
+    def __call__(self, chunks, **kwargs):
+        return self.predictions
+
+
+class VanguardDetectorTests(SimpleTestCase):
     def tearDown(self):
-        RobertaAIDetector._pipeline = None
+        VanguardDetector._pipeline = None
 
     def test_long_text_is_chunked_and_probabilities_are_averaged(self):
-        predictions = [
-            {"label": "Fake", "score": 0.80},
-            {"label": "Real", "score": 0.70},
-        ]
-        fake_pipeline = lambda chunks, **kwargs: predictions
-        detector = RobertaAIDetector()
+        pipeline = FakePipeline(
+            [
+                {"label": "LABEL_0", "score": 0.80},
+                {"label": "LABEL_0", "score": 0.30},
+            ]
+        )
+        detector = VanguardDetector()
 
-        with patch.object(detector, "_get_pipeline", return_value=fake_pipeline):
+        with patch.object(detector, "_get_pipeline", return_value=pipeline):
             result = detector.analyze("word " * 300)
 
         self.assertEqual(result["chunks_analyzed"], 2)
         self.assertEqual(result["ai_probability"], 55.0)
         self.assertEqual(result["human_probability"], 45.0)
         self.assertEqual(result["label"], "Mixed / uncertain")
+        self.assertEqual(result["detector_name"], "Vanguard")
+        self.assertEqual(result["model_version"], "detector-commit-123")
 
-    def test_real_label_is_converted_to_inverse_ai_probability(self):
-        detector = RobertaAIDetector()
-        fake_pipeline = lambda chunks, **kwargs: [{"label": "Real", "score": 0.92}]
+    def test_low_ai_probability_reports_high_human_probability(self):
+        detector = VanguardDetector()
+        pipeline = FakePipeline([{"label": "LABEL_0", "score": 0.08}])
 
-        with patch.object(detector, "_get_pipeline", return_value=fake_pipeline):
+        with patch.object(detector, "_get_pipeline", return_value=pipeline):
             result = detector.analyze("Evidence based writing " * 40)
 
         self.assertEqual(result["ai_probability"], 8.0)
@@ -39,12 +58,45 @@ class RobertaAIDetectorTests(SimpleTestCase):
         self.assertEqual(result["label"], "Low AI likelihood")
 
     def test_unknown_model_label_raises_safe_error(self):
-        detector = RobertaAIDetector()
-        fake_pipeline = lambda chunks, **kwargs: [{"label": "LABEL_0", "score": 0.9}]
+        detector = VanguardDetector()
+        pipeline = FakePipeline([{"label": "unexpected", "score": 0.9}])
 
-        with patch.object(detector, "_get_pipeline", return_value=fake_pipeline):
+        with patch.object(detector, "_get_pipeline", return_value=pipeline):
             with self.assertRaisesMessage(
                 AIDetectionError,
                 "unknown classification",
             ):
                 detector.analyze("A sufficiently long sample " * 30)
+
+
+@override_settings(AI_DETECTION_ENABLE_VALIDATION=False)
+class AIDetectionServiceTests(SimpleTestCase):
+    class StubDetector:
+        def __init__(self, name, probability):
+            self.name = name
+            self.probability = probability
+
+        def analyze(self, text):
+            return {
+                "detector_name": self.name,
+                "ai_probability": self.probability,
+            }
+
+    def test_primary_detector_is_hidden_behind_service(self):
+        primary = self.StubDetector("Primary", 61.0)
+
+        result = AIDetectionService(primary_detector=primary).analyze("sample")
+
+        self.assertEqual(result["detector_name"], "Primary")
+        self.assertNotIn("validation", result)
+
+    def test_optional_validator_uses_the_same_interface(self):
+        primary = self.StubDetector("Primary", 61.0)
+        validator = self.StubDetector("Academic validator", 58.0)
+
+        result = AIDetectionService(
+            primary_detector=primary,
+            validation_detector=validator,
+        ).analyze("sample")
+
+        self.assertEqual(result["validation"]["detector_name"], "Academic validator")

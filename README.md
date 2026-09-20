@@ -46,16 +46,23 @@ saved. Scanned image-only PDFs must go through OCR first.
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The service runs the local
-`openai-community/roberta-base-openai-detector` model through Hugging Face
-Transformers and reports AI likelihood, human likelihood, model confidence,
-and the number of analyzed text sections. Longer submissions are split into
-250-word sections so the analysis is not limited to the beginning.
+The service uses `ShantanuT01/vanguard-ai-text-detector` as its local primary
+detector through Hugging Face Transformers. It reports AI likelihood, human
+likelihood, model confidence, the analyzed text-section count, detector name,
+and the exact cached model revision when available. Longer submissions are
+split into 250-word sections so the analysis is not limited to the beginning.
 
-This model was trained to distinguish English human writing from output
-created by GPT-2. It is not a universal detector for current AI systems, cannot
-prove authorship, and must not be used as the sole basis for an academic
-decision.
+The detector is wrapped by `AIDetectionService`, so the configured model can be
+replaced without changing the view or template. An optional
+`desklib/ai-text-detector-academic-v1.01` validator can provide a second,
+academic-domain estimate. It is disabled by default because enabling both
+models substantially increases memory and disk requirements.
+
+ATLAS stores the analysis score, source label, detector identifier, model
+revision, reviewer, and analysis date for reproducibility. Submitted text and
+uploaded document contents are not retained in the analysis record. Detector
+results can include false positives and false negatives, cannot prove
+authorship, and must not be used as the sole basis for an academic decision.
 
 ## Interface behavior
 
@@ -125,7 +132,7 @@ deduplicated.
 - python-docx for Word (.docx) text extraction
 - Pillow for cover-image validation
 - PyTorch for local CPU model inference
-- Hugging Face Transformers for the local RoBERTa detector
+- Hugging Face Transformers for replaceable local text detectors
 - HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
@@ -143,10 +150,12 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
-The first AI Detection analysis downloads and caches the public RoBERTa model
-from Hugging Face. Its PyTorch/Safetensors weights are approximately 500 MB, so
-the first analysis can take several minutes. Later analyses use the local cache
-and do not require an API key, account, or per-scan payment.
+The first AI Detection analysis downloads and caches the public Vanguard model
+from Hugging Face. Its weights are about 1.6 GB, so the first analysis can take
+several minutes and requires enough local disk space and memory. Later analyses
+use the local cache and do not require an API key, account, or per-scan payment.
+If academic validation is enabled, its model is downloaded and cached
+separately and requires roughly another 1.8 GB of disk space.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -188,6 +197,25 @@ DB_SSL_REQUIRE=False
 
 For a hosted PostgreSQL service, use the provider's complete connection URL and
 set DB_SSL_REQUIRE=True when TLS is required.
+
+AI Detection model selection is environment-based:
+
+```dotenv
+AI_DETECTION_PRIMARY_MODEL=ShantanuT01/vanguard-ai-text-detector
+AI_DETECTION_PRIMARY_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
+AI_DETECTION_ENABLE_VALIDATION=False
+AI_DETECTION_VALIDATION_MODEL=desklib/ai-text-detector-academic-v1.01
+AI_DETECTION_VALIDATION_REVISION=main
+HF_HUB_DISABLE_XET=1
+HF_HUB_DISABLE_SYMLINKS_WARNING=1
+```
+
+Use a Hugging Face commit hash instead of `main` for a release that must always
+load the same weights. When validation is enabled, ATLAS runs both configured
+detectors and records the secondary result with the primary analysis. The Hub
+settings use the standard resumable HTTP downloader on Windows and suppress the
+non-fatal symlink-cache warning; operators can explicitly set
+`HF_HUB_DISABLE_XET=0` after confirming Xet works on their network.
 
 ## Contact email delivery
 
@@ -283,7 +311,7 @@ library/
 |-- middleware.py                       Thin request/response integration
 |-- services/
 |   |-- activity.py                     ActivityRecorder
-|   |-- ai_detection.py                 RobertaAIDetector
+|   |-- ai_detection.py                 AIDetectionService and detector adapters
 |   |-- catalog.py                      CatalogQueryService
 |   |-- contact.py                      ContactEmailService
 |   |-- context.py                      GreetingNameResolver and PageContextBuilder
@@ -376,8 +404,10 @@ publication dates and PDF/Word format choices. Migration 0006 adds the Other
 announcement category, Bookmark display names, and resource-view history.
 Migration 0007 adds cover-image and abstract-file storage to library resources.
 Migration 0008 safely renames the abstract field to Resource abstract without
-deleting existing uploads. Do not manually add or rename these columns; Django
-migrations handle both new and existing installations.
+deleting existing uploads. Migration 0009 adds reproducibility metadata for AI
+Detection analyses without storing submitted content. Do not manually add or
+rename these columns; Django migrations handle both new and existing
+installations.
 
 ## Important commands
 
@@ -413,6 +443,27 @@ package named docx; the correct dependency is python-docx.
 
 ## Production checklist
 
+Linux deployment platforms can start ATLAS with the included `Procfile`. It
+uses one Gunicorn worker with four threads so the lazily loaded detector weights
+are held once per application instance instead of being duplicated across
+multiple worker processes. Before starting a new release, run:
+
+```powershell
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py check --deploy
+```
+
+On Windows Server, use the installed Waitress server instead:
+
+```powershell
+waitress-serve --listen=0.0.0.0:8000 atlas.wsgi:application
+```
+
+The AI model cache must be stored on persistent disk in production. If the
+hosting platform has an ephemeral filesystem, set `HF_HOME` to a mounted
+persistent directory; otherwise each new instance may download the model again.
+
 ```dotenv
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=library.example.edu
@@ -422,18 +473,21 @@ CSRF_COOKIE_SECURE=True
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+SECURE_HSTS_PRELOAD=True
 DB_SSL_REQUIRE=True
 ```
 
 Also:
 
 - Use a unique production DJANGO_SECRET_KEY.
+- Set the platform's `PORT` variable or allow the Procfile default of 8000.
 - Configure real SMTP credentials and test delivery.
 - Use durable private media storage for uploaded resources; do not map MEDIA_ROOT to a public web-server URL.
 - Run migrations and collectstatic.
 - Replace demonstration passwords.
 - Keep DJANGO_ADMIN_PATH private.
-- Enable HSTS only after HTTPS works correctly.
+- Enable HSTS and HSTS preload only after HTTPS works correctly for the main
+  domain and every subdomain; browser preload enrollment is difficult to undo.
 
 The archived browser-only prototype remains under legacy/ for reference. Django
 serves the active application from library/, templates/library/, and

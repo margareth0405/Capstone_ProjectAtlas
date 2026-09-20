@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Announcement, ContactMessage, Favorite, LibraryItem, Profile, ResourceViewEvent
+from .models import (
+    AIAnalysis,
+    Announcement,
+    ContactMessage,
+    Favorite,
+    LibraryItem,
+    Profile,
+    ResourceViewEvent,
+)
 
 
 @admin.register(Profile)
@@ -131,3 +139,37 @@ class ContactMessageAdmin(admin.ModelAdmin):
     @admin.action(description="Mark selected messages unresolved")
     def mark_unresolved(self, request, queryset):
         queryset.update(is_resolved=False)
+
+
+@admin.register(AIAnalysis)
+class AIAnalysisAdmin(admin.ModelAdmin):
+    list_display = (
+        "source_name",
+        "classification",
+        "ai_probability",
+        "detector_name",
+        "model_version",
+        "reviewer",
+        "created_at",
+    )
+    list_filter = ("classification", "detector_name", "created_at")
+    search_fields = ("source_name", "model_name", "model_version", "reviewer__email")
+    readonly_fields = (
+        "reviewer",
+        "source_name",
+        "classification",
+        "tone",
+        "ai_probability",
+        "human_probability",
+        "confidence",
+        "chunks_analyzed",
+        "detector_name",
+        "model_name",
+        "model_version",
+        "validation_result",
+        "created_at",
+    )
+    date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False

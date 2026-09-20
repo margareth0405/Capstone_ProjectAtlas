@@ -1045,6 +1045,25 @@
     margin: 0.35rem 0 0;
 }
 
+.ai-validation-result {
+    align-items: center;
+    background: var(--maroon-50);
+    border: 1px solid #ead5d8;
+    border-radius: 12px;
+    color: var(--maroon-800);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1rem;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding: 0.75rem 0.85rem;
+}
+
+.ai-validation-result span {
+    color: #665b5c;
+    font-size: 0.82rem;
+}
+
 .ai-empty-result {
     align-items: center;
     background: #fcfaf9;

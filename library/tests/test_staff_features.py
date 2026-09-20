@@ -10,7 +10,13 @@ from django.utils import timezone
 
 from docx import Document
 
-from library.models import ActivityLog, Profile, ResourceViewEvent, WebsiteVisit
+from library.models import (
+    AIAnalysis,
+    ActivityLog,
+    Profile,
+    ResourceViewEvent,
+    WebsiteVisit,
+)
 from library.tests.base import LibraryTestCase
 from library.views.staff_ai import StaffAIDetectionView
 
@@ -262,7 +268,9 @@ class AIDetectionServiceTests(LibraryTestCase):
                 "human_probability": 23.5,
                 "confidence": 76.5,
                 "chunks_analyzed": 2,
-                "model_name": "openai-community/roberta-base-openai-detector",
+                "detector_name": "Vanguard",
+                "model_name": "ShantanuT01/vanguard-ai-text-detector",
+                "model_version": "test-commit-123",
             }
 
     def test_ai_detection_is_restricted_to_staff(self):
@@ -316,6 +324,11 @@ class AIDetectionServiceTests(LibraryTestCase):
         )
         self.assertContains(response, "AI likelihood")
         self.assertContains(response, "Human likelihood")
+        self.assertContains(response, "Vanguard")
+        analysis = AIAnalysis.objects.get(reviewer=self.staff)
+        self.assertEqual(analysis.source_name, "Pasted text")
+        self.assertEqual(analysis.model_version, "test-commit-123")
+        self.assertEqual(float(analysis.ai_probability), 76.5)
 
     def test_staff_can_analyze_word_document_without_saving_it(self):
         self.client.force_login(self.staff)

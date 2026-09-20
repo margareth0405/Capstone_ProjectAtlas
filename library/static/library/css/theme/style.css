@@ -255,6 +255,7 @@ ul {
 }
 
 .topbar .user-greeting {
+  margin-left: auto;
   font-weight: 600;
   color: var(--maroon-800);
   background: var(--maroon-50);

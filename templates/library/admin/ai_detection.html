@@ -13,7 +13,7 @@
     <div class="ai-detection-layout">
       <section class="staff-panel ai-detection-form-card" aria-labelledby="aiDetectionFormHeading">
         <div class="staff-panel-heading ai-panel-heading">
-          <div><span class="section-kicker">Local model</span><h2 id="aiDetectionFormHeading">Analyze content</h2></div>
+          <div><span class="section-kicker">Local detector</span><h2 id="aiDetectionFormHeading">Analyze content</h2></div>
           <div class="ai-supported-inputs" aria-label="Supported AI Detection inputs">
             <strong><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</strong>
             <strong><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</strong>
@@ -67,15 +67,24 @@
               <div><dt>Human likelihood</dt><dd>{{ detection_result.human_probability }}%</dd></div>
               <div><dt>Model confidence</dt><dd>{{ detection_result.confidence }}%</dd></div>
               <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
+              <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
+              <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
             </dl>
           </div>
+          {% if detection_result.validation %}
+            <div class="ai-validation-result" role="group" aria-label="Academic validation result">
+              <strong>{{ detection_result.validation.detector_name }} validation</strong>
+              <span>{{ detection_result.validation.ai_probability }}% AI likelihood</span>
+              <span>Version {{ detection_result.validation.model_version }}</span>
+            </div>
+          {% endif %}
         {% else %}
           <div class="ai-empty-result"><i class="fas fa-file-circle-question" aria-hidden="true"></i><p>Upload a PDF or Word document, or paste at least 100 characters.</p></div>
         {% endif %}
 
         <div class="ai-detection-notice" role="note">
           <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-          <p>This local RoBERTa model was trained to distinguish GPT-2 output from human English text. Its result is an automated estimate, not proof of AI use, and must be reviewed alongside other evidence.</p>
+          <p>Vanguard estimates whether English text is AI-generated. Results can include false positives and false negatives, are not proof of authorship, and must never be the sole basis for an academic penalty.</p>
         </div>
       </section>
     </div>

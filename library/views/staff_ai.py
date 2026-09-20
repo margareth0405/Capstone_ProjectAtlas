@@ -3,7 +3,8 @@
 from django.views.generic import TemplateView
 
 from library.forms import AIDetectionForm
-from library.services.ai_detection import AIDetectionError, RobertaAIDetector
+from library.models import AIAnalysis
+from library.services.ai_detection import AIDetectionError, AIDetectionService
 from library.services.documents import (
     DocumentExtractionError,
     DocumentTextExtractor,
@@ -18,7 +19,7 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
     template_name = "library/admin/ai_detection.html"
     active_page = "ai_detection"
     form_class = AIDetectionForm
-    analyzer_class = RobertaAIDetector
+    analyzer_class = AIDetectionService
     extractor_class = DocumentTextExtractor
 
     def get_context_data(self, **kwargs):
@@ -44,9 +45,15 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
             source_label = document.name
 
         try:
-            context["detection_result"] = self.analyzer_class().analyze(text)
+            result = self.analyzer_class().analyze(text)
         except AIDetectionError as error:
             form.add_error(None, str(error))
             return self.render_to_response(context)
+        AIAnalysis.record(
+            reviewer=request.user,
+            source_name=source_label,
+            result=result,
+        )
+        context["detection_result"] = result
         context["detection_source"] = source_label
         return self.render_to_response(context)

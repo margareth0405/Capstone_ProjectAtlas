@@ -11,6 +11,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
+# The Xet transport can stall on some Windows networks. Prefer the standard
+# resumable HTTP path unless an operator explicitly opts back into Xet.
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 
 def env_bool(name, default=False):
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
@@ -118,7 +123,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'
+        'BACKEND': (
+            'whitenoise.storage.CompressedStaticFilesStorage'
+            if DEBUG
+            else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        )
     },
 }
 
@@ -170,6 +179,30 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", Fals
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
 PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-08-11")
+
+# The detector service reads these values only when an analysis is requested.
+# Keeping model identifiers and revisions in configuration makes detector
+# upgrades independent from the staff view and the rest of the application.
+AI_DETECTION_PRIMARY_MODEL = os.getenv(
+    "AI_DETECTION_PRIMARY_MODEL",
+    "ShantanuT01/vanguard-ai-text-detector",
+)
+AI_DETECTION_PRIMARY_REVISION = os.getenv(
+    "AI_DETECTION_PRIMARY_REVISION",
+    "823061be63b90f2b42f64ac1e1f82772e872533b",
+)
+AI_DETECTION_ENABLE_VALIDATION = env_bool(
+    "AI_DETECTION_ENABLE_VALIDATION",
+    False,
+)
+AI_DETECTION_VALIDATION_MODEL = os.getenv(
+    "AI_DETECTION_VALIDATION_MODEL",
+    "desklib/ai-text-detector-academic-v1.01",
+)
+AI_DETECTION_VALIDATION_REVISION = os.getenv(
+    "AI_DETECTION_VALIDATION_REVISION",
+    "main",
+)
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

@@ -119,20 +119,6 @@
           <span>MENU</span>
         </button>
 
-        <form class="search-box" action="{{ catalog_url|default:'' }}" method="get" role="search">
-          <label class="visually-hidden" for="globalSearch">Search the library</label>
-          <input
-            type="search"
-            name="q"
-            id="globalSearch"
-            value="{{ request.GET.q|default:'' }}"
-            placeholder="Search books, journals, articles…"
-          >
-          <button type="submit" aria-label="Search">
-            <i class="fas fa-search" aria-hidden="true"></i>
-          </button>
-        </form>
-
         <div class="user-greeting">
           {% if active_role == "administrator" or request.user.is_staff %}
             <i class="fas fa-user-shield" aria-hidden="true"></i>

@@ -225,6 +225,56 @@ class ContactMessage(models.Model):
     def __str__(self):
         return f"{self.subject} — {self.email}"
 
+class AIAnalysis(models.Model):
+    """Reproducibility metadata for a staff-requested detector analysis."""
+
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ai_analyses",
+    )
+    source_name = models.CharField(max_length=255)
+    classification = models.CharField(max_length=40)
+    tone = models.CharField(max_length=16)
+    ai_probability = models.DecimalField(max_digits=5, decimal_places=2)
+    human_probability = models.DecimalField(max_digits=5, decimal_places=2)
+    confidence = models.DecimalField(max_digits=5, decimal_places=2)
+    chunks_analyzed = models.PositiveIntegerField()
+    detector_name = models.CharField(max_length=80)
+    model_name = models.CharField(max_length=255)
+    model_version = models.CharField(max_length=255)
+    validation_result = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name_plural = "AI analyses"
+
+    @classmethod
+    def record(cls, reviewer, source_name, result):
+        """Store detector metadata without retaining the submitted content."""
+
+        return cls.objects.create(
+            reviewer=reviewer,
+            source_name=source_name,
+            classification=result["label"],
+            tone=result["tone"],
+            ai_probability=result["ai_probability"],
+            human_probability=result["human_probability"],
+            confidence=result["confidence"],
+            chunks_analyzed=result["chunks_analyzed"],
+            detector_name=result["detector_name"],
+            model_name=result["model_name"],
+            model_version=result["model_version"],
+            validation_result=result.get("validation", {}),
+        )
+
+    def __str__(self):
+        return f"{self.source_name}: {self.classification} ({self.created_at:%Y-%m-%d})"
+
+
 class ActivityLog(models.Model):
     """Durable staff-facing history for important ATLAS changes and downloads."""
 
