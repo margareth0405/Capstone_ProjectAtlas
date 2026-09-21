@@ -60,7 +60,7 @@ class NavigationAndMetadataTests(LibraryTestCase):
         self.assertContains(response, f'href="{reverse("library:landing")}"')
         self.assertContains(response, f'href="{reverse("library:catalog")}"')
         self.assertContains(response, f'href="{reverse("library:contact")}"')
-        self.assertContains(response, f'href="mailto:atlastshs@gmail.com"')
+        self.assertContains(response, 'href="mailto:atlastshs@gmail.com"')
 
     @override_settings(SUPPORT_PHONE="+63 912 345 6789")
     def test_configured_phone_is_clickable_on_contact_page_and_footer(self):

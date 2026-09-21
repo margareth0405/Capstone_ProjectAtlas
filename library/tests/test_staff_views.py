@@ -272,7 +272,7 @@ class StaffCrudTests(LibraryTestCase):
         self.assertNotContains(get_response, "Is published")
 
     def test_staff_can_publish_reviewed_draft_for_public_roles(self):
-        create_response = self.client.post(
+        self.client.post(
             reverse("library:staff_announcement_create"),
             self.announcement_payload(
                 title="Publish after review",

@@ -4,7 +4,6 @@ from datetime import date
 from io import BytesIO
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings

@@ -9,7 +9,6 @@ from library.models import LibraryItem
 class StaticPageSitemap(Sitemap):
     protocol = "https"
     changefreq = "weekly"
-    priority = 0.6
 
     pages = (
         "library:landing",

@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 f"Deployment verification found {len(errors)} blocking issue(s)."
             )
 
-        health, healthy = HealthCheckService().check()
+        _, healthy = HealthCheckService().check()
         if not healthy:
             raise CommandError("The configured PostgreSQL database is unavailable.")
 
