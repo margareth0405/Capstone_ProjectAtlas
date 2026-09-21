@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.contrib.sites.requests import RequestSite
 from django.template.response import TemplateResponse
@@ -15,13 +15,26 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from library.forms import ContactForm
-from library.models import Announcement, LibraryItem
+from library.models import Announcement, ContactMessage, LibraryItem
 from library.services.contact import ContactEmailService
+from library.services.deployment import HealthCheckService
 from library.sitemaps import sitemaps
 
 from .mixins import PageContextMixin
 
 logger = logging.getLogger(__name__)
+
+
+class HealthCheckView(View):
+    """Provide a safe load-balancer readiness endpoint."""
+
+    service_class = HealthCheckService
+
+    def get(self, request):
+        report, healthy = self.service_class().check()
+        response = JsonResponse(report, status=200 if healthy else 503)
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class RobotsView(View):
@@ -38,6 +51,7 @@ class RobotsView(View):
                     "Disallow: /register/",
                     "Disallow: /guest/",
                     "Disallow: /usage/",
+                    "Disallow: /health/",
                     f"Sitemap: {sitemap_url}",
                     "",
                 )
@@ -69,7 +83,19 @@ class PrivacyTermsView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["support_email"] = settings.SUPPORT_EMAIL
+        context.update(
+            {
+                "support_email": settings.SUPPORT_EMAIL,
+                "data_privacy_email": settings.DATA_PRIVACY_EMAIL,
+                "business_name": settings.BUSINESS_NAME,
+                "business_operator": settings.BUSINESS_OPERATOR,
+                "business_service_type": settings.BUSINESS_SERVICE_TYPE,
+                "business_country": settings.BUSINESS_COUNTRY,
+                "business_address": settings.BUSINESS_ADDRESS,
+                "support_hours": settings.SUPPORT_HOURS,
+                "support_phone": settings.SUPPORT_PHONE,
+            }
+        )
         return context
 
 
@@ -161,12 +187,23 @@ class ContactView(PageContextMixin, TemplateView):
     email_service_class = ContactEmailService
 
     def get_initial(self):
+        request_type = self.request.GET.get(
+            "request_type", ContactMessage.RequestType.SUPPORT
+        )
+        valid_request_types = {
+            value for value, _label in ContactMessage.RequestType.choices
+        }
+        if request_type not in valid_request_types:
+            request_type = ContactMessage.RequestType.SUPPORT
+        initial = {"request_type": request_type}
         if self.request.user.is_authenticated:
-            return {
-                "name": self.request.user.get_full_name(),
-                "email": self.request.user.email,
-            }
-        return {}
+            initial.update(
+                {
+                    "name": self.request.user.get_full_name(),
+                    "email": self.request.user.email,
+                }
+            )
+        return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -214,9 +251,16 @@ class ContactView(PageContextMixin, TemplateView):
                 )
             else:
                 contact_message.save()
+                success_message = (
+                    "Your data deletion request has been submitted for review. "
+                    "The library team may contact you to verify your identity."
+                    if contact_message.request_type
+                    == ContactMessage.RequestType.DATA_DELETION
+                    else f"Your message has been sent to {settings.SUPPORT_EMAIL}."
+                )
                 messages.success(
                     request,
-                    f"Your message has been sent to {settings.SUPPORT_EMAIL}.",
+                    success_message,
                 )
                 return redirect("library:contact")
         else:

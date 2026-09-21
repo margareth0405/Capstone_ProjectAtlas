@@ -13,6 +13,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .models import Announcement, ContactMessage, LibraryItem, Profile
 from .services.accounts import AccountEmailPolicy
+from .services.uploads import DocumentUploadPolicy, DocumentUploadValidationError
 
 
 User = get_user_model()
@@ -98,6 +99,14 @@ class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
 
 class RegistrationForm(BaseAccountCreationForm):
     website = forms.CharField(required=False, widget=forms.HiddenInput)
+    age_consent = forms.BooleanField(
+        required=True,
+        label=(
+            "I confirm that I am legally able to consent, or that my parent "
+            "or legal guardian has authorized this account and reviewed the "
+            "privacy notice."
+        ),
+    )
     privacy_consent = forms.BooleanField(
         required=True,
         label="I agree to the privacy and confidentiality statement.",
@@ -113,6 +122,8 @@ class RegistrationForm(BaseAccountCreationForm):
             {
                 "privacy_consent_accepted_at": timezone.now(),
                 "privacy_consent_version": self.privacy_consent_version,
+                "age_consent_confirmed_at": timezone.now(),
+                "age_consent_version": self.privacy_consent_version,
             }
         )
         return defaults
@@ -194,6 +205,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
     maximum_cover_dimensions = (1200, 1800)
     supported_cover_extensions = {".jpg", ".jpeg", ".png", ".webp"}
     supported_document_extensions = {".pdf", ".docx"}
+    document_upload_policy_class = DocumentUploadPolicy
 
     publication_month = forms.RegexField(
         regex=r"^\d{4}-(0[1-9]|1[0-2])$",
@@ -349,6 +361,10 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             raise ValidationError("Upload a PDF or Word (.docx) Resource abstract.")
         if resource_abstract.size > self.maximum_document_size:
             raise ValidationError("The Resource abstract must be 10 MB or smaller.")
+        try:
+            self.document_upload_policy_class().validate(resource_abstract)
+        except DocumentUploadValidationError as exc:
+            raise ValidationError(str(exc)) from exc
         return resource_abstract
 
     def save(self, commit=True):
@@ -394,6 +410,7 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
 
     maximum_upload_size = 10 * 1024 * 1024
     supported_extensions = (".pdf", ".docx")
+    document_upload_policy_class = DocumentUploadPolicy
 
     text = forms.CharField(
         required=False,
@@ -426,6 +443,10 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
             raise ValidationError("Upload a PDF or Word (.docx) document.")
         if document.size > self.maximum_upload_size:
             raise ValidationError("The document must be 10 MB or smaller.")
+        try:
+            self.document_upload_policy_class().validate(document)
+        except DocumentUploadValidationError as exc:
+            raise ValidationError(str(exc)) from exc
         return document
 
     def clean(self):
@@ -441,10 +462,17 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
 
 class ContactForm(StyledFormMixin, forms.ModelForm):
     website = forms.CharField(required=False, widget=forms.HiddenInput)
+    privacy_consent = forms.BooleanField(
+        required=True,
+        label=(
+            "I agree that ATLAS may use the information in this form to "
+            "review and respond to my request."
+        ),
+    )
 
     class Meta:
         model = ContactMessage
-        fields = ("name", "email", "subject", "message")
+        fields = ("name", "email", "request_type", "subject", "message")
         widgets = {
             "name": forms.TextInput(
                 attrs={"placeholder": "Example: Maria Santos", "autocomplete": "name"}
@@ -469,6 +497,13 @@ class ContactForm(StyledFormMixin, forms.ModelForm):
         if self.cleaned_data.get("website"):
             raise ValidationError("Invalid submission.")
         return ""
+
+    def save(self, commit=True):
+        message = super().save(commit=False)
+        message.privacy_consent_accepted_at = timezone.now()
+        if commit:
+            message.save()
+        return message
 
     def clean_message(self):
         message = self.cleaned_data["message"].strip()

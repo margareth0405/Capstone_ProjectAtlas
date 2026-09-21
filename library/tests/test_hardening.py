@@ -3,9 +3,11 @@
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
+from library.forms import AIDetectionForm, LibraryItemForm
 from library.models import ContactMessage, WebsiteVisit
 from library.tests.base import LibraryTestCase
 from library.views import errors
@@ -193,3 +195,86 @@ class AnalyticsConsentTests(LibraryTestCase):
 
         self.assertEqual(response.status_code, 204)
         self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())
+
+
+class SecurityRegressionTests(LibraryTestCase):
+    """Exercise the attack cases included in the technical questionnaire."""
+
+    def test_sql_injection_text_is_treated_as_a_literal_search(self):
+        self.create_item(title="Visible research title")
+
+        response = self.client.get(
+            reverse("library:catalog"),
+            {"q": "' OR 1=1 --"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Visible research title")
+
+    def test_xss_search_payload_is_escaped(self):
+        payload = '<script>alert("atlas")</script>'
+
+        response = self.client.get(reverse("library:catalog"), {"q": payload})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, payload)
+        self.assertContains(response, "&lt;script&gt;", html=False)
+
+    def test_disguised_pdf_is_rejected_by_library_and_ai_forms(self):
+        malicious_library_upload = SimpleUploadedFile(
+            "research.pdf",
+            b"<script>malicious content</script>",
+            content_type="application/pdf",
+        )
+        malicious_ai_upload = SimpleUploadedFile(
+            "analysis.pdf",
+            b"<script>malicious content</script>",
+            content_type="application/pdf",
+        )
+
+        library_form = LibraryItemForm(
+            data={
+                "collection": "research",
+                "call_number": "SEC-001",
+                "title": "Security test",
+                "author": "ATLAS",
+                "details": "A document used to verify upload validation.",
+                "publication_month": "2026-09",
+                "publication_day": "20",
+                "file_type": "PDF",
+                "pages": "1",
+            },
+            files={"resource_abstract": malicious_library_upload},
+        )
+        ai_form = AIDetectionForm(files={"document": malicious_ai_upload})
+
+        self.assertFalse(library_form.is_valid())
+        self.assertIn("not a valid PDF", library_form.errors["resource_abstract"][0])
+        self.assertFalse(ai_form.is_valid())
+        self.assertIn("not a valid PDF", ai_form.errors["document"][0])
+
+    def test_ai_form_rejects_excessively_long_text(self):
+        form = AIDetectionForm(data={"text": "a" * 20001})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("at most 20000", form.errors["text"][0])
+
+    def test_forged_session_cookie_does_not_authenticate(self):
+        self.client.cookies["sessionid"] = "forged-session-token"
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("library:login"), response["Location"])
+
+    def test_state_changing_request_without_csrf_token_is_rejected(self):
+        user = self.create_user(email="csrf-test@example.com")
+        item = self.create_item()
+        csrf_client = self.client_class(enforce_csrf_checks=True)
+        csrf_client.force_login(user)
+
+        response = csrf_client.post(
+            reverse("library:favorite_toggle", args=(item.pk,))
+        )
+
+        self.assertEqual(response.status_code, 403)

@@ -20,6 +20,7 @@ class HuggingFaceDetector:
     words_per_chunk = 250
     _pipeline = None
     _pipeline_lock = RLock()
+    _inference_lock = RLock()
 
     def __init__(self, model_name=None, revision=None):
         self.model_name = model_name or self.default_model_name
@@ -32,11 +33,15 @@ class HuggingFaceDetector:
         chunks = self._split_text(text)
         pipeline = self._get_pipeline()
         try:
-            predictions = pipeline(
-                chunks,
-                truncation=True,
-                batch_size=4,
-            )
+            # Gunicorn uses threads so the large model stays loaded only once.
+            # Serialize CPU inference to prevent concurrent requests from
+            # oversubscribing memory and processor threads in that process.
+            with type(self)._inference_lock:
+                predictions = pipeline(
+                    chunks,
+                    truncation=True,
+                    batch_size=4,
+                )
         except AIDetectionError:
             raise
         except Exception as exc:

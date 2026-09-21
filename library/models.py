@@ -21,6 +21,8 @@ class Profile(models.Model):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT)
     privacy_consent_accepted_at = models.DateTimeField(null=True, blank=True)
     privacy_consent_version = models.CharField(max_length=32, blank=True)
+    age_consent_confirmed_at = models.DateTimeField(null=True, blank=True)
+    age_consent_version = models.CharField(max_length=32, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -205,6 +207,13 @@ class Announcement(models.Model):
 
 
 class ContactMessage(models.Model):
+    class RequestType(models.TextChoices):
+        SUPPORT = "support", "General support"
+        PRIVACY = "privacy", "Privacy question"
+        ACCESS_CORRECTION = "access_correction", "Access or correct my data"
+        DATA_DELETION = "data_deletion", "Delete or block my data"
+        EMAIL_PREFERENCES = "email_preferences", "Email preferences"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -214,8 +223,15 @@ class ContactMessage(models.Model):
     )
     name = models.CharField(max_length=150)
     email = models.EmailField()
+    request_type = models.CharField(
+        max_length=24,
+        choices=RequestType.choices,
+        default=RequestType.SUPPORT,
+        db_index=True,
+    )
     subject = models.CharField(max_length=255)
     message = models.TextField()
+    privacy_consent_accepted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     is_resolved = models.BooleanField(default=False, db_index=True)
 

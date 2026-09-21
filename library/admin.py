@@ -14,7 +14,13 @@ from .models import (
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "role", "privacy_consent_version", "updated_at")
+    list_display = (
+        "user",
+        "role",
+        "privacy_consent_version",
+        "age_consent_version",
+        "updated_at",
+    )
     list_filter = ("role", "privacy_consent_version")
     search_fields = ("user__username", "user__email", "user__first_name", "user__last_name")
     autocomplete_fields = ("user",)
@@ -125,10 +131,26 @@ class ResourceViewEventAdmin(admin.ModelAdmin):
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ("subject", "name", "email", "is_resolved", "created_at")
-    list_filter = ("is_resolved", "created_at")
+    list_display = (
+        "request_type",
+        "subject",
+        "name",
+        "email",
+        "is_resolved",
+        "created_at",
+    )
+    list_filter = ("request_type", "is_resolved", "created_at")
     search_fields = ("subject", "name", "email", "message")
-    readonly_fields = ("user", "name", "email", "subject", "message", "created_at")
+    readonly_fields = (
+        "user",
+        "name",
+        "email",
+        "request_type",
+        "subject",
+        "message",
+        "privacy_consent_accepted_at",
+        "created_at",
+    )
     date_hierarchy = "created_at"
     actions = ("mark_resolved", "mark_unresolved")
 

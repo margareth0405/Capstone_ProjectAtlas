@@ -441,8 +441,9 @@ announcement category, Bookmark display names, and resource-view history.
 Migration 0007 adds cover-image and abstract-file storage to library resources.
 Migration 0008 safely renames the abstract field to Resource abstract without
 deleting existing uploads. Migration 0009 adds reproducibility metadata for AI
-Detection analyses without storing submitted content. Do not manually add or
-rename these columns; Django migrations handle both new and existing
+Detection analyses without storing submitted content. Migration 0010 adds
+age/guardian consent and privacy-request classification. Do not manually add
+or rename these columns; Django migrations handle both new and existing
 installations.
 
 ## Important commands
@@ -451,6 +452,7 @@ installations.
 python manage.py check
 python manage.py check_database
 python manage.py makemigrations --check --dry-run
+python manage.py verify_deployment
 python manage.py test
 python manage.py collectstatic --noinput
 ```
@@ -485,6 +487,18 @@ responses, and automatic WebP optimization for new cover uploads. Essential
 session and CSRF cookies remain available when a visitor declines optional
 analytics.
 
+The policy page also publishes service/operator contact details, a third-party
+dependency inventory, data-minimization practices, minor/guardian consent,
+accessibility features, open-source and uploaded-image licensing rules, email
+choices, and transparent statements about fees, reviews, and automated claims.
+ATLAS has no payment workflow. Privacy requests are classified in the Contact
+form, and users can submit access, correction, email-preference, or data
+deletion requests with explicit form consent. Configure `BUSINESS_NAME`,
+`BUSINESS_OPERATOR`,
+`BUSINESS_ADDRESS`, `BUSINESS_COUNTRY`, `BUSINESS_SERVICE_TYPE`, and
+`DATA_PRIVACY_EMAIL` with the responsible institution's exact details before
+public launch.
+
 Fixed-window rate limits protect general traffic, sign-in, registration,
 contact, password-reset/email actions, and AI Detection. The included Procfile
 uses one worker, so Django's default in-memory cache applies these limits
@@ -502,7 +516,16 @@ multiple worker processes. Before starting a new release, run:
 python manage.py migrate
 python manage.py collectstatic --noinput
 python manage.py check --deploy
+python manage.py verify_deployment
 ```
+
+Copy `.env.production.example` into the hosting provider's private environment
+configuration and replace every placeholder. `verify_deployment` applies
+Django's deployment checks, ATLAS-specific checks, a live PostgreSQL query, and
+an unapplied-migration check. The public `/health/` endpoint performs a minimal
+database readiness check for a load balancer without exposing database names,
+users, credentials, or AI model details. It deliberately does not load the
+large AI model during routine health polling.
 
 On Windows Server, use the installed Waitress server instead:
 

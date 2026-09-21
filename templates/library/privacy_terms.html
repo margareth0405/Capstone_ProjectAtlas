@@ -1,19 +1,20 @@
 {% extends "library/base.html" %}
 
-{% block title %}Privacy and Terms | ATLAS{% endblock %}
-{% block meta_description %}Read the ATLAS privacy policy, cookie practices, acceptable-use terms, and AI Detection notice.{% endblock %}
+{% block title %}Privacy Policy and Terms of Service | ATLAS{% endblock %}
+{% block meta_description %}Read the ATLAS privacy policy, cookie policy, terms of service, accessibility statement, operator details, and data-request process.{% endblock %}
 {% block body_class %}atlas-legal-page{% endblock %}
 {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 
 {% block body %}
   {% url 'library:landing' as landing_url %}
+  {% url 'library:contact' as contact_url %}
   <main class="legal-page" id="mainContent" tabindex="-1">
     <a class="btn-back legal-back" href="{{ landing_url }}">
       <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to ATLAS
     </a>
 
     <header class="legal-hero">
-      <span class="section-kicker">Privacy, cookies, and acceptable use</span>
+      <span class="section-kicker">Privacy, cookies, accessibility, and acceptable use</span>
       <h1>Privacy Policy and Terms &amp; Conditions</h1>
       <p>Effective September 20, 2026 · Consent version {{ privacy_consent_version }}</p>
     </header>
@@ -21,58 +22,134 @@
     <div class="legal-layout">
       <nav class="legal-toc" aria-label="Policy contents">
         <strong>On this page</strong>
-        <a href="#privacy">Privacy</a>
-        <a href="#cookies">Cookies</a>
+        <a href="#business">Operator details</a>
+        <a href="#privacy">Privacy policy</a>
+        <a href="#children">Minors and guardians</a>
+        <a href="#cookies">Cookie policy</a>
+        <a href="#third-parties">Third-party audit</a>
         <a href="#retention">Retention and security</a>
-        <a href="#rights">Your choices</a>
-        <a href="#terms">Terms and conditions</a>
+        <a href="#rights">Data requests</a>
+        <a href="#terms">Terms of service</a>
+        <a href="#integrity">Fees, reviews, and claims</a>
+        <a href="#accessibility">Accessibility</a>
+        <a href="#licenses">Licenses</a>
+        <a href="#emails">Email choices</a>
         <a href="#ai-detection">AI Detection</a>
       </nav>
 
       <article class="legal-copy">
+        <section id="business">
+          <h2>1. Service and operator details</h2>
+          <dl class="business-details">
+            <div><dt>Service name</dt><dd>{{ business_name }}</dd></div>
+            <div><dt>Responsible operator</dt><dd>{{ business_operator }}</dd></div>
+            <div><dt>Service type</dt><dd>{{ business_service_type }}</dd></div>
+            <div><dt>Country or region</dt><dd>{{ business_country }}</dd></div>
+            {% if business_address %}<div><dt>Institution address</dt><dd>{{ business_address }}</dd></div>{% endif %}
+            <div><dt>Support email</dt><dd><a href="mailto:{{ support_email }}">{{ support_email }}</a></dd></div>
+            <div><dt>Privacy contact</dt><dd><a href="mailto:{{ data_privacy_email }}">{{ data_privacy_email }}</a></dd></div>
+            {% if support_phone %}<div><dt>Telephone</dt><dd><a href="{{ support_phone_uri }}">{{ support_phone }}</a></dd></div>{% endif %}
+            <div><dt>Support hours</dt><dd>{{ support_hours }}</dd></div>
+          </dl>
+          <p>ATLAS is an academic library platform. The responsible institution should configure its exact legal name and address before public deployment.</p>
+        </section>
+
         <section id="privacy">
-          <h2>1. Privacy</h2>
-          <p>ATLAS collects the information needed to operate an academic library account: your name, email address, account role, encrypted password credentials, consent record, bookmarks, and security or activity records associated with your use of the service.</p>
-          <p>We use this information to authenticate users, provide library features, protect the service, respond to support requests, and maintain accountable library operations. We do not sell personal information.</p>
+          <h2>2. Privacy policy and data minimization</h2>
+          <p>ATLAS collects only information used to operate and protect the academic library: name, email address, student or teacher role, securely hashed password, consent records, bookmarks, contact requests, protected-resource viewing records, and limited session or security information such as IP address, page path, and download user agent.</p>
+          <p>ATLAS does not ask for a birth date, government identification number, payment-card information, precise location, or advertising profile. Administrators should not upload those details into free-text fields. Personal information is used for authentication, requested library functions, support, security, accountability, and institutional library operations. It is not sold.</p>
+          <p>These practices follow the principles of transparency, legitimate purpose, and proportionality described in the <a href="https://privacy.gov.ph/data-privacy-act/" rel="noopener noreferrer">Philippine Data Privacy Act of 2012</a>.</p>
+        </section>
+
+        <section id="children">
+          <h2>3. Minors and parent or guardian confirmation</h2>
+          <p>ATLAS may be used by students who are minors. Registration requires the user to confirm that they are legally able to consent or that a parent or legal guardian has authorized the account and reviewed this notice. ATLAS records the confirmation time and policy version, but does not collect a birth date solely for this check.</p>
+          <p>A parent or legal guardian may submit a privacy, access, correction, or deletion request for a minor under their care. ATLAS may request reasonable identity or authority verification before changing account data. The National Privacy Commission explains that parents or guardians protect the privacy rights of minors under their care in its <a href="https://privacy.gov.ph/data-subject-rights/" rel="noopener noreferrer">data-subject rights guidance</a>.</p>
         </section>
 
         <section id="cookies">
-          <h2>2. Cookies and website usage</h2>
-          <p>Essential cookies support sign-in, CSRF protection, security, and guest sessions. They are required for ATLAS to work and cannot be disabled through the consent banner.</p>
-          <p>Optional analytics records page views and active-session duration so authorized library staff can understand website usage. Optional analytics starts only after you select “Allow analytics.” You can change that choice at any time.</p>
-          <p>The browser may retrieve Bootstrap and icon files from established content-delivery networks. Those providers receive standard connection information, such as an IP address and user-agent, when serving the files.</p>
+          <h2>4. Cookie policy and consent banner</h2>
+          <p>Essential cookies support sign-in, CSRF protection, security, saved cookie choices, and guest sessions. They are necessary for requested features and cannot be disabled through the banner.</p>
+          <p>Optional first-party usage analytics records page navigation and active-session duration for authorized library staff. It begins only after “Allow analytics” is selected. “Essential only” is presented as an equally available choice, and the decision can be changed at any time.</p>
           <button class="btn btn-outline-secondary rounded-pill" type="button" data-cookie-settings>Change cookie preferences</button>
         </section>
 
+        <section id="third-parties">
+          <h2>5. Third-party technology audit</h2>
+          <div class="legal-table-wrap">
+            <table class="legal-audit-table">
+              <caption>Third-party components and services</caption>
+              <thead><tr><th scope="col">Provider</th><th scope="col">Purpose</th><th scope="col">Data exposure</th><th scope="col">Status</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">jsDelivr</th><td>Bootstrap layout and interface components</td><td>Standard web request information, such as IP address and user agent</td><td>Required presentation dependency</td></tr>
+                <tr><th scope="row">cdnjs</th><td>Font Awesome interface icons</td><td>Standard web request information, such as IP address and user agent</td><td>Required presentation dependency</td></tr>
+                <tr><th scope="row">Hugging Face</th><td>Administrator-only model download during installation or first local analysis</td><td>Server connection information; submitted analysis text is not sent to the model host</td><td>Server-side model distribution only</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>ATLAS contains no advertising, behavioral-marketing, payment, social-login, testimonial, or third-party analytics SDK. Optional usage analytics is stored by ATLAS itself. Operators should repeat this audit whenever a dependency is added.</p>
+        </section>
+
         <section id="retention">
-          <h2>3. Retention and security</h2>
-          <p>Records are retained only as long as needed for library operations, security, institutional requirements, and applicable obligations. ATLAS uses access controls, secure cookies in production, HTTPS, validation, rate limits, and restricted media routes to reduce unauthorized access.</p>
-          <p>Submitted AI Detection text and uploaded analysis documents are processed in memory and are not stored in the analysis record. Scores, model details, reviewer, source label, and analysis date may be retained for reproducibility.</p>
+          <h2>6. Retention and security</h2>
+          <p>Records are retained only while needed for account operation, requested support, service security, accountable library administration, institutional requirements, or applicable obligations. Deletion requests are reviewed against those needs rather than being silently ignored or automatically denied.</p>
+          <p>ATLAS uses access controls, password hashing, secure production cookies, HTTPS enforcement, input and upload validation, rate limits, restricted media routes, and audit records. Submitted AI Detection text and uploaded analysis documents are processed in memory and are not retained in the analysis record.</p>
         </section>
 
         <section id="rights">
-          <h2>4. Your choices</h2>
-          <p>You may ask the library team to explain, correct, or review personal information associated with your account, subject to institutional retention requirements. Contact <a href="mailto:{{ support_email|default:'atlastshs@gmail.com' }}">{{ support_email|default:'atlastshs@gmail.com' }}</a> for privacy questions.</p>
+          <h2>7. Access, correction, objection, and data deletion requests</h2>
+          <p>You may request information about your personal data, ask for a correction, object to processing, or ask ATLAS to delete or block eligible data. Some records may need to be retained for a legal obligation, a valid institutional requirement, security, or the establishment or defense of a claim. See the National Privacy Commission’s <a href="https://privacy.gov.ph/right-to-erasure-or-blocking/" rel="noopener noreferrer">right to erasure or blocking guidance</a>.</p>
+          <p><a class="btn btn-primary atlas-primary-action" href="{{ contact_url }}?request_type=data_deletion#contactForm">Submit a data deletion request</a></p>
+          <p>ATLAS may verify the requester’s identity before disclosing, correcting, blocking, or deleting account information. Requests and responses are recorded for accountability.</p>
         </section>
 
         <section id="terms">
-          <h2>5. Terms and conditions</h2>
+          <h2>8. Terms of service</h2>
           <ul>
             <li>Use ATLAS only for lawful academic, teaching, learning, and library purposes.</li>
-            <li>Keep your account credentials private and do not attempt to access another user’s account.</li>
+            <li>Keep account credentials private and do not attempt to access another person’s account.</li>
             <li>Respect copyright, licensing conditions, confidentiality, and restrictions shown with library resources.</li>
-            <li>Do not upload malware, automate abusive requests, scrape protected materials, spam forms, or interfere with service availability.</li>
-            <li>Access may be limited or suspended when necessary to protect users, content, or the service.</li>
+            <li>Do not upload malware, send spam, automate abusive requests, scrape protected materials, or interfere with service availability.</li>
+            <li>Access may be limited or suspended when reasonably necessary to protect users, content, institutional operations, or the service.</li>
           </ul>
         </section>
 
+        <section id="integrity">
+          <h2>9. Fees, reviews, and service claims</h2>
+          <p>ATLAS currently has no checkout, purchase, paid subscription, advertising, or payment-card feature. It therefore presents no service charges or hidden fees.</p>
+          <p>ATLAS does not publish customer ratings, testimonials, or user reviews, so it does not generate or display fabricated reviews. Catalog descriptions and announcements must identify their source and must not claim endorsements, guaranteed outcomes, or capabilities that cannot be supported.</p>
+          <p>Service availability and automated results are not guaranteed to be error-free. Maintenance, connectivity, source-file quality, and model limitations can affect results.</p>
+        </section>
+
+        <section id="accessibility">
+          <h2>10. Accessibility</h2>
+          <p>ATLAS provides a skip link, keyboard-operable navigation, visible focus indicators, descriptive page titles and labels, alternative text for meaningful cover images, hidden treatment for decorative icons, responsive layouts, and persistent Large text and High contrast controls in the Display menu.</p>
+          <p>If a page, document, or control is difficult to use, submit an accessibility request through <a href="{{ contact_url }}?request_type=support#contactForm">Library Support</a>.</p>
+        </section>
+
+        <section id="licenses">
+          <h2>11. Fonts, icons, images, and software licenses</h2>
+          <ul>
+            <li>Bootstrap code is used under the <a href="https://getbootstrap.com/docs/5.3/about/license/" rel="noopener noreferrer">MIT License</a>.</li>
+            <li>Font Awesome Free icons, fonts, and code are used under the licenses listed in the <a href="https://fontawesome.com/license/free" rel="noopener noreferrer">Font Awesome Free License</a>.</li>
+            <li>The ATLAS favicon is a project interface asset. Catalog covers are supplied by authorized administrators; the uploader must have permission to use each image.</li>
+            <li>Uploaded library materials remain subject to their copyright and institutional permissions. ATLAS does not claim ownership merely because a resource is listed.</li>
+          </ul>
+        </section>
+
+        <section id="emails">
+          <h2>12. Email choices</h2>
+          <p>ATLAS sends requested account and service messages such as email verification, password recovery, and support responses. It does not currently operate a promotional newsletter or automatically enroll users in marketing email.</p>
+          <p>Required security messages cannot be disabled while the related account action is pending. To question an email, change optional email preferences, or request account deletion, use the <a href="{{ contact_url }}?request_type=email_preferences#contactForm">email-preferences request</a>.</p>
+        </section>
+
         <section id="ai-detection">
-          <h2>6. AI Detection</h2>
-          <p>AI Detection produces an automated estimate that can be wrong. It is not proof of authorship and must not be the sole basis for an academic penalty. Authorized reviewers must consider context and other evidence.</p>
+          <h2>13. AI Detection</h2>
+          <p>AI Detection produces an automated estimate that can be wrong. It is not proof of authorship, does not guarantee an academic conclusion, and must not be the sole basis for a penalty. Authorized reviewers must consider context and other evidence.</p>
         </section>
 
         <aside class="legal-review-note" role="note">
-          This policy is an operational template for ATLAS. The responsible institution should review it against its actual practices and applicable requirements before public launch.
+          This page describes the implemented ATLAS configuration. The responsible institution must insert its exact legal operator name and address and obtain a qualified local review before public launch.
         </aside>
       </article>
     </div>

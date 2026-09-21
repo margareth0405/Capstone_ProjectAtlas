@@ -173,6 +173,16 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com")
 SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
+BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS e-Library").strip()
+BUSINESS_OPERATOR = os.getenv(
+    "BUSINESS_OPERATOR", "ATLAS e-Library team"
+).strip()
+BUSINESS_SERVICE_TYPE = os.getenv(
+    "BUSINESS_SERVICE_TYPE", "Non-commercial academic library platform"
+).strip()
+BUSINESS_COUNTRY = os.getenv("BUSINESS_COUNTRY", "Philippines").strip()
+BUSINESS_ADDRESS = os.getenv("BUSINESS_ADDRESS", "").strip()
+DATA_PRIVACY_EMAIL = os.getenv("DATA_PRIVACY_EMAIL", SUPPORT_EMAIL).strip()
 TEACHER_EMAIL_DOMAINS = tuple(
     env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph")
 )
@@ -194,6 +204,10 @@ SECURE_HSTS_SECONDS = int(
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+X_FRAME_OPTIONS = "DENY"
 CSRF_FAILURE_VIEW = "library.views.errors.csrf_failure"
 
 # Fixed-window limits protect expensive and abuse-sensitive endpoints. The
@@ -239,8 +253,3 @@ AI_DETECTION_VALIDATION_REVISION = os.getenv(
     "AI_DETECTION_VALIDATION_REVISION",
     "main",
 )
-
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-]

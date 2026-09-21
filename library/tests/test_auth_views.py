@@ -25,6 +25,7 @@ class RegistrationTests(LibraryTestCase):
             "role": Profile.Role.STUDENT,
             "password1": TEST_PASSWORD,
             "password2": TEST_PASSWORD,
+            "age_consent": "on",
             "privacy_consent": "on",
         }
         values.update(overrides)
@@ -41,6 +42,11 @@ class RegistrationTests(LibraryTestCase):
         self.assertTrue(user.check_password(TEST_PASSWORD))
         self.assertEqual(user.profile.role, Profile.Role.STUDENT)
         self.assertIsNotNone(user.profile.privacy_consent_accepted_at)
+        self.assertIsNotNone(user.profile.age_consent_confirmed_at)
+        self.assertEqual(
+            user.profile.age_consent_version,
+            settings.PRIVACY_CONSENT_VERSION,
+        )
         self.assertEqual(
             user.profile.privacy_consent_version,
             settings.PRIVACY_CONSENT_VERSION,
@@ -67,6 +73,8 @@ class RegistrationTests(LibraryTestCase):
 
     def test_registration_sends_and_accepts_email_verification(self):
         self.client.post(reverse("library:register"), self.registration_payload())
+        self.assertIn("does not subscribe you to marketing email", mail.outbox[0].body)
+        self.assertIn("request_type=email_preferences", mail.outbox[0].body)
         email_address = EmailAddress.objects.get(email="jamie@gmail.com")
         confirmation = EmailConfirmationHMAC(email_address)
         confirmation_url = reverse(
@@ -139,6 +147,18 @@ class RegistrationTests(LibraryTestCase):
         response = self.client.post(reverse("library:register"), payload)
 
         self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            get_user_model().objects.filter(email="jamie@gmail.com").exists()
+        )
+
+    def test_registration_requires_minor_or_guardian_confirmation(self):
+        payload = self.registration_payload()
+        payload.pop("age_consent")
+
+        response = self.client.post(reverse("library:register"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "age_consent")
         self.assertFalse(
             get_user_model().objects.filter(email="jamie@gmail.com").exists()
         )

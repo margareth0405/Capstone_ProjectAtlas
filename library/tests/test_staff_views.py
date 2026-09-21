@@ -5,6 +5,7 @@ from io import BytesIO
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from docx import Document
 from PIL import Image
 
 from library.models import Announcement, LibraryItem, Profile
@@ -103,6 +104,21 @@ class StaffCrudTests(LibraryTestCase):
         Image.new("RGB", (24, 36), color=(114, 28, 47)).save(stream, format="PNG")
         return SimpleUploadedFile(name, stream.getvalue(), content_type="image/png")
 
+    @staticmethod
+    def word_upload(name="research.docx"):
+        stream = BytesIO()
+        document = Document()
+        document.add_paragraph("Valid ATLAS Word document fixture.")
+        document.save(stream)
+        return SimpleUploadedFile(
+            name,
+            stream.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            ),
+        )
+
     def test_staff_item_create_get_is_read_only_and_post_creates_item(self):
         url = reverse("library:staff_item_create")
 
@@ -128,11 +144,7 @@ class StaffCrudTests(LibraryTestCase):
                 file_type=LibraryItem.FileType.WORD,
                 publication_month="2026-07",
                 publication_day="",
-                resource_abstract=SimpleUploadedFile(
-                    "research.docx",
-                    b"word document fixture",
-                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ),
+                resource_abstract=self.word_upload(),
             ),
         )
 

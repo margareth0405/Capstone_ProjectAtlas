@@ -6,6 +6,7 @@ from . import views
 app_name = 'library'
 
 urlpatterns = [
+    path("health/", views.HealthCheckView.as_view(), name="health"),
     path("robots.txt", views.RobotsView.as_view(), name="robots_txt"),
     path("sitemap.xml", views.SitemapView.as_view(), name="sitemap"),
     path("", views.LandingView.as_view(), name="landing"),

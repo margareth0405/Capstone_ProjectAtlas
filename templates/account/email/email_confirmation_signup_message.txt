@@ -6,4 +6,10 @@ Welcome to ATLAS. Verify your email address to finish securing your account:
 
 If you did not create this account, you can ignore this message.
 
+ATLAS does not subscribe you to marketing email. For email preferences or a data request, visit:
+https://{{ current_site.domain }}/contact/?request_type=email_preferences
+
+Privacy and terms:
+https://{{ current_site.domain }}/privacy-and-terms/
+
 ATLAS Library

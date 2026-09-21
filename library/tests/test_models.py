@@ -33,6 +33,8 @@ class AuthenticationModelTests(LibraryTestCase):
         self.assertEqual(profile.role, Profile.Role.STUDENT)
         self.assertIsNone(profile.privacy_consent_accepted_at)
         self.assertEqual(profile.privacy_consent_version, "")
+        self.assertIsNone(profile.age_consent_confirmed_at)
+        self.assertEqual(profile.age_consent_version, "")
 
 
 class FavoriteModelTests(LibraryTestCase):

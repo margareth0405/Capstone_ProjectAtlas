@@ -445,6 +445,75 @@ a.role-btn,
   font-size: 1.25rem;
 }
 
+.business-details {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.business-details > div {
+  background: #fbf8f5;
+  border: 1px solid #e4dbd6;
+  border-radius: 12px;
+  min-width: 0;
+  padding: 0.8rem;
+}
+
+.business-details dt {
+  color: #4a111c;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.business-details dd {
+  color: #4d4542;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.legal-table-wrap {
+  margin: 1rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.legal-audit-table {
+  border-collapse: collapse;
+  color: #403a38;
+  font-size: 0.86rem;
+  min-width: 680px;
+  width: 100%;
+}
+
+.legal-audit-table caption {
+  color: #4a111c;
+  font-weight: 800;
+  padding-bottom: 0.55rem;
+  text-align: left;
+}
+
+.legal-audit-table th,
+.legal-audit-table td {
+  border: 1px solid #d8cfca;
+  line-height: 1.5;
+  padding: 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal-audit-table thead th {
+  background: #4a111c;
+  color: #fff;
+}
+
+.legal-audit-table tbody th {
+  background: #fbf8f5;
+  color: #4a111c;
+}
+
 .legal-review-note {
   background: #fff8e5;
   border-left: 4px solid #b78116;
@@ -1956,6 +2025,14 @@ html.atlas-large-text {
   color: #111;
 }
 
+.atlas-high-contrast .business-details > div,
+.atlas-high-contrast .legal-audit-table th,
+.atlas-high-contrast .legal-audit-table td {
+  background: #fff;
+  border-color: #111;
+  color: #111;
+}
+
 .atlas-high-contrast .main-content :where(p, li, dd, small, label),
 .atlas-high-contrast .site-footer,
 .atlas-high-contrast .form-helper,
@@ -2057,5 +2134,9 @@ html.atlas-large-text {
   .accessibility-panel {
     max-height: calc(100dvh - 5rem);
     overflow-y: auto;
+  }
+
+  .business-details {
+    grid-template-columns: 1fr;
   }
 }

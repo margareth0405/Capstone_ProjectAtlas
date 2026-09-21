@@ -133,6 +133,22 @@
         <div class="consent-field">
           <input
             type="checkbox"
+            name="age_consent"
+            id="id_age_consent"
+            class="consent-checkbox{% if form.age_consent.errors %} is-invalid{% endif %}"
+            value="1"
+            {% if form.age_consent.value %}checked{% endif %}
+            required
+          >
+          <label for="id_age_consent">
+            I confirm that I am legally able to consent, or that my parent or legal guardian has authorized this account and reviewed the <a href="{{ privacy_terms_url }}#children" target="_blank" rel="noopener">privacy notice for minors</a>.
+          </label>
+        </div>
+        {% if form.age_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.age_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
+
+        <div class="consent-field">
+          <input
+            type="checkbox"
             name="privacy_consent"
             id="id_privacy_consent"
             class="consent-checkbox{% if form.privacy_consent.errors %} is-invalid{% endif %}"

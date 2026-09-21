@@ -19,7 +19,10 @@ class ContactEmailService:
 
     def deliver(self, contact_message, *, account_email):
         email = self.email_message_class(
-            subject=f"[ATLAS Contact] {contact_message.subject}",
+            subject=(
+                f"[ATLAS {contact_message.get_request_type_display()}] "
+                f"{contact_message.subject}"
+            ),
             body=self._build_body(contact_message, account_email=account_email),
             from_email=self.from_email,
             to=[self.recipient],
@@ -38,6 +41,8 @@ class ContactEmailService:
                 f"Name: {contact_message.name}",
                 f"Email: {contact_message.email}",
                 f"ATLAS account: {account_email}",
+                f"Request type: {contact_message.get_request_type_display()}",
+                "Form consent recorded: yes",
                 "",
                 "Message:",
                 contact_message.message,

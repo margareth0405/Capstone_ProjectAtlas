@@ -1,5 +1,6 @@
 """Regression coverage for navigation, metadata, feedback, and mobile UI."""
 
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -149,6 +150,61 @@ class FormFeedbackTests(LibraryTestCase):
 
 
 class AccessibilityAndArchitectureTests(LibraryTestCase):
+    def test_every_template_image_has_alternative_text(self):
+        template_root = Path(settings.BASE_DIR) / "templates"
+        image_pattern = re.compile(r"<img\b[^>]*>", flags=re.IGNORECASE)
+
+        for template in template_root.rglob("*.html"):
+            for image_tag in image_pattern.findall(template.read_text(encoding="utf-8")):
+                with self.subTest(template=template.name, tag=image_tag):
+                    self.assertRegex(image_tag, r'\balt\s*=\s*["\'][^"\']*["\']')
+
+    def test_policy_covers_requested_compliance_items_without_refund_section(self):
+        response = self.client.get(reverse("library:privacy_terms"))
+
+        for expected in (
+            "Service and operator details",
+            "Privacy policy and data minimization",
+            "Minors and parent or guardian confirmation",
+            "Cookie policy and consent banner",
+            "Third-party technology audit",
+            "data deletion requests",
+            "Terms of service",
+            "Fees, reviews, and service claims",
+            "Accessibility",
+            "Fonts, icons, images, and software licenses",
+            "Email choices",
+        ):
+            with self.subTest(expected=expected):
+                self.assertContains(response, expected)
+        self.assertNotContains(response, "Refund Policy")
+        self.assertContains(response, "jsDelivr")
+        self.assertContains(response, "cdnjs")
+        self.assertContains(response, "ATLAS e-Library")
+
+    def test_sensitive_consents_are_not_prechecked(self):
+        registration = self.client.get(reverse("library:register"))
+        contact = self.client.get(reverse("library:contact"))
+
+        self.assertContains(registration, 'name="age_consent"')
+        self.assertContains(registration, 'name="privacy_consent"')
+        self.assertNotContains(registration, 'name="age_consent" checked')
+        self.assertNotContains(registration, 'name="privacy_consent" checked')
+        self.assertContains(contact, 'name="privacy_consent"')
+        self.assertNotContains(contact, 'name="privacy_consent" checked')
+
+    def test_cookie_choices_have_equal_visual_weight(self):
+        response = self.client.get(reverse("library:landing"))
+
+        self.assertContains(
+            response,
+            'class="btn btn-outline-secondary" type="button" data-cookie-choice="essential"',
+        )
+        self.assertContains(
+            response,
+            'class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics"',
+        )
+
     def test_reading_preferences_are_available_on_every_page(self):
         response = self.client.get(reverse("library:landing"))
 

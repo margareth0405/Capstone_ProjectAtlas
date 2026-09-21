@@ -13,6 +13,7 @@ from .public import (
     AnnouncementsView,
     ContactView,
     DashboardView,
+    HealthCheckView,
     PrivacyTermsView,
     RobotsView,
     SitemapView,

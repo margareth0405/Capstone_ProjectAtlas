@@ -6,6 +6,7 @@
 
 {% block dashboard_content %}
   {% url 'library:contact' as contact_url %}
+  {% url 'library:privacy_terms' as privacy_terms_url %}
 
   <div class="contact-page">
     <header class="contact-hero">
@@ -33,7 +34,7 @@
       {% endif %}
     </section>
 
-    <section class="contact-form-card" aria-labelledby="contactFormHeading">
+    <section class="contact-form-card" id="contactForm" aria-labelledby="contactFormHeading">
       <div class="contact-form-intro">
         <span class="section-kicker">Send a message</span>
         <h2 id="contactFormHeading">How can we help?</h2>
@@ -42,6 +43,7 @@
 
       <form action="{{ contact_url|default:'' }}" method="post" novalidate>
         {% csrf_token %}
+        {{ form.website }}
         {% include "library/includes/form_errors.html" with form=form %}
         <div class="contact-form-grid">
           <div class="form-group">
@@ -55,6 +57,16 @@
             {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
           <div class="form-group contact-subject-field">
+            <label for="id_request_type">What do you need?</label>
+            <select name="request_type" id="id_request_type" class="form-select{% if form.request_type.errors %} is-invalid{% endif %}" required>
+              {% for value, label in form.fields.request_type.choices %}
+                <option value="{{ value }}"{% if form.request_type.value == value %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <small class="form-helper">Choose “Delete or block my data” to submit a data-deletion request. Identity verification may be required before account data is changed.</small>
+            {% if form.request_type.errors %}<div class="invalid-feedback d-block">{% for error in form.request_type.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+          <div class="form-group contact-subject-field">
             <label for="id_subject">Subject</label>
             <input type="text" name="subject" id="id_subject" class="form-control{% if form.subject.errors %} is-invalid{% endif %}" value="{{ form.subject.value|default_if_none:'' }}" placeholder="Example: Help opening a resource" required>
             {% if form.subject.errors %}<div class="invalid-feedback d-block">{% for error in form.subject.errors %}{{ error }}{% endfor %}</div>{% endif %}
@@ -66,6 +78,21 @@
             {% if form.message.errors %}<div class="invalid-feedback d-block" id="contactMessageErrors">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         </div>
+        <div class="consent-field">
+          <input
+            type="checkbox"
+            name="privacy_consent"
+            id="id_contact_privacy_consent"
+            class="consent-checkbox{% if form.privacy_consent.errors %} is-invalid{% endif %}"
+            value="1"
+            {% if form.privacy_consent.value %}checked{% endif %}
+            required
+          >
+          <label for="id_contact_privacy_consent">
+            I agree that ATLAS may use the information in this form to review and respond to my request. See the <a href="{{ privacy_terms_url }}#privacy">Privacy Policy</a>.
+          </label>
+        </div>
+        {% if form.privacy_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.privacy_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
         <button type="submit" class="btn btn-primary atlas-primary-action"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send message</button>
       </form>
     </section>

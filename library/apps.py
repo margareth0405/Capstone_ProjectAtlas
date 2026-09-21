@@ -6,3 +6,7 @@ class LibraryConfig(AppConfig):
     name = "library"
     verbose_name = "Atlas Library"
 
+    def ready(self):
+        # Import registers ATLAS-specific checks with Django's check framework.
+        from . import checks  # noqa: F401
+

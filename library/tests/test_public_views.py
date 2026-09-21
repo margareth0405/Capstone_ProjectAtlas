@@ -131,8 +131,10 @@ class ContactTests(LibraryTestCase):
         return {
             "name": "A Library Visitor",
             "email": "visitor@example.com",
+            "request_type": ContactMessage.RequestType.SUPPORT,
             "subject": "Research support",
             "message": "Please help me find a research paper.",
+            "privacy_consent": "on",
         }
 
     def test_contact_get_does_not_create_a_message(self):
@@ -149,6 +151,8 @@ class ContactTests(LibraryTestCase):
         self.assertEqual(response.status_code, 302)
         message = ContactMessage.objects.get()
         self.assertEqual(message.email, "visitor@example.com")
+        self.assertEqual(message.request_type, ContactMessage.RequestType.SUPPORT)
+        self.assertIsNotNone(message.privacy_consent_accepted_at)
         self.assertIsNone(message.user)
         self.assertEqual(len(mail.outbox), 1)
         delivered = mail.outbox[0]
@@ -156,7 +160,43 @@ class ContactTests(LibraryTestCase):
         self.assertEqual(delivered.reply_to, ["visitor@example.com"])
         self.assertIn("Name: A Library Visitor", delivered.body)
         self.assertIn("Email: visitor@example.com", delivered.body)
+        self.assertIn("Request type: General support", delivered.body)
+        self.assertIn("Form consent recorded: yes", delivered.body)
         self.assertIn("Please help me find a research paper.", delivered.body)
+
+    def test_data_deletion_request_is_classified_and_acknowledged(self):
+        payload = self.contact_payload()
+        payload.update(
+            {
+                "request_type": ContactMessage.RequestType.DATA_DELETION,
+                "subject": "Delete my account data",
+                "message": "Please review my account data for deletion.",
+            }
+        )
+
+        response = self.client.post(reverse("library:contact"), payload, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        message = ContactMessage.objects.get()
+        self.assertEqual(
+            message.request_type,
+            ContactMessage.RequestType.DATA_DELETION,
+        )
+        self.assertContains(response, "data deletion request has been submitted")
+        self.assertIn("[ATLAS Delete or block my data]", mail.outbox[0].subject)
+
+    def test_data_deletion_link_prefills_request_type(self):
+        response = self.client.get(
+            reverse("library:contact"),
+            {"request_type": ContactMessage.RequestType.DATA_DELETION},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<option value="data_deletion" selected>Delete or block my data</option>',
+            html=True,
+        )
 
     def test_authenticated_contact_message_is_linked_to_user(self):
         user = self.create_user(email="contact-user@example.com")
