@@ -8,7 +8,7 @@ from django.views.generic import RedirectView
 
 admin.site.site_header = "ATLAS Administration"
 admin.site.site_title = "ATLAS Admin"
-admin.site.index_title = "Library management"
+admin.site.index_title = "Digital repository management"
 
 urlpatterns = [
     path(f"{settings.ADMIN_URL_PATH}/", admin.site.urls),

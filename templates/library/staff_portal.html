@@ -28,7 +28,7 @@
     </header>
 
     <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
-      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Library resources</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Repository resources</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book-reader" aria-hidden="true"></i></span><strong>{{ resource_view_count|default:0 }}</strong><span>Resource views</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open support messages</span></article>
@@ -78,7 +78,7 @@
               </tbody>
             </table>
           </div>
-        {% else %}<p class="staff-empty-copy">No library resources are available.</p>{% endif %}
+        {% else %}<p class="staff-empty-copy">No repository resources are available.</p>{% endif %}
       </section>
 
       <section class="staff-panel" aria-labelledby="announcementManagementHeading">

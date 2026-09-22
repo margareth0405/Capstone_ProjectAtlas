@@ -49,6 +49,9 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
 
+    "accounts.apps.AccountsConfig",
+    "repository.apps.RepositoryConfig",
+    "ai_detection.apps.AIDetectionConfig",
     "library.apps.LibraryConfig",
 
 ]
@@ -141,6 +144,23 @@ STORAGES = {
     },
 }
 
+R2_STORAGE_ENABLED = env_bool("R2_STORAGE_ENABLED", False)
+if R2_STORAGE_ENABLED:
+    from atlas.storage import R2StorageConfig
+
+    R2_STORAGE_CONFIG = R2StorageConfig.from_environment(os.environ)
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": R2_STORAGE_CONFIG.storage_options(),
+    }
+    import os
+
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
+
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -173,12 +193,12 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com")
 SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
-BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS e-Library").strip()
+BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
 BUSINESS_OPERATOR = os.getenv(
-    "BUSINESS_OPERATOR", "ATLAS e-Library team"
+    "BUSINESS_OPERATOR", "ATLAS Digital Repository team"
 ).strip()
 BUSINESS_SERVICE_TYPE = os.getenv(
-    "BUSINESS_SERVICE_TYPE", "Non-commercial academic library platform"
+    "BUSINESS_SERVICE_TYPE", "Non-commercial academic digital repository"
 ).strip()
 BUSINESS_COUNTRY = os.getenv("BUSINESS_COUNTRY", "Philippines").strip()
 BUSINESS_ADDRESS = os.getenv("BUSINESS_ADDRESS", "").strip()

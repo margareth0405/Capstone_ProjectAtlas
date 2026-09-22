@@ -208,7 +208,11 @@
     for (var index = 0; index < cookies.length; index += 1) {
       var cookie = cookies[index].trim();
       if (cookie.indexOf(prefix) === 0) {
-        return decodeURIComponent(cookie.slice(prefix.length));
+        try {
+          return decodeURIComponent(cookie.slice(prefix.length));
+        } catch (error) {
+          return "";
+        }
       }
     }
     return "";
@@ -219,42 +223,105 @@
     return value === "analytics" || value === "essential" ? value : "";
   }
 
-  function saveCookieConsent(value) {
-    var secure = window.location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = consentCookieName + "=" + encodeURIComponent(value)
-      + "; Max-Age=31536000; Path=/; SameSite=Lax" + secure;
+  class CookiePreferences {
+    constructor(banner) {
+      this.banner = banner;
+      this.status = banner.querySelector("[data-cookie-current]");
+      this.closeButton = banner.querySelector("[data-cookie-close]");
+      this.choiceButtons = Array.from(
+        banner.querySelectorAll("[data-cookie-choice]")
+      );
+      this.returnFocus = null;
+    }
+
+    choice() {
+      return cookieConsent();
+    }
+
+    save(value) {
+      var secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = consentCookieName + "=" + encodeURIComponent(value)
+        + "; Max-Age=31536000; Path=/; SameSite=Lax" + secure;
+      return this.choice() === value;
+    }
+
+    label(value) {
+      return value === "analytics" ? "Analytics allowed" : "Essential cookies only";
+    }
+
+    sync() {
+      var savedChoice = this.choice();
+      this.choiceButtons.forEach(function (button) {
+        var selected = button.dataset.cookieChoice === savedChoice;
+        button.setAttribute("aria-pressed", String(selected));
+        button.classList.toggle("is-selected", selected);
+      });
+      if (this.status) {
+        this.status.textContent = savedChoice
+          ? "Current choice: " + this.label(savedChoice) + "."
+          : "No optional cookie choice has been saved yet.";
+      }
+      if (this.closeButton) this.closeButton.hidden = !savedChoice;
+    }
+
+    open(trigger) {
+      this.returnFocus = trigger || document.activeElement;
+      this.sync();
+      this.banner.hidden = false;
+      this.banner.focus();
+    }
+
+    close() {
+      if (!this.choice()) return;
+      this.banner.hidden = true;
+      if (this.returnFocus && typeof this.returnFocus.focus === "function") {
+        this.returnFocus.focus();
+      }
+      this.returnFocus = null;
+    }
+
+    choose(value) {
+      if (value !== "essential" && value !== "analytics") return;
+      if (!this.save(value)) {
+        if (this.status) {
+          this.status.textContent = "Your browser could not save this preference. Check that cookies are enabled and try again.";
+        }
+        announceOptimisticStatus("Cookie preference could not be saved.", true);
+        return;
+      }
+      this.sync();
+      this.close();
+      announceOptimisticStatus(this.label(value) + " saved.", false);
+      document.dispatchEvent(new CustomEvent("atlas:cookie-consent-changed", {
+        detail: { choice: value },
+      }));
+    }
+
+    initialize() {
+      var controller = this;
+      this.sync();
+      if (!this.choice()) this.open(null);
+
+      this.choiceButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          controller.choose(button.dataset.cookieChoice);
+        });
+      });
+      document.querySelectorAll("[data-cookie-settings]").forEach(function (button) {
+        button.addEventListener("click", function () { controller.open(button); });
+      });
+      if (this.closeButton) {
+        this.closeButton.addEventListener("click", function () { controller.close(); });
+      }
+      this.banner.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && controller.choice()) controller.close();
+      });
+    }
   }
 
   function initializeCookieConsent() {
     var banner = document.getElementById("cookieConsent");
-    if (!banner) return;
-
-    function showBanner() {
-      banner.hidden = false;
-    }
-
-    function hideBanner() {
-      banner.hidden = true;
-    }
-
-    if (!cookieConsent()) showBanner();
-
-    banner.querySelectorAll("[data-cookie-choice]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var choice = button.dataset.cookieChoice;
-        saveCookieConsent(choice);
-        hideBanner();
-        if (choice === "analytics") initializeUsageHeartbeat();
-      });
-    });
-
-    document.querySelectorAll("[data-cookie-settings]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        showBanner();
-        var firstChoice = banner.querySelector("[data-cookie-choice]");
-        if (firstChoice) firstChoice.focus();
-      });
-    });
+    if (banner) new CookiePreferences(banner).initialize();
   }
 
   function pageLoader() {
@@ -755,11 +822,29 @@
     });
   }
 
+  var usageHeartbeatState = null;
+
+  function stopUsageHeartbeat() {
+    if (!usageHeartbeatState) return;
+    window.clearInterval(usageHeartbeatState.intervalId);
+    document.removeEventListener(
+      "visibilitychange",
+      usageHeartbeatState.visibilityHandler
+    );
+    if (usageHeartbeatState.shell) {
+      usageHeartbeatState.shell.dataset.usageHeartbeatStarted = "false";
+    }
+    usageHeartbeatState = null;
+  }
+
   function initializeUsageHeartbeat() {
-    if (cookieConsent() !== "analytics") return;
+    if (cookieConsent() !== "analytics") {
+      stopUsageHeartbeat();
+      return;
+    }
     var shell = document.querySelector("[data-usage-heartbeat-url]");
     if (!shell) return;
-    if (shell.dataset.usageHeartbeatStarted === "true") return;
+    if (usageHeartbeatState || shell.dataset.usageHeartbeatStarted === "true") return;
 
     var url = shell.dataset.usageHeartbeatUrl;
     var csrfToken = shell.dataset.usageCsrfToken;
@@ -798,6 +883,10 @@
     }
 
     function ping(eventName) {
+      if (cookieConsent() !== "analytics") {
+        stopUsageHeartbeat();
+        return;
+      }
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
       lastPingAt = Date.now();
       window.fetch(url, {
@@ -821,16 +910,24 @@
     }
     rememberLocation();
 
-    window.setInterval(function () { ping("heartbeat"); }, 45000);
-    document.addEventListener("visibilitychange", function () {
+    var visibilityHandler = function () {
       if (
         document.visibilityState === "visible"
         && Date.now() - lastPingAt > 30000
       ) {
         ping("heartbeat");
       }
-    });
+    };
+    var intervalId = window.setInterval(function () { ping("heartbeat"); }, 45000);
+    usageHeartbeatState = {
+      intervalId: intervalId,
+      shell: shell,
+      visibilityHandler: visibilityHandler,
+    };
+    document.addEventListener("visibilitychange", visibilityHandler);
   }
+
+  document.addEventListener("atlas:cookie-consent-changed", initializeUsageHeartbeat);
 
   hidePageLoader();
 

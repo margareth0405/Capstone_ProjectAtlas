@@ -1,2 +1,2 @@
-"""Management command package for the library app."""
+"""Management command package for the ATLAS repository app."""
 

@@ -42,7 +42,7 @@ class DocumentTextExtractor:
             text = self._extract_docx(uploaded_file)
         else:
             raise DocumentExtractionError(
-                "This older Word format cannot be displayed safely. Ask the library administrator to replace it with a .docx file."
+                "This older Word format cannot be displayed safely. Ask the repository administrator to replace it with a .docx file."
             )
         normalized = self._normalize(text)
         if not normalized:

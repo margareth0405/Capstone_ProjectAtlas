@@ -336,7 +336,38 @@ a.role-btn,
 .cookie-consent h2 {
   color: var(--maroon-900);
   font-size: 1rem;
-  margin: 0 0 0.35rem;
+  margin: 0;
+}
+
+.cookie-consent-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.cookie-consent-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--maroon-900);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1rem;
+  height: 2.25rem;
+  justify-content: center;
+  width: 2.25rem;
+}
+
+.cookie-consent-close:hover,
+.cookie-consent-close:focus-visible {
+  background: var(--maroon-50);
+}
+
+.cookie-consent-close[hidden] {
+  display: none;
 }
 
 .cookie-consent p {
@@ -344,6 +375,12 @@ a.role-btn,
   font-size: 0.8rem;
   line-height: 1.5;
   margin: 0;
+}
+
+.cookie-consent .cookie-consent-current {
+  color: var(--maroon-900);
+  font-weight: 700;
+  margin-top: 0.35rem;
 }
 
 .cookie-consent a {
@@ -358,6 +395,12 @@ a.role-btn,
   display: flex;
   flex: 0 0 auto;
   gap: 0.6rem;
+}
+
+.cookie-consent-actions .is-selected {
+  background: var(--maroon-900);
+  border-color: var(--maroon-900);
+  color: #fff;
 }
 
 .legal-page,

@@ -1,7 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}Library Announcements | ATLAS{% endblock %}
-{% block meta_description %}Read the latest ATLAS library updates, events, maintenance notices, and resource announcements.{% endblock %}
+{% block title %}Repository Announcements | ATLAS{% endblock %}
+{% block meta_description %}Read the latest ATLAS Digital Repository updates, events, maintenance notices, and resource announcements.{% endblock %}
 {% block breadcrumb %}Announcements{% endblock %}
 
 {% block dashboard_content %}
@@ -10,7 +10,7 @@
 
   <header class="announcements-hero django-announcements-hero">
     <div>
-      <span class="section-kicker">Library updates</span>
+      <span class="section-kicker">Repository updates</span>
       <h1>Announcements</h1>
     </div>
     <div class="announcement-header-actions">
@@ -63,7 +63,7 @@
                 {% else %}
                   <time datetime="{{ announcement.created_at|date:'c' }}"><i class="far fa-calendar-alt" aria-hidden="true"></i> Saved {{ announcement.created_at|date:'F j, Y, g:i a' }}</time>
                 {% endif %}
-                <span><i class="far fa-user" aria-hidden="true"></i> {{ announcement.created_by.get_full_name|default:'Library Team' }}</span>
+                <span><i class="far fa-user" aria-hidden="true"></i> {{ announcement.created_by.get_full_name|default:'Repository Team' }}</span>
               </div>
             </div>
           </div>

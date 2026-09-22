@@ -180,7 +180,7 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertNotContains(response, "Refund Policy")
         self.assertContains(response, "jsDelivr")
         self.assertContains(response, "cdnjs")
-        self.assertContains(response, "ATLAS e-Library")
+        self.assertContains(response, "ATLAS Digital Repository")
 
     def test_sensitive_consents_are_not_prechecked(self):
         registration = self.client.get(reverse("library:register"))
@@ -204,6 +204,23 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
             response,
             'class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics"',
         )
+        self.assertContains(response, "data-cookie-current")
+        self.assertContains(response, "data-cookie-close")
+
+    def test_cookie_preferences_use_an_encapsulated_controller(self):
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "app.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("class CookiePreferences", script)
+        self.assertIn('aria-pressed', script)
+        self.assertIn("stopUsageHeartbeat", script)
+        self.assertIn("atlas:cookie-consent-changed", script)
 
     def test_reading_preferences_are_available_on_every_page(self):
         response = self.client.get(reverse("library:landing"))
@@ -211,9 +228,8 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, "data-accessibility-trigger")
         self.assertContains(response, 'id="accessibilityPanel"')
         self.assertContains(response, 'aria-label="Reading preferences"')
-        self.assertContains(response, "data-text-size-toggle")
-        self.assertContains(response, "data-contrast-toggle")
-        self.assertContains(response, 'aria-pressed="false"', count=2)
+        self.assertContains(response, 'data-text-size-toggle aria-pressed="false"')
+        self.assertContains(response, 'data-contrast-toggle aria-pressed="false"')
         self.assertNotContains(response, 'class="reading-preferences"')
 
     def test_accessibility_preferences_use_an_encapsulated_controller(self):

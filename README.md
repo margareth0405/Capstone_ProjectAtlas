@@ -1,6 +1,6 @@
-# ATLAS Django e-Library
+# ATLAS Digital Repository
 
-ATLAS is a role-aware digital library for guests, students, teachers, and
+ATLAS is a role-aware digital repository for guests, students, teachers, and
 administrators. Django owns authentication, permissions, validation, catalog
 records, protected resource views, announcements, contact messages, staff activity history,
 website-usage analytics, and the administrator AI Detection service.
@@ -12,17 +12,17 @@ JavaScript. Node.js is not required.
 
 ### Guests, students, and teachers
 
-- Browse and search the connected library catalog. Filters and sorting update automatically.
+- Browse and search the connected digital repository. Filters and sorting update automatically.
 - Sort resources by title A-Z/Z-A, author A-Z/Z-A, or publication date newest/oldest.
 - See each resource's title, author, file format, description or abstract, publication date, and system-added date.
-- View published announcements on both the Announcements page and the Library page.
+- View published announcements on both the Announcements page and the Digital Repository page.
 - Submit support messages to atlastshs@gmail.com.
 - Register and sign in as a student or teacher.
 - Read PDF or Word Resource abstracts inside ATLAS as a guest or member; authenticated readers can also save Bookmarks.
 
 ### Administrators
 
-- Create, edit, and delete library resource records.
+- Create, edit, and delete repository resource records.
 - Optionally attach a validated JPG, PNG, or WebP cover and upload one required,
   protected PDF or Word (.docx) Resource abstract for each new resource.
 - Enter a publication month and year, with an optional exact day; ATLAS records the system-added date automatically.
@@ -100,14 +100,14 @@ created with createsuperuser or Django Admin.
 
 New announcements are saved as drafts and remain hidden from guests, students,
 and teachers. After an administrator reviews and publishes one, it appears on
-their Announcement and Library pages. Other is available as a category.
+their Announcement and Digital Repository pages. Other is available as a category.
 
-The Library page also shows the newest published announcements and links each
+The Digital Repository page also shows the newest published announcements and links each
 one to its full announcement. Administrator create, edit, publish, unpublish,
 and delete actions use Django's POST-redirect-GET flow, so the returned page
 already contains the saved state without requiring a manual refresh.
 
-## Library resource records
+## Digital repository resource records
 
 The branded resource form accepts one required Resource abstract in PDF (.pdf)
 or Word (.docx) format, up to 10 MB. It also accepts an optional Cover image
@@ -132,7 +132,7 @@ when the record entered ATLAS.
 Guests, students, and teachers do not receive a file-download or full-resource
 action. The Read resource abstract action extracts text on the server and
 displays it inside ATLAS without serving the original upload. Direct /media/
-routing is disabled even in development, so uploaded library files are not
+routing is disabled even in development, so uploaded repository files are not
 public URLs. PDF and .docx text are supported; image-only PDFs
 need OCR, and legacy .doc files should be replaced with .docx for protected
 reading. Resource viewing history records the resource, visitor, account type,
@@ -144,6 +144,7 @@ deduplicated.
 - Python 3.12
 - Django
 - PostgreSQL through DATABASE_URL
+- Private Cloudflare R2 media storage through django-storages (optional locally)
 - django-allauth for email identity, verification, and password recovery
 - WhiteNoise for deployed static assets
 - pypdf for PDF text extraction
@@ -248,6 +249,40 @@ settings use the standard resumable HTTP downloader on Windows and suppress the
 non-fatal symlink-cache warning; operators can explicitly set
 `HF_HUB_DISABLE_XET=0` after confirming Xet works on their network.
 
+## Private Cloudflare R2 storage
+
+ATLAS can keep uploaded cover images and resource abstracts in a private R2
+bucket. Static CSS and JavaScript remain on WhiteNoise. Create a new R2 API
+token with Object Read & Write access limited to the ATLAS bucket, then add the
+new S3 credentials to the private `.env` file or the hosting provider's secret
+settings:
+
+```dotenv
+R2_STORAGE_ENABLED=True
+R2_ACCOUNT_ID=your-32-character-account-id
+R2_ACCESS_KEY_ID=your-new-access-key-id
+R2_SECRET_ACCESS_KEY=your-new-secret-access-key
+R2_BUCKET_NAME=your-bucket-name
+R2_ENDPOINT_URL=https://your-account-id.r2.cloudflarestorage.com
+R2_SIGNED_URL_EXPIRY=300
+```
+
+The endpoint is account-level; do not append `/bucket-name`. Files stay private
+and generated object URLs are signed for a short period. ATLAS normally reads
+protected files through its authenticated Django endpoints, so browser CORS is
+not required for the current server-mediated upload and reader flow.
+
+Verify the active backend and then perform a temporary write/read/delete test:
+
+```powershell
+python manage.py check_storage
+python manage.py check_storage --write-test
+```
+
+Keep `R2_STORAGE_ENABLED=False` for local filesystem storage. Existing files in
+`media/` are not copied automatically when R2 is enabled; upload them to the
+same object keys before switching an installation that already contains media.
+
 ## Contact details and email delivery
 
 The public Contact page and site footer use the configured support email and
@@ -339,6 +374,18 @@ not import templates or views.
 atlas/
 |-- settings.py                         Environment-based Django configuration
 +-- urls.py                             Root routing and private Django Admin
+
+accounts/
+|-- apps.py                             Account-domain Django configuration
++-- urls.py                             Authentication and user-management routes
+
+repository/
+|-- apps.py                             Repository-domain Django configuration
++-- urls.py                             Catalog, bookmark, reader, and resource CRUD routes
+
+ai_detection/
+|-- apps.py                             AI-domain Django configuration
++-- urls.py                             Protected AI Detection route
 
 library/
 |-- models.py                           Domain entities and persistence rules
@@ -438,7 +485,7 @@ Migration 0003 adds administrator activity and website-visit history. Migration
 0004 adds page-view counts and last-page tracking. Migration 0005 adds resource
 publication dates and PDF/Word format choices. Migration 0006 adds the Other
 announcement category, Bookmark display names, and resource-view history.
-Migration 0007 adds cover-image and abstract-file storage to library resources.
+Migration 0007 adds cover-image and abstract-file storage to repository resources.
 Migration 0008 safely renames the abstract field to Resource abstract without
 deleting existing uploads. Migration 0009 adds reproducibility metadata for AI
 Detection analyses without storing submitted content. Migration 0010 adds
@@ -453,6 +500,7 @@ python manage.py check
 python manage.py check_database
 python manage.py makemigrations --check --dry-run
 python manage.py verify_deployment
+python manage.py check_storage
 python manage.py test
 python manage.py collectstatic --noinput
 ```
@@ -539,8 +587,8 @@ persistent directory; otherwise each new instance may download the model again.
 
 ```dotenv
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=library.example.edu
-DJANGO_CSRF_TRUSTED_ORIGINS=https://library.example.edu
+DJANGO_ALLOWED_HOSTS=repository.example.edu
+DJANGO_CSRF_TRUSTED_ORIGINS=https://repository.example.edu
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
 SECURE_SSL_REDIRECT=True
@@ -557,7 +605,7 @@ Also:
 - Use a unique production DJANGO_SECRET_KEY.
 - Set the platform's `PORT` variable or allow the Procfile default of 8000.
 - Configure real SMTP credentials and test delivery.
-- Use durable private media storage for uploaded resources; do not map MEDIA_ROOT to a public web-server URL.
+- Enable and verify private Cloudflare R2 storage for production uploads.
 - Run migrations and collectstatic.
 - Replace demonstration passwords.
 - Keep DJANGO_ADMIN_PATH private.
@@ -568,6 +616,7 @@ Also:
 - Enable HSTS and HSTS preload only after HTTPS works correctly for the main
   domain and every subdomain; browser preload enrollment is difficult to undo.
 
-The archived browser-only prototype remains under legacy/ for reference. Django
-serves the active application from library/, templates/library/, and
-library/static/library/.
+The active Django application uses accounts/, repository/, and ai_detection/
+as feature entry points. Shared models, views, services, templates, and static
+assets remain under library/ to preserve the existing database migration and
+URL compatibility contracts.

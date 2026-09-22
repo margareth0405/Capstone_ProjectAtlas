@@ -85,25 +85,25 @@ class StaffFormView(StaffRequiredMixin, View):
 
 
 class StaffItemCreateView(StaffFormView):
-    """Create one library resource."""
+    """Create one digital repository resource."""
 
     form_class = LibraryItemForm
     template_name = "library/admin/item_form.html"
     active_page = "catalog"
-    form_title = "Add library item"
+    form_title = "Add repository item"
     submit_label = "Add item"
-    activity_object_type = "library resource"
+    activity_object_type = "repository resource"
 
     def prepare_instance(self, instance):
         instance.created_by = self.request.user
-        self.success_message = f"{instance.title} was added to the library."
+        self.success_message = f"{instance.title} was added to the digital repository."
         return instance
 
 
 class StaffItemEditView(StaffItemCreateView):
-    """Edit one existing library resource."""
+    """Edit one existing digital repository resource."""
 
-    form_title = "Edit library item"
+    form_title = "Edit repository item"
     submit_label = "Save changes"
 
     def get_instance(self):
@@ -115,7 +115,7 @@ class StaffItemEditView(StaffItemCreateView):
 
 
 class StaffItemDeleteView(StaffRequiredMixin, View):
-    """Delete one library resource and retain an audit entry."""
+    """Delete one digital repository resource and retain an audit entry."""
 
     activity_recorder_class = ActivityRecorder
 
@@ -126,11 +126,11 @@ class StaffItemDeleteView(StaffRequiredMixin, View):
         self.activity_recorder_class.record(
             actor=request.user,
             action=ActivityLog.Action.DELETE,
-            object_type="library resource",
+            object_type="repository resource",
             object_id=pk,
             description=title,
         )
-        messages.info(request, f"{title} was removed from the library.")
+        messages.info(request, f"{title} was removed from the digital repository.")
         return redirect("library:staff_portal")
 
 

@@ -80,6 +80,8 @@ class LibraryItem(models.Model):
 
     class Meta:
         ordering = ("title", "author")
+        verbose_name = "repository item"
+        verbose_name_plural = "repository items"
         indexes = [
             models.Index(fields=("collection", "title"), name="library_col_title_idx"),
         ]
@@ -364,7 +366,7 @@ class WebsiteVisit(models.Model):
 
 
 class ResourceViewEvent(models.Model):
-    """A deduplicated record of a visitor reading one library resource."""
+    """A deduplicated record of a visitor reading one repository resource."""
 
     item = models.ForeignKey(
         LibraryItem,

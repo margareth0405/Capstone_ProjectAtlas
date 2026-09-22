@@ -253,7 +253,7 @@ class ContactView(PageContextMixin, TemplateView):
                 contact_message.save()
                 success_message = (
                     "Your data deletion request has been submitted for review. "
-                    "The library team may contact you to verify your identity."
+                    "The repository team may contact you to verify your identity."
                     if contact_message.request_type
                     == ContactMessage.RequestType.DATA_DELETION
                     else f"Your message has been sent to {settings.SUPPORT_EMAIL}."

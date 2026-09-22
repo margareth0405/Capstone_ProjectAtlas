@@ -14,10 +14,10 @@
     <meta name="color-scheme" content="light">
     <meta
       name="description"
-      content="{% block meta_description %}Explore academic resources, protected reading, announcements, and library support through the ATLAS e-Library.{% endblock %}"
+      content="{% block meta_description %}Explore academic resources, protected reading, announcements, and repository support through the ATLAS Digital Repository.{% endblock %}"
     >
     {% block robots %}{% endblock %}
-    <title>{% block title %}ATLAS | Academic e-Library{% endblock %}</title>
+    <title>{% block title %}ATLAS | Digital Repository{% endblock %}</title>
 
     <link rel="icon" href="{% static 'library/images/favicon.svg' %}" type="image/svg+xml">
 
@@ -95,11 +95,11 @@
     <footer class="site-footer" aria-label="Site footer">
       <a class="footer-brand" href="{{ landing_url }}" aria-label="ATLAS home">
         <i class="fas fa-flask" aria-hidden="true"></i>
-        <span>ATLAS <small>e-Library</small></span>
+        <span>ATLAS <small>Digital Repository</small></span>
       </a>
       <nav class="footer-navigation" aria-label="Footer navigation">
         <a href="{{ landing_url }}">Home</a>
-        <a href="{{ catalog_url }}">Library</a>
+        <a href="{{ catalog_url }}">Digital Repository</a>
         <a href="{{ contact_url }}">Contact</a>
         <a href="{{ privacy_terms_url }}">Privacy &amp; Terms</a>
         <button type="button" data-cookie-settings>Cookie preferences</button>
@@ -117,20 +117,27 @@
       aria-modal="false"
       aria-labelledby="cookieConsentTitle"
       aria-describedby="cookieConsentDescription"
+      tabindex="-1"
       hidden
     >
       <div>
-        <h2 id="cookieConsentTitle"><i class="fas fa-cookie-bite" aria-hidden="true"></i> Cookie choices</h2>
+        <div class="cookie-consent-heading">
+          <h2 id="cookieConsentTitle"><i class="fas fa-cookie-bite" aria-hidden="true"></i> Cookie preferences</h2>
+          <button class="cookie-consent-close" type="button" data-cookie-close aria-label="Close cookie preferences" hidden>
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
         <p id="cookieConsentDescription">ATLAS always uses essential security and session cookies. With your permission, it also records privacy-conscious website usage statistics.</p>
+        <p class="cookie-consent-current" data-cookie-current role="status" aria-live="polite"></p>
         <a href="{{ privacy_terms_url }}#cookies">Read the cookie policy</a>
       </div>
       <div class="cookie-consent-actions">
-        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="essential">Essential only</button>
-        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics">Allow analytics</button>
+        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="essential" aria-pressed="false">Essential only</button>
+        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics" aria-pressed="false">Allow analytics</button>
       </div>
     </section>
 
-    <script src="{% static 'library/js/app.js' %}?v=20260920-password-feedback" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20260921-cookie-preferences" defer></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"

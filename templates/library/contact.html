@@ -1,7 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}Contact Library Support | ATLAS{% endblock %}
-{% block meta_description %}Contact the ATLAS library team for account, resource, or website support.{% endblock %}
+{% block title %}Contact Repository Support | ATLAS{% endblock %}
+{% block meta_description %}Contact the ATLAS Digital Repository team for account, resource, or website support.{% endblock %}
 {% block breadcrumb %}Contact Us{% endblock %}
 
 {% block dashboard_content %}
@@ -38,7 +38,7 @@
       <div class="contact-form-intro">
         <span class="section-kicker">Send a message</span>
         <h2 id="contactFormHeading">How can we help?</h2>
-        <p>Provide enough detail for the library team to respond. Do not include passwords or other sensitive information.</p>
+        <p>Provide enough detail for the repository team to respond. Do not include passwords or other sensitive information.</p>
       </div>
 
       <form action="{{ contact_url|default:'' }}" method="post" novalidate>
@@ -74,7 +74,7 @@
           <div class="form-group contact-message-field">
             <label for="id_message">Message</label>
             <textarea name="message" id="id_message" class="form-control{% if form.message.errors %} is-invalid{% endif %}" rows="6" aria-describedby="contactMessageHelp{% if form.message.errors %} contactMessageErrors{% endif %}" required>{{ form.message.value|default_if_none:'' }}</textarea>
-            <small class="form-helper" id="contactMessageHelp">Example: I cannot open the resource abstract on the Library page. Do not include passwords.</small>
+            <small class="form-helper" id="contactMessageHelp">Example: I cannot open a resource abstract in the Digital Repository. Do not include passwords.</small>
             {% if form.message.errors %}<div class="invalid-feedback d-block" id="contactMessageErrors">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         </div>

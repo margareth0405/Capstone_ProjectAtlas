@@ -196,6 +196,19 @@ class AnalyticsConsentTests(LibraryTestCase):
         self.assertEqual(response.status_code, 204)
         self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())
 
+    def test_server_ignores_usage_events_after_analytics_is_disabled(self):
+        user = self.create_user(email="privacy-disabled@example.com")
+        self.client.force_login(user)
+        self.client.cookies["atlas_cookie_consent"] = "essential"
+
+        response = self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": "/dashboard/"},
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())
+
 
 class SecurityRegressionTests(LibraryTestCase):
     """Exercise the attack cases included in the technical questionnaire."""

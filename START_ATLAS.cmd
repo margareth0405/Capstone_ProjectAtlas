@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title ATLAS e-Library
+title ATLAS Digital Repository
 
 echo Starting ATLAS in quick-start mode...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start_atlas.ps1" -UseSQLite -OpenBrowser

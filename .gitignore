@@ -9,6 +9,11 @@ htmlcov/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
 
 # Django runtime data
 db.sqlite3

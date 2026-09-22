@@ -1,8 +1,8 @@
 {% extends "library/dashboard_base.html" %}
 
-{% block title %}Library Collection | ATLAS{% endblock %}
+{% block title %}Digital Repository | ATLAS{% endblock %}
 {% block meta_description %}Search and browse books, journals, research, activity sheets, and curriculum guides in ATLAS.{% endblock %}
-{% block breadcrumb %}Library{% endblock %}
+{% block breadcrumb %}Digital Repository{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
@@ -16,7 +16,7 @@
     <header class="library-header django-page-header">
       <div>
         <span class="section-kicker">ATLAS catalog</span>
-        <h1>Library Collection</h1>
+        <h1>Digital Repository</h1>
         <div class="d-flex gap-3 mt-2 flex-wrap">
           <span class="badge bg-maroon">Total Items: {{ resource_count|default:0 }}</span>
         </div>
@@ -65,7 +65,7 @@
         </select>
       </div>
       <div class="filter-group filter-search-group">
-        <label for="librarySearch">Search within library</label>
+        <label for="librarySearch">Search the digital repository</label>
         <input type="search" id="librarySearch" name="q" class="form-control" value="{{ query|default:'' }}" placeholder="Example: biology, Rizal, or QA76.73-T001">
       </div>
       <div class="filter-group filter-sort-group">

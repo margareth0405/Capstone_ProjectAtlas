@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">ATLAS e-Library</title>
+  <title id="title">ATLAS Digital Repository</title>
   <rect width="64" height="64" rx="14" fill="#4a111c"/>
   <path d="M25 10h14v5l-3 2v10.4l12 19.4A5.4 5.4 0 0 1 43.4 55H20.6a5.4 5.4 0 0 1-4.6-8.2l12-19.4V17l-3-2v-5Zm7 21.7-9.8 16h19.6l-9.8-16Z" fill="#f4e4c7"/>
   <path d="M24.6 44h14.8l3.1 5H21.5l3.1-5Z" fill="#cc5a6d"/>

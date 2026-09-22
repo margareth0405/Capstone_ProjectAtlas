@@ -1,4 +1,4 @@
-"""Privacy-aware tracking for readers opening library resources."""
+"""Privacy-aware tracking for readers opening repository resources."""
 
 from datetime import timedelta
 
