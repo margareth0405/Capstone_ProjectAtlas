@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from library.models import Announcement, LibraryItem, Profile
 
-
 TEST_PASSWORD = "Atlas-Test-Pass-2026!"
 
 

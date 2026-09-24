@@ -8,7 +8,6 @@ from django.utils import timezone
 
 from library.models import Announcement, LibraryItem, Profile
 
-
 DEMO_PASSWORD = "password123"
 
 ITEMS = [

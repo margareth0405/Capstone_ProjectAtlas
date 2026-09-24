@@ -1,20 +1,19 @@
+import re
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-import re
 
 from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.contrib.auth.forms import UserCreationForm
-from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .models import Announcement, ContactMessage, LibraryItem, Profile
 from .services.accounts import AccountEmailPolicy
 from .services.uploads import DocumentUploadPolicy, DocumentUploadValidationError
-
 
 User = get_user_model()
 

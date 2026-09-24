@@ -10,7 +10,6 @@ from django.shortcuts import render
 
 from library.services.usage import WebsiteUsageTracker
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -5,9 +5,9 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.sites.requests import RequestSite
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
-from django.contrib.sites.requests import RequestSite
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone

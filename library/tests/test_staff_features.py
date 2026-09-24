@@ -7,12 +7,11 @@ from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
-
 from docx import Document
 
 from library.models import (
-    AIAnalysis,
     ActivityLog,
+    AIAnalysis,
     Profile,
     ResourceViewEvent,
     WebsiteVisit,

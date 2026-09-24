@@ -11,7 +11,6 @@ from django.urls import reverse
 from PIL import Image
 
 from library.models import ContactMessage, Favorite, Profile, ResourceViewEvent
-
 from library.views.catalog import ResourceAbstractReaderView
 
 from .base import LibraryTestCase

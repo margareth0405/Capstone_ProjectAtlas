@@ -48,6 +48,14 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         ADMIN_URL_PATH="admin",
         BUSINESS_ADDRESS="",
         RATE_LIMIT_ENABLED=False,
+        STORAGES={
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage"
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+            },
+        },
     )
     @patch.dict("os.environ", {"HF_HOME": ""})
     def test_unsafe_production_configuration_has_actionable_findings(self):

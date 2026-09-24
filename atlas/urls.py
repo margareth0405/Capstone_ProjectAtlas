@@ -5,7 +5,6 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-
 admin.site.site_header = "ATLAS Administration"
 admin.site.site_title = "ATLAS Admin"
 admin.site.index_title = "Digital repository management"

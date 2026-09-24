@@ -1,7 +1,7 @@
 """Application service objects shared by ATLAS views and middleware."""
 
-from .activity import ActivityRecorder
 from .accounts import AccountEmailPolicy
+from .activity import ActivityRecorder
 from .ai_detection import (
     AIDetectionError,
     AIDetectionService,
@@ -22,25 +22,25 @@ from .staff_portal import (
 from .usage import WebsiteUsageTracker
 
 __all__ = (
-    "ActivityRecorder",
+    "AIDetectionError",
+    "AIDetectionService",
     "AccountEmailPolicy",
+    "ActivityRecorder",
     "CatalogQueryService",
     "ContactDeliveryError",
     "ContactEmailService",
+    "DesklibAcademicDetector",
     "DocumentExtractionError",
     "DocumentTextExtractor",
     "GreetingNameResolver",
     "PageContextBuilder",
-    "SupportContactPresenter",
-    "SafeRedirectService",
     "RepositoryItemPersistenceService",
     "ResourceStorageError",
+    "SafeRedirectService",
     "StaffPortalContextService",
     "StaffUserDirectory",
+    "SupportContactPresenter",
     "UsageAnalytics",
-    "WebsiteUsageTracker",
-    "AIDetectionError",
-    "AIDetectionService",
-    "DesklibAcademicDetector",
     "VanguardDetector",
+    "WebsiteUsageTracker",
 )

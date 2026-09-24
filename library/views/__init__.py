@@ -1,13 +1,19 @@
 """Feature-grouped class-based views for the ATLAS application."""
 
-from .authentication import GuestLoginView, LandingView, LoginView, LogoutView, RegisterView
+from .authentication import (
+    GuestLoginView,
+    LandingView,
+    LoginView,
+    LogoutView,
+    RegisterView,
+)
 from .catalog import (
     CatalogView,
-    FavoriteToggleView,
     FavoritesView,
+    FavoriteToggleView,
     ItemDetailView,
-    ResourceCoverView,
     ResourceAbstractReaderView,
+    ResourceCoverView,
 )
 from .public import (
     AnnouncementsView,

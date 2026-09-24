@@ -4,7 +4,6 @@ from django.urls import path
 
 from library import views
 
-
 urlpatterns = [
     path("repository/", views.CatalogView.as_view(), name="catalog"),
     path("repository/<int:pk>/", views.ItemDetailView.as_view(), name="item_detail"),

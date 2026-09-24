@@ -182,7 +182,12 @@ class DesklibAcademicDetector(HuggingFaceDetector):
         try:
             import torch
             from torch import nn
-            from transformers import AutoConfig, AutoModel, AutoTokenizer, PreTrainedModel
+            from transformers import (
+                AutoConfig,
+                AutoModel,
+                AutoTokenizer,
+                PreTrainedModel,
+            )
         except ImportError as exc:
             raise AIDetectionError(
                 "Academic validation is unavailable. Install the project requirements."

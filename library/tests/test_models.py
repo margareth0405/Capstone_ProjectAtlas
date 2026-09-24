@@ -7,7 +7,7 @@ from django.db import IntegrityError, transaction
 
 from library.models import Favorite, Profile
 
-from .base import LibraryTestCase, TEST_PASSWORD
+from .base import TEST_PASSWORD, LibraryTestCase
 
 
 class AuthenticationModelTests(LibraryTestCase):

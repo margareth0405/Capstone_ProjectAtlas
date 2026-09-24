@@ -593,6 +593,34 @@ The deployment stops instead of launching with placeholder email, security,
 database, storage, or institution settings. The `Procfile` then starts the web
 process with Gunicorn.
 
+### Render deployment
+
+ATLAS pins Python 3.12.10 in `.python-version` because Render's default Python
+version can change. Create a **Python 3 Web Service** from this repository and
+configure:
+
+```text
+Build Command: bash build.sh
+Start Command: gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --access-logfile -
+Health Check Path: /health/
+```
+
+Create or attach Render PostgreSQL and copy its complete **internal database
+URL** into `DATABASE_URL`. The value must start with `postgresql://`; do not
+enter backslashes or the literal `USERNAME`, `PASSWORD`, `HOST`, or
+`DATABASE_NAME` placeholders.
+
+Render automatically supplies `RENDER_EXTERNAL_HOSTNAME`. ATLAS adds that host
+and its HTTPS origin to Django's allowed-host and CSRF configuration. Only add
+`DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` yourself when using a
+custom domain.
+
+Add every non-placeholder value from `.env.production.example` in Render's
+Environment page. In particular, configure the R2 credentials, Gmail App
+Password, private administrator path, business/privacy details, HTTPS flags,
+and AI cache path as private environment variables. Never upload `.env` or
+paste secrets into the Git repository.
+
 On Windows Server, use the installed Waitress server instead:
 
 ```powershell

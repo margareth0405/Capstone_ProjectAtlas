@@ -3,6 +3,7 @@ from django.db import migrations
 
 
 def backfill_email_addresses(apps, schema_editor):
+    del schema_editor  # Required by Django's data-migration callback contract.
     app_label, model_name = settings.AUTH_USER_MODEL.split(".")
     user_model = apps.get_model(app_label, model_name)
     email_address_model = apps.get_model("account", "EmailAddress")

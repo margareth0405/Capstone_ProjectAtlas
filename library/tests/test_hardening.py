@@ -1,8 +1,8 @@
 """Security, privacy, performance, and public-error regression coverage."""
 
 from django.contrib.auth.models import AnonymousUser
-from django.core.cache import cache
 from django.core import mail
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
