@@ -24,17 +24,32 @@ def env_list(name, default=""):
     return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
-# Support both the documented DJANGO_* names and the shorter names used by
-# several hosting providers. The documented names take precedence.
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or os.getenv(
-    "SECRET_KEY", "django-insecure-atlas-development-only"
-)
-DEBUG = env_bool("DJANGO_DEBUG", env_bool("DEBUG", True))
+# Support both the shorter names commonly provided by hosting platforms and
+# the documented DJANGO_* aliases. The shorter names take precedence.
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY is required.")
+
+DEBUG = env_bool("DEBUG", env_bool("DJANGO_DEBUG", False))
 ALLOWED_HOSTS = env_list(
-    "DJANGO_ALLOWED_HOSTS",
-    os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver"),
+    "ALLOWED_HOSTS",
+    os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,127.0.0.1,[::1],testserver",
+    ),
 )
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", ""),
+)
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+if RENDER_EXTERNAL_HOSTNAME:
+    render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 ADMIN_URL_PATH = os.getenv("DJANGO_ADMIN_PATH", "").strip().strip("/")
 if not ADMIN_URL_PATH:
