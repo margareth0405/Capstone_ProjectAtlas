@@ -4,11 +4,12 @@ import re
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib import admin
 from django.urls import reverse
 
-from library.models import Profile
+from library.models import DownloadEvent, Profile
 
-from .base import LibraryTestCase, TEST_PASSWORD
+from .base import TEST_PASSWORD, LibraryTestCase
 
 
 class ReaderAuthPresentationTests(LibraryTestCase):
@@ -123,6 +124,7 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertIn("class PasswordFeedback", script)
         self.assertIn('special: /[^\\w\\s]/.test(password)', script)
         self.assertIn('this.updateRule("match"', script)
+
     def test_invalid_teacher_login_post_preserves_hidden_role(self):
         response = self.client.post(
             reverse("library:login"),
@@ -167,6 +169,13 @@ class ReaderAuthPresentationTests(LibraryTestCase):
 
 
 class AtlasAdminLoginTests(LibraryTestCase):
+    def test_legacy_download_history_is_registered_read_only(self):
+        model_admin = admin.site._registry[DownloadEvent]
+
+        self.assertFalse(model_admin.has_add_permission(None))
+        self.assertFalse(model_admin.has_change_permission(None))
+        self.assertFalse(model_admin.has_delete_permission(None))
+
     def test_public_pages_do_not_expose_administrator_entry_points(self):
         public_requests = (
             (reverse("library:landing"), None),

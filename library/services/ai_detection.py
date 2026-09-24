@@ -201,6 +201,9 @@ class DesklibAcademicDetector(HuggingFaceDetector):
                 self.init_weights()
 
             def forward(self, input_ids, attention_mask=None, labels=None):
+                # Transformers may supply labels through the standard model
+                # interface; inference only needs the encoded inputs.
+                del labels
                 outputs = self.model(input_ids, attention_mask=attention_mask)
                 hidden_state = outputs[0]
                 expanded_mask = attention_mask.unsqueeze(-1).expand(

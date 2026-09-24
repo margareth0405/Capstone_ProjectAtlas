@@ -523,6 +523,13 @@
         });
 
         request.addEventListener("load", function () {
+          if (request.status < 200 || request.status >= 400) {
+            var message = request.status === 403
+              ? "Your session expired or the request was not authorized. Refresh the page and sign in again."
+              : "ATLAS could not save the upload. Check the file and connection, then try again.";
+            showUploadError(message);
+            return;
+          }
           var responseUrl = request.responseURL || window.location.href;
           var current = new URL(window.location.href);
           var resolved = new URL(responseUrl, window.location.href);

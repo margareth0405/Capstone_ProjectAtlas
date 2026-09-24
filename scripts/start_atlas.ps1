@@ -20,7 +20,9 @@ Set-Location $projectRoot
 if ($UseSQLite) {
     $localDatabase = (Join-Path $projectRoot "db.sqlite3").Replace("\", "/")
     $env:DATABASE_URL = "sqlite:///$localDatabase"
+    $env:DJANGO_EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     Write-Host "Quick-start mode: using the local development database." -ForegroundColor Yellow
+    Write-Host "Development email mode: verification links appear in this terminal." -ForegroundColor Yellow
 }
 
 if (-not (Test-Path -LiteralPath $venvPython)) {

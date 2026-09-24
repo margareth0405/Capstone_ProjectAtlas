@@ -312,12 +312,18 @@ SUPPORT_PHONE=+63 912 345 6789
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_TIMEOUT=15
 EMAIL_HOST_USER=atlastshs@gmail.com
 EMAIL_HOST_PASSWORD=your-google-app-password
 ```
 
-Do not use the normal Gmail password. If delivery fails, ATLAS keeps the form
-visible, shows an error, and does not record the message as successfully sent.
+Do not use the normal Gmail password or leave the example password in place.
+For Gmail, enable two-step verification and create an App Password. If delivery
+fails, ATLAS keeps the form visible, shows an error, and does not retain a new
+unverified account or record a contact message as successfully sent. Switch back
+to the console backend while developing locally; verification links will be
+printed in the terminal running Django.
 
 ## Administrator setup
 
@@ -574,6 +580,18 @@ an unapplied-migration check. The public `/health/` endpoint performs a minimal
 database readiness check for a load balancer without exposing database names,
 users, credentials, or AI model details. It deliberately does not load the
 large AI model during routine health polling.
+
+For a Linux hosting provider with a build-command field, use:
+
+```bash
+bash build.sh
+```
+
+The script installs the locked dependencies, collects static assets, applies
+database migrations, and runs the complete production verification command.
+The deployment stops instead of launching with placeholder email, security,
+database, storage, or institution settings. The `Procfile` then starts the web
+process with Gunicorn.
 
 On Windows Server, use the installed Waitress server instead:
 

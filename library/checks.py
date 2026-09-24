@@ -8,6 +8,7 @@ from library.services.deployment import DeploymentReadinessService
 @register(Tags.security, deploy=True)
 def production_configuration_checks(app_configs, **kwargs):
     """Report production settings that would break or weaken ATLAS."""
+    del app_configs  # Required by Django's registered-check callback signature.
 
     messages = []
     for finding in DeploymentReadinessService().inspect_configuration():

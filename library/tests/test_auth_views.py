@@ -1,20 +1,21 @@
 """Registration, login, session, and consent behavior."""
 
+import smtplib
 from io import StringIO
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
+from allauth.account.models import EmailAddress, EmailConfirmationHMAC
 from django.conf import settings
-from django.core import mail
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
 from django.core.management import call_command
 from django.urls import reverse
 
-from allauth.account.models import EmailAddress, EmailConfirmationHMAC
-
 from library.models import Profile
 
-from .base import LibraryTestCase, TEST_PASSWORD
+from .base import TEST_PASSWORD, LibraryTestCase
 
 
 class RegistrationTests(LibraryTestCase):
@@ -54,6 +55,21 @@ class RegistrationTests(LibraryTestCase):
         email_address = EmailAddress.objects.get(user=user)
         self.assertEqual(email_address.email, "jamie@gmail.com")
         self.assertTrue(email_address.primary)
+
+    @patch(
+        "library.views.authentication.complete_signup",
+        side_effect=smtplib.SMTPServerDisconnected("Connection unexpectedly closed"),
+    )
+    def test_registration_handles_smtp_disconnect_without_leaving_account(self, _signup):
+        response = self.client.post(
+            reverse("library:register"), self.registration_payload()
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "could not send the verification email")
+        self.assertFalse(
+            get_user_model().objects.filter(email="jamie@gmail.com").exists()
+        )
 
     def test_allauth_signup_cannot_bypass_role_and_privacy_form(self):
         response = self.client.post(
@@ -229,6 +245,12 @@ class SeedCommandTests(LibraryTestCase):
 class LoginAndSessionTests(LibraryTestCase):
     def setUp(self):
         self.user = self.create_user(email="reader@example.com")
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            primary=True,
+            verified=True,
+        )
 
     def test_login_requires_privacy_consent(self):
         response = self.client.post(
@@ -264,6 +286,25 @@ class LoginAndSessionTests(LibraryTestCase):
             self.user.profile.privacy_consent_version,
             settings.PRIVACY_CONSENT_VERSION,
         )
+
+    @patch(
+        "library.views.authentication.perform_login",
+        side_effect=smtplib.SMTPServerDisconnected("Connection unexpectedly closed"),
+    )
+    def test_login_handles_verification_email_disconnect(self, _login):
+        response = self.client.post(
+            reverse("library:login"),
+            {
+                "email": self.user.email,
+                "password": TEST_PASSWORD,
+                "role": Profile.Role.STUDENT,
+                "privacy_consent": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "could not send the verification email")
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_teacher_login_rejects_legacy_non_deped_account(self):
         teacher = self.create_user(

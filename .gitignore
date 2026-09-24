@@ -25,3 +25,6 @@ tmp/
 .idea/
 .DS_Store
 Thumbs.db
+
+*.pyc
+*.sqlite3

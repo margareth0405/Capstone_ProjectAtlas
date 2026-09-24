@@ -1,6 +1,7 @@
 """Authorization and CRUD behavior for the ATLAS staff portal."""
 
 from io import BytesIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -9,8 +10,10 @@ from docx import Document
 from PIL import Image
 
 from library.models import Announcement, LibraryItem, Profile
+from library.services import ResourceStorageError
+from library.views.staff_crud import StaffItemCreateView
 
-from .base import LibraryTestCase, TEST_PASSWORD
+from .base import TEST_PASSWORD, LibraryTestCase
 
 
 class StaffAuthorizationTests(LibraryTestCase):
@@ -183,6 +186,27 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "This field is required.")
         self.assertFalse(
             LibraryItem.objects.filter(call_number="NO-ABSTRACT-001").exists()
+        )
+
+    def test_resource_storage_failure_returns_clear_error_without_record(self):
+        class FailingPersistenceService:
+            def save(self, form, *, prepare_instance):
+                raise ResourceStorageError("Storage unavailable")
+
+        with patch.object(
+            StaffItemCreateView,
+            "persistence_service_class",
+            FailingPersistenceService,
+        ):
+            response = self.client.post(
+                reverse("library:staff_item_create"),
+                self.item_payload(call_number="FAILED-UPLOAD-001"),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "could not be uploaded to storage")
+        self.assertFalse(
+            LibraryItem.objects.filter(call_number="FAILED-UPLOAD-001").exists()
         )
 
     def test_resource_rejects_invalid_cover_and_abstract_formats(self):

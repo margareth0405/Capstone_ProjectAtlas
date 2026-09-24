@@ -8,7 +8,11 @@ from django.views import View
 
 from library.forms import AnnouncementForm, LibraryItemForm
 from library.models import ActivityLog, Announcement, LibraryItem
-from library.services import PageContextBuilder
+from library.services import (
+    PageContextBuilder,
+    RepositoryItemPersistenceService,
+    ResourceStorageError,
+)
 from library.services.activity import ActivityRecorder
 
 from .mixins import StaffRequiredMixin
@@ -50,9 +54,7 @@ class StaffFormView(StaffRequiredMixin, View):
         form = self.get_form()
         if form.is_valid():
             is_create = form.instance.pk is None
-            instance = self.prepare_instance(form.save(commit=False))
-            instance.save()
-            form.save_m2m()
+            instance = self.save_form(form)
             self.activity_recorder_class.record(
                 actor=request.user,
                 action=(
@@ -71,6 +73,12 @@ class StaffFormView(StaffRequiredMixin, View):
             "The record was not saved. Review the highlighted fields.",
         )
         return self.render_form(form)
+
+    def save_form(self, form):
+        instance = self.prepare_instance(form.save(commit=False))
+        instance.save()
+        form.save_m2m()
+        return instance
 
     def render_form(self, form):
         context = PageContextBuilder(self.request).build(self.active_page)
@@ -93,6 +101,29 @@ class StaffItemCreateView(StaffFormView):
     form_title = "Add repository item"
     submit_label = "Add item"
     activity_object_type = "repository resource"
+    persistence_service_class = RepositoryItemPersistenceService
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except ResourceStorageError:
+            form = self.get_form()
+            form.add_error(
+                None,
+                "The resource could not be uploaded to storage. Check the "
+                "connection and storage settings, then choose the file and try again.",
+            )
+            messages.error(
+                request,
+                "The resource upload did not finish. No repository record was created.",
+            )
+            return self.render_form(form)
+
+    def save_form(self, form):
+        return self.persistence_service_class().save(
+            form,
+            prepare_instance=self.prepare_instance,
+        )
 
     def prepare_instance(self, instance):
         instance.created_by = self.request.user
@@ -118,11 +149,12 @@ class StaffItemDeleteView(StaffRequiredMixin, View):
     """Delete one digital repository resource and retain an audit entry."""
 
     activity_recorder_class = ActivityRecorder
+    persistence_service_class = RepositoryItemPersistenceService
 
     def post(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
         title = item.title
-        item.delete()
+        self.persistence_service_class().delete(item)
         self.activity_recorder_class.record(
             actor=request.user,
             action=ActivityLog.Action.DELETE,

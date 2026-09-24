@@ -7,7 +7,6 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
@@ -25,9 +24,16 @@ def env_list(name, default=""):
     return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-atlas-development-only")
-DEBUG = env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
+# Support both the documented DJANGO_* names and the shorter names used by
+# several hosting providers. The documented names take precedence.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or os.getenv(
+    "SECRET_KEY", "django-insecure-atlas-development-only"
+)
+DEBUG = env_bool("DJANGO_DEBUG", env_bool("DEBUG", True))
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver"),
+)
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 ADMIN_URL_PATH = os.getenv("DJANGO_ADMIN_PATH", "").strip().strip("/")
@@ -153,13 +159,6 @@ if R2_STORAGE_ENABLED:
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": R2_STORAGE_CONFIG.storage_options(),
     }
-    import os
-
-R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
-
-R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
-
-R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -209,8 +208,15 @@ TEACHER_EMAIL_DOMAINS = tuple(
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "15"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured(
+        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
+    )
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True

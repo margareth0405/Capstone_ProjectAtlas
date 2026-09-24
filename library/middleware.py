@@ -55,6 +55,9 @@ class RateLimitMiddleware:
         return self.get_response(request)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
+        # Django supplies these positional callback details; rate limiting uses
+        # the already-resolved route name on the request instead.
+        del view_func, view_args, view_kwargs
         if not settings.RATE_LIMIT_ENABLED:
             return None
 

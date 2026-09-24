@@ -1,20 +1,42 @@
 """Authentication and session views."""
 
+import logging
+import smtplib
+
+from allauth.account import app_settings as allauth_account_settings
+from allauth.account.utils import complete_signup, perform_login, setup_user_email
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 
-from allauth.account import app_settings as allauth_account_settings
-from allauth.account.utils import complete_signup, perform_login, setup_user_email
-
 from library.forms import RegistrationForm, RoleLoginForm
 from library.models import ActivityLog, Profile
-from library.services.activity import ActivityRecorder
 from library.services import PageContextBuilder, SafeRedirectService
+from library.services.activity import ActivityRecorder
+
+logger = logging.getLogger(__name__)
+
+
+class EmailDeliveryErrorMixin:
+    """Turn temporary SMTP failures into recoverable form errors."""
+
+    email_error_message = (
+        "ATLAS could not send the verification email right now. "
+        "Please try again or contact support."
+    )
+    email_exceptions = (smtplib.SMTPException, OSError)
+
+    def handle_email_error(self, request, form):
+        logger.exception("Account email delivery failed.")
+        if request.user.is_authenticated:
+            auth_logout(request)
+        form.add_error(None, self.email_error_message)
+        messages.error(request, self.email_error_message)
 
 
 class LandingView(View):
@@ -38,7 +60,7 @@ class RoleSelectionMixin:
         )
 
 
-class RegisterView(RoleSelectionMixin, View):
+class RegisterView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):
     template_name = "library/register.html"
 
     def get(self, request):
@@ -56,25 +78,36 @@ class RegisterView(RoleSelectionMixin, View):
             initial={"role": selected_role},
             privacy_consent_version=settings.PRIVACY_CONSENT_VERSION,
         )
+        email_failed = False
         if request.method == "POST" and form.is_valid():
-            user = form.save()
-            ActivityRecorder.record(
-                actor=user,
-                action=ActivityLog.Action.CREATE,
-                object_type="user account",
-                object_id=user.pk,
-                description=user.email,
-            )
-            setup_user_email(request, user, [])
-            request.session.pop("guest_mode", None)
-            messages.success(request, "Your ATLAS account is ready.")
-            return complete_signup(
-                request,
-                user,
-                email_verification=allauth_account_settings.EMAIL_VERIFICATION,
-                success_url=reverse("library:dashboard"),
-            )
-        if request.method == "POST":
+            try:
+                # Keep account creation and its allauth email identity together.
+                # A failed mandatory verification email must not leave behind an
+                # unusable account that prevents the visitor from trying again.
+                with transaction.atomic():
+                    user = form.save()
+                    ActivityRecorder.record(
+                        actor=user,
+                        action=ActivityLog.Action.CREATE,
+                        object_type="user account",
+                        object_id=user.pk,
+                        description=user.email,
+                    )
+                    setup_user_email(request, user, [])
+                    response = complete_signup(
+                        request,
+                        user,
+                        email_verification=allauth_account_settings.EMAIL_VERIFICATION,
+                        success_url=reverse("library:dashboard"),
+                    )
+            except self.email_exceptions:
+                self.handle_email_error(request, form)
+                email_failed = True
+            else:
+                request.session.pop("guest_mode", None)
+                messages.success(request, "Your ATLAS account is ready.")
+                return response
+        if request.method == "POST" and not email_failed:
             messages.error(
                 request,
                 "Registration was not completed. Review the highlighted fields.",
@@ -86,7 +119,7 @@ class RegisterView(RoleSelectionMixin, View):
         )
 
 
-class LoginView(RoleSelectionMixin, View):
+class LoginView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):
     template_name = "library/login.html"
 
     def get(self, request):
@@ -105,6 +138,7 @@ class LoginView(RoleSelectionMixin, View):
                 login_data["email"] = login_data["username"]
             login_data["role"] = selected_role
         form = RoleLoginForm(request, login_data, initial={"role": selected_role})
+        email_failed = False
         if request.method == "POST" and form.is_valid():
             user = form.get_user()
             profile = user.profile
@@ -119,17 +153,23 @@ class LoginView(RoleSelectionMixin, View):
             )
             request.session.pop("guest_mode", None)
             display_name = PageContextBuilder(request).build("home")["display_name"]
-            messages.success(request, f"Welcome back, {display_name}.")
-            return perform_login(
-                request,
-                user,
-                email_verification=allauth_account_settings.EMAIL_VERIFICATION,
-                redirect_url=SafeRedirectService.resolve(
-                    request, "library:dashboard"
-                ),
-                email=user.email,
-            )
-        if request.method == "POST":
+            try:
+                response = perform_login(
+                    request,
+                    user,
+                    email_verification=allauth_account_settings.EMAIL_VERIFICATION,
+                    redirect_url=SafeRedirectService.resolve(
+                        request, "library:dashboard"
+                    ),
+                    email=user.email,
+                )
+            except self.email_exceptions:
+                self.handle_email_error(request, form)
+                email_failed = True
+            else:
+                messages.success(request, f"Welcome back, {display_name}.")
+                return response
+        if request.method == "POST" and not email_failed:
             messages.error(
                 request,
                 "Sign-in was not completed. Review your details and try again.",

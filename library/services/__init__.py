@@ -13,6 +13,7 @@ from .contact import ContactDeliveryError, ContactEmailService
 from .context import GreetingNameResolver, PageContextBuilder, SupportContactPresenter
 from .documents import DocumentExtractionError, DocumentTextExtractor
 from .navigation import SafeRedirectService
+from .repository_items import RepositoryItemPersistenceService, ResourceStorageError
 from .staff_portal import (
     StaffPortalContextService,
     StaffUserDirectory,
@@ -32,6 +33,8 @@ __all__ = (
     "PageContextBuilder",
     "SupportContactPresenter",
     "SafeRedirectService",
+    "RepositoryItemPersistenceService",
+    "ResourceStorageError",
     "StaffPortalContextService",
     "StaffUserDirectory",
     "UsageAnalytics",

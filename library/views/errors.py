@@ -12,6 +12,7 @@ def permission_denied(request, exception=None):
 
 
 def csrf_failure(request, reason=""):
+    del reason  # Required by Django's CSRF failure-view contract.
     return render(request, "errors/403_csrf.html", status=403)
 
 

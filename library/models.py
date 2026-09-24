@@ -411,5 +411,6 @@ class ResourceViewEvent(models.Model):
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def ensure_user_profile(sender, instance, created, **kwargs):
     """Give every non-staff account a stable role/consent record."""
+    del sender  # Required by Django's signal receiver contract.
     if created and not instance.is_staff:
         Profile.objects.get_or_create(user=instance)

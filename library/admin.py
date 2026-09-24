@@ -5,6 +5,7 @@ from .models import (
     AIAnalysis,
     Announcement,
     ContactMessage,
+    DownloadEvent,
     Favorite,
     LibraryItem,
     Profile,
@@ -194,4 +195,36 @@ class AIAnalysisAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(DownloadEvent)
+class DownloadEventAdmin(admin.ModelAdmin):
+    """Expose preserved legacy download history without allowing new entries."""
+
+    list_display = ("item", "user", "downloaded_at", "ip_address")
+    list_filter = ("downloaded_at",)
+    search_fields = (
+        "item__title",
+        "item__call_number",
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "item",
+        "user",
+        "downloaded_at",
+        "ip_address",
+        "user_agent",
+    )
+    date_hierarchy = "downloaded_at"
+    list_select_related = ("item", "user")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
