@@ -88,6 +88,8 @@ INSTALLED_APPS = [
     "ai_detection.apps.AIDetectionConfig",
     "library.apps.LibraryConfig",
 
+    "anymail",
+
 ]
 SITE_ID = int(os.getenv("SITE_ID", "1"))
 
@@ -227,44 +229,171 @@ if ACCOUNT_DEFAULT_HTTP_PROTOCOL not in {"http", "https"}:
         "ACCOUNT_DEFAULT_HTTP_PROTOCOL must be http or https."
     )
 
-# EMAIL_BACKEND is the documented variable. DJANGO_EMAIL_BACKEND remains a
-# compatibility alias for existing Render and local configurations.
+
+# ==========================================
+# ATLAS - EMAIL DELIVERY CONFIGURATION
+# ==========================================
+
+# Local development uses Gmail SMTP.
+# Render uses Brevo's HTTPS email API.
+#
+# EMAIL_BACKEND is the preferred environment variable.
+# DJANGO_EMAIL_BACKEND remains a compatibility alias
+# for existing Render and local configurations.
+
 EMAIL_BACKEND = (
     os.getenv("EMAIL_BACKEND")
     or os.getenv("DJANGO_EMAIL_BACKEND")
     or "django.core.mail.backends.smtp.EmailBackend"
 ).strip()
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com").strip()
-EMAIL_PORT = env_positive_int("EMAIL_PORT", 587)
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", "ATLAS <atlastshs@gmail.com>"
+
+
+# ==========================================
+# BREVO EMAIL API CONFIGURATION
+# ==========================================
+
+# Used when EMAIL_BACKEND is:
+# anymail.backends.brevo.EmailBackend
+
+ANYMAIL = {
+    "BREVO_API_KEY": os.getenv(
+        "BREVO_API_KEY", ""
+    ).strip(),
+}
+
+
+# ==========================================
+# GMAIL SMTP CONFIGURATION
+# ==========================================
+
+# These settings remain available for local
+# development using Gmail SMTP.
+
+EMAIL_HOST = os.getenv(
+    "EMAIL_HOST", "smtp.gmail.com"
 ).strip()
-EMAIL_TIMEOUT = env_positive_int("EMAIL_TIMEOUT", 20)
+
+EMAIL_PORT = env_positive_int(
+    "EMAIL_PORT", 587
+)
+
+EMAIL_USE_TLS = env_bool(
+    "EMAIL_USE_TLS", True
+)
+
+EMAIL_USE_SSL = env_bool(
+    "EMAIL_USE_SSL", False
+)
+
+EMAIL_HOST_USER = os.getenv(
+    "EMAIL_HOST_USER", ""
+).strip()
+
+EMAIL_HOST_PASSWORD = os.getenv(
+    "EMAIL_HOST_PASSWORD", ""
+).strip()
+
+
+# ==========================================
+# EMAIL SENDER AND TIMEOUT
+# ==========================================
+
+# On Render, DEFAULT_FROM_EMAIL must match
+# an authorized sender in your Brevo account.
+#
+# Locally, the default remains your Gmail
+# address for Gmail SMTP.
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "ATLAS <atlastshs@gmail.com>"
+).strip()
+
+EMAIL_TIMEOUT = env_positive_int(
+    "EMAIL_TIMEOUT", 20
+)
+
+
+# ==========================================
+# EMAIL SECURITY VALIDATION
+# ==========================================
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise ImproperlyConfigured(
-        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
+        "EMAIL_USE_TLS and EMAIL_USE_SSL "
+        "cannot both be enabled."
     )
 
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com").strip()
-SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
-SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
-BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
+# A Brevo API key is required when using
+# the Brevo email backend.
+
+if EMAIL_BACKEND == "anymail.backends.brevo.EmailBackend":
+
+    if not ANYMAIL["BREVO_API_KEY"]:
+        raise ImproperlyConfigured(
+            "BREVO_API_KEY is missing. "
+            "Add it to your Render environment variables."
+        )
+
+    # Check that a production sender is configured.
+    if not DEFAULT_FROM_EMAIL:
+        raise ImproperlyConfigured(
+            "DEFAULT_FROM_EMAIL must be configured."
+        )
+
+
+# ==========================================
+# ATLAS SUPPORT AND BUSINESS INFORMATION
+# ==========================================
+
+SUPPORT_EMAIL = os.getenv(
+    "SUPPORT_EMAIL",
+    "atlastshs@gmail.com"
+).strip()
+
+SUPPORT_HOURS = os.getenv(
+    "SUPPORT_HOURS",
+    "Monday–Friday, 8:00 AM–5:00 PM"
+)
+
+SUPPORT_PHONE = os.getenv(
+    "SUPPORT_PHONE", ""
+).strip()
+
+BUSINESS_NAME = os.getenv(
+    "BUSINESS_NAME",
+    "ATLAS Digital Repository"
+).strip()
+
 BUSINESS_OPERATOR = os.getenv(
-    "BUSINESS_OPERATOR", "ATLAS Digital Repository team"
+    "BUSINESS_OPERATOR",
+    "ATLAS Digital Repository team"
 ).strip()
+
 BUSINESS_SERVICE_TYPE = os.getenv(
-    "BUSINESS_SERVICE_TYPE", "Non-commercial academic digital repository"
+    "BUSINESS_SERVICE_TYPE",
+    "Non-commercial academic digital repository"
 ).strip()
-BUSINESS_COUNTRY = os.getenv("BUSINESS_COUNTRY", "Philippines").strip()
-BUSINESS_ADDRESS = os.getenv("BUSINESS_ADDRESS", "").strip()
-DATA_PRIVACY_EMAIL = os.getenv("DATA_PRIVACY_EMAIL", SUPPORT_EMAIL).strip()
+
+BUSINESS_COUNTRY = os.getenv(
+    "BUSINESS_COUNTRY",
+    "Philippines"
+).strip()
+
+BUSINESS_ADDRESS = os.getenv(
+    "BUSINESS_ADDRESS", ""
+).strip()
+
+DATA_PRIVACY_EMAIL = os.getenv(
+    "DATA_PRIVACY_EMAIL",
+    SUPPORT_EMAIL
+).strip()
+
 TEACHER_EMAIL_DOMAINS = tuple(
-    env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph")
+    env_list(
+        "TEACHER_EMAIL_DOMAINS",
+        "deped.gov.ph"
+    )
 )
 
 SESSION_COOKIE_HTTPONLY = True
