@@ -2,7 +2,7 @@
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}AI Detection | ATLAS{% endblock %}
-{% block meta_description %}Analyze pasted text or supported documents with the ATLAS Vanguard detector.{% endblock %}
+{% block meta_description %}Review pasted text or supported documents for AI-like writing patterns with ATLAS.{% endblock %}
 {% block breadcrumb %}AI Detection{% endblock %}
 
 {% block dashboard_content %}
@@ -14,7 +14,7 @@
     <div class="ai-detection-layout">
       <section class="staff-panel ai-detection-form-card" aria-labelledby="aiDetectionFormHeading">
         <div class="staff-panel-heading ai-panel-heading">
-          <div><span class="section-kicker">Local detector</span><h2 id="aiDetectionFormHeading">Analyze content</h2></div>
+          <div><span class="section-kicker">Fast local review</span><h2 id="aiDetectionFormHeading">Analyze content</h2></div>
           <div class="ai-supported-inputs" aria-label="Supported AI Detection inputs">
             <strong><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</strong>
             <strong><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</strong>
@@ -22,7 +22,7 @@
           </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" novalidate data-async-upload data-processing-label="Upload complete. Vanguard is analyzing the content…">
+        <form method="post" enctype="multipart/form-data" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is analyzing the writing patterns...">
           {% csrf_token %}
           {% include "library/includes/form_errors.html" with form=form %}
 
@@ -66,7 +66,7 @@
             <dl class="ai-metrics">
               <div><dt>AI likelihood</dt><dd>{{ detection_result.ai_probability }}%</dd></div>
               <div><dt>Human likelihood</dt><dd>{{ detection_result.human_probability }}%</dd></div>
-              <div><dt>Model confidence</dt><dd>{{ detection_result.confidence }}%</dd></div>
+              <div><dt>Classification confidence</dt><dd>{{ detection_result.confidence }}%</dd></div>
               <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
               <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
               <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
@@ -85,7 +85,7 @@
 
         <div class="ai-detection-notice" role="note">
           <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-          <p>Vanguard estimates whether English text is AI-generated. Results can include false positives and false negatives, are not proof of authorship, and must never be the sole basis for an academic penalty.</p>
+          <p>ATLAS estimates whether English writing contains patterns commonly associated with generated text. Results can include false positives and false negatives, are not proof of authorship, and must never be the sole basis for an academic penalty.</p>
         </div>
       </section>
     </div>

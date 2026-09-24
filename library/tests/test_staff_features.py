@@ -5,6 +5,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import DatabaseError
 from django.urls import reverse
 from django.utils import timezone
 from docx import Document
@@ -73,6 +74,22 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
         self.client.post(reverse("library:staff_user_delete", args=[superuser.pk]))
         self.assertTrue(type(superuser).objects.filter(pk=superuser.pk).exists())
+
+    def test_account_delete_database_failure_rolls_back_without_500(self):
+        reader = self.create_user(email="rollback-delete@example.com")
+
+        with patch(
+            "library.views.staff_accounts.ActivityRecorder.record",
+            side_effect=DatabaseError("activity table unavailable"),
+        ):
+            response = self.client.post(
+                reverse("library:staff_user_delete", args=[reader.pk]),
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No changes were saved")
+        self.assertTrue(type(reader).objects.filter(pk=reader.pk).exists())
 
     def test_usage_context_is_filtered_by_date_and_role(self):
         selected_date = timezone.localdate()
@@ -293,7 +310,7 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, "Word (.docx)")
         self.assertContains(page_response, 'enctype="multipart/form-data"')
         self.assertContains(page_response, "data-async-upload")
-        self.assertContains(page_response, "Vanguard is analyzing")
+        self.assertContains(page_response, "ATLAS is analyzing the writing patterns")
         self.assertContains(page_response, 'class="ai-input-grid"')
         self.assertContains(page_response, 'class="staff-panel ai-detection-form-card"')
         self.assertContains(page_response, 'class="staff-panel ai-detection-result-card"')
@@ -331,6 +348,29 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertEqual(analysis.source_name, "Pasted text")
         self.assertEqual(analysis.model_version, "test-commit-123")
         self.assertEqual(float(analysis.ai_probability), 76.5)
+
+    def test_analysis_result_survives_history_database_failure(self):
+        self.client.force_login(self.staff)
+        sample = "Evidence should be compared and explained carefully. " * 5
+
+        with (
+            patch.object(
+                StaffAIDetectionView,
+                "analyzer_class",
+                self.StubAnalyzer,
+            ),
+            patch.object(
+                AIAnalysis,
+                "record",
+                side_effect=DatabaseError("analysis table unavailable"),
+            ),
+        ):
+            response = self.client.post(self.url, {"text": sample})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("detection_result", response.context)
+        self.assertContains(response, "Analysis completed")
+        self.assertContains(response, "database migrations")
 
     def test_staff_can_analyze_word_document_without_saving_it(self):
         self.client.force_login(self.staff)

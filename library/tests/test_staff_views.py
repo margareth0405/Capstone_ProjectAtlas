@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import DatabaseError
 from django.urls import reverse
 from docx import Document
 from PIL import Image
@@ -421,5 +422,29 @@ class StaffCrudTests(LibraryTestCase):
         self.assertFalse(
             get_user_model()
             .objects.filter(email="unapproved-admin@example.com")
+            .exists()
+        )
+
+    def test_staff_user_create_database_failure_rolls_back_without_500(self):
+        with patch(
+            "library.views.staff_accounts.ActivityRecorder.record",
+            side_effect=DatabaseError("activity table unavailable"),
+        ):
+            response = self.client.post(
+                reverse("library:staff_user_create"),
+                {
+                    "full_name": "Rollback Teacher",
+                    "email": "rollback-teacher@deped.gov.ph",
+                    "role": Profile.Role.TEACHER,
+                    "password1": TEST_PASSWORD,
+                    "password2": TEST_PASSWORD,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No account was added")
+        self.assertFalse(
+            get_user_model()
+            .objects.filter(email="rollback-teacher@deped.gov.ph")
             .exists()
         )

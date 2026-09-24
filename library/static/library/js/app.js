@@ -524,9 +524,16 @@
 
         request.addEventListener("load", function () {
           if (request.status < 200 || request.status >= 400) {
-            var message = request.status === 403
-              ? "Your session expired or the request was not authorized. Refresh the page and sign in again."
-              : "ATLAS could not save the upload. Check the file and connection, then try again.";
+            var message;
+            if (request.status === 403) {
+              message = "Your session expired or the request was not authorized. Refresh the page and sign in again.";
+            } else if (request.status === 413) {
+              message = "The selected file is larger than the server accepts. Choose a smaller file and try again.";
+            } else if (request.status >= 500) {
+              message = "ATLAS could not complete this request on the server. Try again; if it continues, ask an administrator to check the deployment and database migrations.";
+            } else {
+              message = "ATLAS could not process this request. Review the file and form, then try again.";
+            }
             showUploadError(message);
             return;
           }
@@ -546,7 +553,7 @@
           panel.hidden = false;
           panel.classList.remove("is-processing");
           panel.classList.add("has-error");
-          title.textContent = "Upload did not finish";
+          title.textContent = "Request did not finish";
           detail.textContent = message;
           percent.textContent = "Try again";
           form.querySelectorAll("button[type='submit']").forEach(function (button) {

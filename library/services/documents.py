@@ -13,13 +13,22 @@ class DocumentTextExtractor:
     supported_extensions = {".pdf", ".docx"}
     minimum_characters = 100
     maximum_characters = 20000
+    maximum_ai_pdf_pages = 75
+    maximum_reading_pdf_pages = 250
 
     def extract(self, uploaded_file):
         extension = Path(uploaded_file.name).suffix.lower()
         if extension == ".pdf":
-            text = self._extract_pdf(uploaded_file)
+            text = self._extract_pdf(
+                uploaded_file,
+                character_limit=self.maximum_characters,
+                page_limit=self.maximum_ai_pdf_pages,
+            )
         elif extension == ".docx":
-            text = self._extract_docx(uploaded_file)
+            text = self._extract_docx(
+                uploaded_file,
+                character_limit=self.maximum_characters,
+            )
         else:
             raise DocumentExtractionError(
                 "Upload a PDF or Word (.docx) document."
@@ -37,9 +46,13 @@ class DocumentTextExtractor:
 
         extension = Path(uploaded_file.name).suffix.lower()
         if extension == ".pdf":
-            text = self._extract_pdf(uploaded_file)
+            text = self._extract_pdf(
+                uploaded_file,
+                character_limit=200000,
+                page_limit=self.maximum_reading_pdf_pages,
+            )
         elif extension == ".docx":
-            text = self._extract_docx(uploaded_file)
+            text = self._extract_docx(uploaded_file, character_limit=200000)
         else:
             raise DocumentExtractionError(
                 "This older Word format cannot be displayed safely. Ask the repository administrator to replace it with a .docx file."
@@ -50,8 +63,9 @@ class DocumentTextExtractor:
                 "No readable text was found. Scanned image-only PDFs require OCR before they can be displayed."
             )
         return normalized[:200000]
+
     @staticmethod
-    def _extract_pdf(uploaded_file):
+    def _extract_pdf(uploaded_file, *, character_limit, page_limit):
         try:
             from pypdf import PdfReader
         except ImportError as exc:
@@ -66,7 +80,15 @@ class DocumentTextExtractor:
                 raise DocumentExtractionError(
                     "Password-protected PDF files are not supported."
                 )
-            return chr(10).join(page.extract_text() or "" for page in reader.pages)
+            parts = []
+            character_count = 0
+            for page_number, page in enumerate(reader.pages):
+                if page_number >= page_limit or character_count >= character_limit:
+                    break
+                page_text = page.extract_text() or ""
+                parts.append(page_text)
+                character_count += len(page_text)
+            return chr(10).join(parts)
         except DocumentExtractionError:
             raise
         except Exception as exc:
@@ -75,7 +97,7 @@ class DocumentTextExtractor:
             ) from exc
 
     @staticmethod
-    def _extract_docx(uploaded_file):
+    def _extract_docx(uploaded_file, *, character_limit):
         try:
             from docx import Document
         except ImportError as exc:
@@ -86,15 +108,37 @@ class DocumentTextExtractor:
         try:
             uploaded_file.seek(0)
             document = Document(uploaded_file)
-            paragraphs = [paragraph.text for paragraph in document.paragraphs]
-            table_text = [
-                paragraph.text
-                for table in document.tables
-                for row in table.rows
-                for cell in row.cells
-                for paragraph in cell.paragraphs
-            ]
-            return chr(10).join(paragraphs + table_text)
+            parts = []
+            character_count = 0
+
+            def add_text(value):
+                nonlocal character_count
+                if not value or character_count >= character_limit:
+                    return
+                remaining = character_limit - character_count
+                bounded = value[:remaining]
+                parts.append(bounded)
+                character_count += len(bounded)
+
+            for paragraph in document.paragraphs:
+                add_text(paragraph.text)
+                if character_count >= character_limit:
+                    break
+            if character_count < character_limit:
+                for table in document.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for paragraph in cell.paragraphs:
+                                add_text(paragraph.text)
+                                if character_count >= character_limit:
+                                    break
+                            if character_count >= character_limit:
+                                break
+                        if character_count >= character_limit:
+                            break
+                    if character_count >= character_limit:
+                        break
+            return chr(10).join(parts)
         except Exception as exc:
             raise DocumentExtractionError(
                 "ATLAS could not read this Word document."

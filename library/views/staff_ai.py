@@ -1,6 +1,9 @@
 """Administrator AI Detection view."""
 
+import logging
+
 from django.contrib import messages
+from django.db import DatabaseError
 from django.views.generic import TemplateView
 
 from library.forms import AIDetectionForm
@@ -12,6 +15,8 @@ from library.services.documents import (
 )
 
 from .mixins import PageContextMixin, StaffRequiredMixin
+
+logger = logging.getLogger(__name__)
 
 
 class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
@@ -56,12 +61,21 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
             form.add_error(None, str(error))
             messages.error(request, "The analysis could not be completed. Try again.")
             return self.render_to_response(context)
-        AIAnalysis.record(
-            reviewer=request.user,
-            source_name=source_label,
-            result=result,
-        )
         context["detection_result"] = result
         context["detection_source"] = source_label
-        messages.success(request, f"Analysis completed for {source_label}.")
+        try:
+            AIAnalysis.record(
+                reviewer=request.user,
+                source_name=source_label,
+                result=result,
+            )
+        except DatabaseError:
+            logger.exception("Could not save AI analysis metadata")
+            messages.warning(
+                request,
+                "Analysis completed, but ATLAS could not add it to the analysis "
+                "history. Ask an administrator to verify the database migrations.",
+            )
+        else:
+            messages.success(request, f"Analysis completed for {source_label}.")
         return self.render_to_response(context)

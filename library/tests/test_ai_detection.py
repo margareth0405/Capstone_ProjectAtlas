@@ -1,5 +1,6 @@
 """Unit tests for the replaceable local AI Detection service."""
 
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,8 +9,10 @@ from django.test import SimpleTestCase, override_settings
 from library.services.ai_detection import (
     AIDetectionError,
     AIDetectionService,
+    FastWritingPatternDetector,
     VanguardDetector,
 )
+from library.services.documents import DocumentTextExtractor
 
 
 class FakePipeline:
@@ -69,7 +72,48 @@ class VanguardDetectorTests(SimpleTestCase):
                 detector.analyze("A sufficiently long sample " * 30)
 
 
-@override_settings(AI_DETECTION_ENABLE_VALIDATION=False)
+class FastWritingPatternDetectorTests(SimpleTestCase):
+    def test_fast_detector_returns_complete_bounded_result(self):
+        detector = FastWritingPatternDetector()
+        text = (
+            "Research begins with a focused question. Students compare sources, "
+            "record conflicting evidence, and explain why one interpretation is "
+            "more convincing than another. A careful conclusion also identifies "
+            "the study's limits and suggests what should be examined next. "
+        ) * 3
+
+        result = detector.analyze(text)
+
+        self.assertGreaterEqual(result["ai_probability"], 0)
+        self.assertLessEqual(result["ai_probability"], 100)
+        self.assertAlmostEqual(
+            result["ai_probability"] + result["human_probability"],
+            100,
+        )
+        self.assertEqual(result["detector_name"], "ATLAS Fast Pattern Review")
+        self.assertEqual(result["model_version"], "1.0")
+        self.assertIn(result["tone"], {"low", "mixed", "high"})
+
+
+class DocumentTextExtractorTests(SimpleTestCase):
+    def test_pdf_extraction_stops_after_analysis_character_limit(self):
+        pages = [SimpleNamespace(extract_text=lambda: "A" * 60) for _ in range(10)]
+        reader = SimpleNamespace(is_encrypted=False, pages=pages)
+
+        with patch("pypdf.PdfReader", return_value=reader):
+            text = DocumentTextExtractor._extract_pdf(
+                BytesIO(b"%PDF-test"),
+                character_limit=100,
+                page_limit=75,
+            )
+
+        self.assertEqual(len(text), 121)
+
+
+@override_settings(
+    AI_DETECTION_ENGINE="fast",
+    AI_DETECTION_ENABLE_VALIDATION=False,
+)
 class AIDetectionServiceTests(SimpleTestCase):
     class StubDetector:
         def __init__(self, name, probability):
@@ -89,6 +133,16 @@ class AIDetectionServiceTests(SimpleTestCase):
 
         self.assertEqual(result["detector_name"], "Primary")
         self.assertNotIn("validation", result)
+
+    def test_fast_engine_does_not_construct_transformer_detector(self):
+        with patch.object(
+            AIDetectionService.primary_detector_class,
+            "__init__",
+            side_effect=AssertionError("transformer should not load"),
+        ):
+            result = AIDetectionService().analyze("Evidence and reasoning. " * 20)
+
+        self.assertEqual(result["detector_name"], "ATLAS Fast Pattern Review")
 
     def test_optional_validator_uses_the_same_interface(self):
         primary = self.StubDetector("Primary", 61.0)

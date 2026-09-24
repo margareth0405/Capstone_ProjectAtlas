@@ -6,6 +6,7 @@ from .ai_detection import (
     AIDetectionError,
     AIDetectionService,
     DesklibAcademicDetector,
+    FastWritingPatternDetector,
     VanguardDetector,
 )
 from .catalog import CatalogQueryService
@@ -32,6 +33,7 @@ __all__ = (
     "DesklibAcademicDetector",
     "DocumentExtractionError",
     "DocumentTextExtractor",
+    "FastWritingPatternDetector",
     "GreetingNameResolver",
     "PageContextBuilder",
     "RepositoryItemPersistenceService",

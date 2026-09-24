@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+import re
+from collections import Counter
 from statistics import fmean
 from threading import RLock
 
@@ -10,6 +13,144 @@ from django.conf import settings
 
 class AIDetectionError(RuntimeError):
     """Raised when a configured detector cannot complete an analysis."""
+
+
+def _classification(ai_probability):
+    if ai_probability >= 70:
+        return "High AI likelihood", "high"
+    if ai_probability >= 40:
+        return "Mixed / uncertain", "mixed"
+    return "Low AI likelihood", "low"
+
+
+class FastWritingPatternDetector:
+    """Fast, memory-safe writing-pattern estimate for modest web servers.
+
+    This deliberately avoids loading a transformer into the Django process.
+    Its result is a screening signal based on measurable writing patterns, not
+    proof of authorship.  The UI communicates that limitation to reviewers.
+    """
+
+    detector_name = "ATLAS Fast Pattern Review"
+    model_name = "atlas/local-writing-patterns"
+    model_version = "1.0"
+    words_per_chunk = 250
+    transition_phrases = {
+        "additionally",
+        "consequently",
+        "furthermore",
+        "however",
+        "in conclusion",
+        "in summary",
+        "moreover",
+        "nevertheless",
+        "overall",
+        "therefore",
+        "thus",
+    }
+
+    def analyze(self, text):
+        if not text or not text.strip():
+            raise AIDetectionError("Please provide text before starting the analysis.")
+
+        words = re.findall(r"[A-Za-z]+(?:['-][A-Za-z]+)?", text.lower())
+        if not words:
+            raise AIDetectionError(
+                "ATLAS could not find enough readable words to analyze."
+            )
+
+        sentences = [
+            sentence.strip()
+            for sentence in re.split(r"(?<=[.!?])\s+|[\r\n]+", text)
+            if sentence.strip()
+        ]
+        sentence_lengths = [
+            len(re.findall(r"[A-Za-z]+(?:['-][A-Za-z]+)?", sentence))
+            for sentence in sentences
+        ]
+        sentence_lengths = [length for length in sentence_lengths if length]
+
+        # AI-like prose often has unusually regular sentence lengths, repeated
+        # connective phrases, low punctuation variety, and repeated n-grams.
+        # Each feature is bounded so one stylistic habit cannot dominate.
+        mean_length = fmean(sentence_lengths) if sentence_lengths else len(words)
+        if len(sentence_lengths) > 1 and mean_length:
+            variance = fmean(
+                (length - mean_length) ** 2 for length in sentence_lengths
+            )
+            coefficient_of_variation = math.sqrt(variance) / mean_length
+        else:
+            coefficient_of_variation = 0.55
+        regularity = 1 - min(coefficient_of_variation / 0.75, 1)
+
+        unique_ratio = len(set(words)) / len(words)
+        expected_unique_ratio = max(0.38, 0.72 - (len(words) / 2500))
+        lexical_repetition = min(
+            max((expected_unique_ratio - unique_ratio) / 0.28, 0),
+            1,
+        )
+
+        trigrams = list(zip(words, words[1:], words[2:]))
+        repeated_trigrams = sum(
+            count - 1 for count in Counter(trigrams).values() if count > 1
+        )
+        ngram_repetition = min(
+            repeated_trigrams / max(len(trigrams) * 0.08, 1),
+            1,
+        )
+
+        normalized_text = " ".join(words)
+        transition_count = sum(
+            len(re.findall(rf"\b{re.escape(phrase)}\b", normalized_text))
+            for phrase in self.transition_phrases
+        )
+        transition_density = min(transition_count / max(len(words) / 80, 1), 1)
+
+        punctuation_types = sum(mark in text for mark in ",;:-()?!")
+        punctuation_simplicity = 1 - min(punctuation_types / 5, 1)
+
+        sentence_starts = [
+            match.group(0).lower()
+            for sentence in sentences
+            if (match := re.search(r"[A-Za-z]+", sentence))
+        ]
+        repeated_starts = sum(
+            count - 1
+            for count in Counter(sentence_starts).values()
+            if count > 1
+        )
+        start_repetition = min(
+            repeated_starts / max(len(sentence_starts) * 0.3, 1),
+            1,
+        )
+
+        ai_probability = round(
+            100
+            * (
+                0.30 * regularity
+                + 0.20 * lexical_repetition
+                + 0.20 * ngram_repetition
+                + 0.15 * transition_density
+                + 0.08 * punctuation_simplicity
+                + 0.07 * start_repetition
+            ),
+            2,
+        )
+        ai_probability = min(max(ai_probability, 0), 100)
+        human_probability = round(100 - ai_probability, 2)
+        classification, tone = _classification(ai_probability)
+        return {
+            "score": ai_probability,
+            "label": classification,
+            "tone": tone,
+            "ai_probability": ai_probability,
+            "human_probability": human_probability,
+            "confidence": round(max(ai_probability, human_probability), 2),
+            "chunks_analyzed": max(1, math.ceil(len(words) / self.words_per_chunk)),
+            "detector_name": self.detector_name,
+            "model_name": self.model_name,
+            "model_version": self.model_version,
+        }
 
 
 class HuggingFaceDetector:
@@ -61,7 +202,7 @@ class HuggingFaceDetector:
         ai_scores = [self._ai_score(prediction) for prediction in predictions]
         ai_probability = round(fmean(ai_scores) * 100, 2)
         human_probability = round(100 - ai_probability, 2)
-        classification, tone = self._classification(ai_probability)
+        classification, tone = _classification(ai_probability)
         return {
             "score": ai_probability,
             "label": classification,
@@ -122,15 +263,6 @@ class HuggingFaceDetector:
             " ".join(words[index : index + cls.words_per_chunk])
             for index in range(0, len(words), cls.words_per_chunk)
         ]
-
-    @staticmethod
-    def _classification(ai_probability):
-        if ai_probability >= 70:
-            return "High AI likelihood", "high"
-        if ai_probability >= 40:
-            return "Mixed / uncertain", "mixed"
-        return "Low AI likelihood", "low"
-
 
 class VanguardDetector(HuggingFaceDetector):
     """Primary general-purpose detector recommended for ATLAS."""
@@ -269,10 +401,19 @@ class AIDetectionService:
     validation_detector_class = DesklibAcademicDetector
 
     def __init__(self, primary_detector=None, validation_detector=None):
-        self.primary_detector = primary_detector or self.primary_detector_class(
-            model_name=settings.AI_DETECTION_PRIMARY_MODEL,
-            revision=settings.AI_DETECTION_PRIMARY_REVISION,
-        )
+        if primary_detector is not None:
+            self.primary_detector = primary_detector
+        elif settings.AI_DETECTION_ENGINE == "fast":
+            self.primary_detector = FastWritingPatternDetector()
+        elif settings.AI_DETECTION_ENGINE == "transformer":
+            self.primary_detector = self.primary_detector_class(
+                model_name=settings.AI_DETECTION_PRIMARY_MODEL,
+                revision=settings.AI_DETECTION_PRIMARY_REVISION,
+            )
+        else:
+            raise AIDetectionError(
+                "AI_DETECTION_ENGINE must be either 'fast' or 'transformer'."
+            )
         if validation_detector is not None:
             self.validation_detector = validation_detector
         elif settings.AI_DETECTION_ENABLE_VALIDATION:

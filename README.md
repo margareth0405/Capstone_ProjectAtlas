@@ -46,14 +46,15 @@ saved. Scanned image-only PDFs must go through OCR first.
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The service uses `ShantanuT01/vanguard-ai-text-detector` as its local primary
-detector through Hugging Face Transformers. It reports AI likelihood, human
-likelihood, model confidence, the analyzed text-section count, detector name,
-and the exact cached model revision when available. Longer submissions are
-split into 250-word sections so the analysis is not limited to the beginning.
+The default `fast` engine performs a local, memory-safe writing-pattern review
+without downloading a model. It reports AI likelihood, human likelihood,
+classification confidence, the analyzed text-section count, detector name, and
+detector version. PDF and Word extraction stops after the 20,000-character
+analysis limit instead of parsing the rest of a large document.
 
-The detector is wrapped by `AIDetectionService`, so the configured model can be
-replaced without changing the view or template. An optional
+The detector is wrapped by `AIDetectionService`, so operators with a larger
+server can set `AI_DETECTION_ENGINE=transformer` to use the configured Vanguard
+model without changing the view or template. An optional
 `desklib/ai-text-detector-academic-v1.01` validator can provide a second,
 academic-domain estimate. It is disabled by default because enabling both
 models substantially increases memory and disk requirements.
@@ -76,7 +77,7 @@ selection changes. Search fields submit 450 milliseconds after typing stops.
 The Clear or Reset link removes the active filters; there is no Apply button.
 
 File controls show the selected or dropped filename and size. The resource and
-Vanguard analysis forms display real browser upload progress followed by a
+AI analysis forms display real browser upload progress followed by a
 separate server-processing state. Page navigation uses a responsive skeleton
 loader, while bookmarks update optimistically and roll back automatically if
 the server rejects the request. All three behaviors retain normal non-JavaScript
@@ -169,12 +170,13 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
-The first AI Detection analysis downloads and caches the public Vanguard model
-from Hugging Face. Its weights are about 1.6 GB, so the first analysis can take
-several minutes and requires enough local disk space and memory. Later analyses
-use the local cache and do not require an API key, account, or per-scan payment.
-If academic validation is enabled, its model is downloaded and cached
-separately and requires roughly another 1.8 GB of disk space.
+The default fast AI Detection engine starts immediately and does not download a
+model. If `AI_DETECTION_ENGINE=transformer` is selected, the first analysis
+downloads and caches the public Vanguard model from Hugging Face. Its weights
+are about 1.6 GB, so transformer mode requires a larger server and can take
+several minutes on its first request. If academic validation is enabled, its
+model is downloaded and cached separately and requires substantial additional
+memory and disk space.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -233,6 +235,7 @@ set DB_SSL_REQUIRE=True when TLS is required.
 AI Detection model selection is environment-based:
 
 ```dotenv
+AI_DETECTION_ENGINE=fast
 AI_DETECTION_PRIMARY_MODEL=ShantanuT01/vanguard-ai-text-detector
 AI_DETECTION_PRIMARY_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
 AI_DETECTION_ENABLE_VALIDATION=False
@@ -242,6 +245,8 @@ HF_HUB_DISABLE_XET=1
 HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ```
 
+Keep `AI_DETECTION_ENGINE=fast` for small Render instances. Set it to
+`transformer` only when the service has enough memory for the configured model.
 Use a Hugging Face commit hash instead of `main` for a release that must always
 load the same weights. When validation is enabled, ATLAS runs both configured
 detectors and records the secondary result with the primary analysis. The Hub

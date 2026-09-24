@@ -89,7 +89,7 @@ INSTALLED_APPS = [
     "library.apps.LibraryConfig",
 
 ]
-SITE_ID = env_positive_int("SITE_ID", 1)
+SITE_ID = int(os.getenv("SITE_ID", "1"))
 
 if DEBUG:
     INSTALLED_APPS.append('django_browser_reload')
@@ -310,6 +310,7 @@ PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-09-20")
 # The detector service reads these values only when an analysis is requested.
 # Keeping model identifiers and revisions in configuration makes detector
 # upgrades independent from the staff view and the rest of the application.
+AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "fast").strip().lower()
 AI_DETECTION_PRIMARY_MODEL = os.getenv(
     "AI_DETECTION_PRIMARY_MODEL",
     "ShantanuT01/vanguard-ai-text-detector",
