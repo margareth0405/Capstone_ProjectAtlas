@@ -1,727 +1,341 @@
-{% extends "library/dashboard_base.html" %} {% block robots %}<meta
-  name="robots"
-  content="noindex, nofollow, noarchive, nosnippet"
-/>{% endblock %} {% block title %}Staff Portal | ATLAS{% endblock %} {% block
-meta_description %}Manage ATLAS resources, announcements, accounts, and
-privacy-conscious usage reports.{% endblock %} {% block breadcrumb %}Staff
-Portal{% endblock %} {% block dashboard_content %} {% url
-'library:staff_item_create' as staff_item_create_url %} {% url
-'library:staff_announcement_create' as staff_announcement_create_url %} {% url
-'library:staff_user_create' as staff_user_create_url %} {% url
-'library:staff_ai_detection' as staff_ai_detection_url %} {% url
-'library:catalog' as catalog_url %} {% url 'library:announcements' as
-announcements_url %} {% url 'library:staff_portal' as staff_portal_url %} {% url
-'admin:index' as django_admin_url %}
+{% extends "library/dashboard_base.html" %}
 
-<div class="staff-portal">
-  <header class="staff-portal-header django-page-header">
-    <div>
-      <span class="section-kicker">Archive management</span>
-      <h1>
-        <i class="fas fa-user-shield" aria-hidden="true"></i> Administrator
-        Portal
-      </h1>
-    </div>
-    <div class="staff-header-actions">
-      <a class="btn-add-item" href="{{ staff_item_create_url }}"
-        ><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a
-      >
-      <a
-        class="btn btn-outline-secondary rounded-pill"
-        href="{{ django_admin_url }}"
-        ><i class="fas fa-gears" aria-hidden="true"></i> Django admin</a
-      >
-    </div>
-  </header>
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">{% endblock %}
+{% block title %}Staff Portal | ATLAS{% endblock %}
+{% block meta_description %}Manage ATLAS resources, announcements, accounts, and privacy-conscious usage reports.{% endblock %}
+{% block breadcrumb %}Staff Portal{% endblock %}
 
-  <section
-    class="user-stat-grid staff-stat-grid"
-    aria-label="Administration summary"
-  >
-    <article class="user-stat-card">
-      <span class="user-stat-icon"
-        ><i class="fas fa-book" aria-hidden="true"></i></span
-      ><strong>{{ stats.total_items|default:0 }}</strong
-      ><span>Repository resources</span>
-    </article>
-    <article class="user-stat-card">
-      <span class="user-stat-icon"
-        ><i class="fas fa-address-card" aria-hidden="true"></i></span
-      ><strong>{{ user_count|default:0 }}</strong><span>Registered users</span>
-    </article>
-    <article class="user-stat-card">
-      <span class="user-stat-icon"
-        ><i class="fas fa-book-reader" aria-hidden="true"></i></span
-      ><strong>{{ resource_view_count|default:0 }}</strong
-      ><span>Resource views</span>
-    </article>
-    <article class="user-stat-card">
-      <span class="user-stat-icon"
-        ><i class="fas fa-envelope" aria-hidden="true"></i></span
-      ><strong>{{ message_count|default:0 }}</strong
-      ><span>Open support messages</span>
-    </article>
-  </section>
+{% block dashboard_content %}
+  {% url 'library:staff_item_create' as staff_item_create_url %}
+  {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
+  {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:announcements' as announcements_url %}
+  {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'admin:index' as django_admin_url %}
 
-  <section
-    class="staff-panel staff-ai-entry"
-    aria-labelledby="aiDetectionServiceHeading"
-  >
-    <div class="staff-ai-entry-main">
-      <span class="staff-service-icon"
-        ><i class="fas fa-robot" aria-hidden="true"></i
-      ></span>
+  <div class="staff-portal">
+    <header class="staff-portal-header django-page-header">
       <div>
-        <span class="section-kicker">Administrator tool</span>
-        <h2 id="aiDetectionServiceHeading">AI Detection</h2>
+        <span class="section-kicker">Archive management</span>
+        <h1><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator Portal</h1>
       </div>
-    </div>
-    <div class="ai-service-formats" aria-label="Supported file formats">
-      <span><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</span>
-      <span
-        ><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</span
-      >
-      <span><i class="fas fa-align-left" aria-hidden="true"></i> Text</span>
-    </div>
-    <a class="btn-register-admin" href="{{ staff_ai_detection_url }}"
-      ><i class="fas fa-arrow-right" aria-hidden="true"></i> Open service</a
-    >
-  </section>
+      <div class="staff-header-actions">
+        <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ django_admin_url }}"><i class="fas fa-gears" aria-hidden="true"></i> Django admin</a>
+      </div>
+    </header>
 
-  <div class="staff-management-grid">
-    <section class="staff-panel" aria-labelledby="resourceManagementHeading">
-      <div class="staff-panel-heading">
-        <div>
-          <span class="section-kicker">Collection</span>
-          <h2 id="resourceManagementHeading">Recent resources</h2>
-        </div>
-        <a href="{{ catalog_url }}">View all</a>
-      </div>
-      {% if items %}
-      <div class="table-responsive">
-        <table class="staff-compact-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Type</th>
-              <th>Published</th>
-              <th>Added</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in items|slice:":8" %} {% url 'library:staff_item_edit'
-            item.pk as edit_url %} {% url 'library:staff_item_delete' item.pk as
-            delete_url %}
-            <tr>
-              <td>
-                <strong>{{ item.title }}</strong
-                ><small>{{ item.author }}</small>
-              </td>
-              <td>{{ item.get_file_type_display|default:item.file_type }}</td>
-              <td>{{ item.publication_date_display }}</td>
-              <td>{{ item.created_at|date:'M j, Y' }}</td>
-              <td class="resource-actions">
-                <a
-                  class="btn-edit"
-                  href="{{ edit_url }}"
-                  aria-label="Edit {{ item.title }}"
-                  ><i class="fas fa-pen" aria-hidden="true"></i
-                ></a>
-                <form
-                  action="{{ delete_url }}"
-                  method="post"
-                  class="inline-action-form"
-                  data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone."
-                >
-                  {% csrf_token %}<button
-                    class="btn-delete"
-                    type="submit"
-                    aria-label="Delete {{ item.title }}"
-                  >
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                  </button>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="staff-empty-copy">No repository resources are available.</p>
-      {% endif %}
+    <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Repository resources</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book-reader" aria-hidden="true"></i></span><strong>{{ resource_view_count|default:0 }}</strong><span>Resource views</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open support messages</span></article>
     </section>
 
-    <section
-      class="staff-panel"
-      aria-labelledby="announcementManagementHeading"
-    >
-      <div class="staff-panel-heading">
-        <div>
-          <span class="section-kicker">Communication</span>
-          <h2 id="announcementManagementHeading">Announcements</h2>
-        </div>
-        <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"
-          ><i class="fas fa-plus" aria-hidden="true"></i> Create</a
-        >
+
+    <section class="staff-panel staff-ai-entry" aria-labelledby="aiDetectionServiceHeading">
+      <div class="staff-ai-entry-main">
+        <span class="staff-service-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+        <div><span class="section-kicker">Administrator tool</span><h2 id="aiDetectionServiceHeading">AI Detection</h2></div>
       </div>
-      {% if announcements %}
-      <div class="staff-record-list">
-        {% for announcement in announcements|slice:":6" %} {% url
-        'library:staff_announcement_edit' announcement.pk as edit_url %} {% url
-        'library:staff_announcement_delete' announcement.pk as delete_url %} {%
-        url 'library:staff_announcement_publish' announcement.pk as publish_url
-        %} {% url 'library:staff_announcement_unpublish' announcement.pk as
-        unpublish_url %}
-        <article>
-          <div>
-            <strong>{{ announcement.title }}</strong
-            ><small
-              >{{ announcement.published_at|date:'M j, Y' }} · {{
-              announcement.get_category_display|default:announcement.category
-              }}{% if not announcement.is_published %} · Draft{% endif %}</small
-            >
-          </div>
-          <div class="resource-actions">
-            {% if announcement.is_published %}
-            <form
-              action="{{ unpublish_url }}"
-              method="post"
-              class="inline-action-form"
-              data-confirm-form="Return ‘{{ announcement.title|escape }}’ to draft status?"
-            >
-              {% csrf_token %}<button
-                class="btn-edit"
-                type="submit"
-                aria-label="Unpublish {{ announcement.title }}"
-              >
-                <i class="fas fa-eye-slash" aria-hidden="true"></i>
-              </button>
-            </form>
-            {% else %}
-            <form
-              action="{{ publish_url }}"
-              method="post"
-              class="inline-action-form"
-              data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?"
-            >
-              {% csrf_token %}<button
-                class="btn-edit"
-                type="submit"
-                aria-label="Publish {{ announcement.title }}"
-              >
-                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-              </button>
-            </form>
-            {% endif %}
-            <a
-              class="btn-edit"
-              href="{{ edit_url }}"
-              aria-label="Edit {{ announcement.title }}"
-              ><i class="fas fa-pen" aria-hidden="true"></i
-            ></a>
-            <form
-              action="{{ delete_url }}"
-              method="post"
-              class="inline-action-form"
-              data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone."
-            >
-              {% csrf_token %}<button
-                class="btn-delete"
-                type="submit"
-                aria-label="Delete {{ announcement.title }}"
-              >
-                <i class="fas fa-trash" aria-hidden="true"></i>
-              </button>
-            </form>
-          </div>
-        </article>
-        {% endfor %}
+      <div class="ai-service-formats" aria-label="Supported file formats">
+        <span><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</span>
+        <span><i class="fas fa-file-word" aria-hidden="true"></i> Word (.docx)</span>
+        <span><i class="fas fa-align-left" aria-hidden="true"></i> Text</span>
       </div>
-      <a class="staff-panel-footer-link" href="{{ announcements_url }}"
-        >Manage all announcements</a
-      >
-      {% else %}
-      <p class="staff-empty-copy">No announcements are available.</p>
-      {% endif %}
+      <a class="btn-register-admin" href="{{ staff_ai_detection_url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i> Open service</a>
     </section>
-  </div>
 
-  <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
-    <div class="user-monitoring-header">
-      <div>
-        <span class="section-kicker">Accounts</span>
-        <h2 id="usersHeading">
-          <i class="fas fa-users" aria-hidden="true"></i> Website Users
-        </h2>
-      </div>
-      <a class="btn-register-admin" href="{{ staff_user_create_url }}"
-        ><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a
-      >
-    </div>
-
-    <form
-      class="staff-filter-bar"
-      method="get"
-      action="{{ staff_portal_url }}#users"
-      data-auto-submit
-    >
-      <div class="form-group">
-        <label for="userSearch">Search users</label>
-        <input
-          class="form-control"
-          id="userSearch"
-          type="search"
-          name="user_q"
-          value="{{ selected_user_query }}"
-          placeholder="Example: Maria or maria@example.com"
-        />
-      </div>
-      <div class="form-group">
-        <label for="userRole">Account type</label>
-        <select class="form-select" id="userRole" name="user_role">
-          <option value="">All account types</option>
-          {% for value, label in user_role_choices %}
-          <option
-            value="{{ value }}"
-            {%
-            if
-            selected_user_role=""
-            ="value"
-            %}
-            selected{%
-            endif
-            %}
-          >
-            {{ label }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="userSort">Created date</label>
-        <select class="form-select" id="userSort" name="user_sort">
-          <option
-            value="newest"
-            {%
-            if
-            selected_user_sort=""
-            ="newest"
-            %}
-            selected{%
-            endif
-            %}
-          >
-            Newest to oldest
-          </option>
-          <option
-            value="oldest"
-            {%
-            if
-            selected_user_sort=""
-            ="oldest"
-            %}
-            selected{%
-            endif
-            %}
-          >
-            Oldest to newest
-          </option>
-        </select>
-      </div>
-      {% if selected_user_query or selected_user_role or selected_user_sort ==
-      'oldest' %}<a
-        class="btn btn-outline-secondary"
-        href="{% url 'library:staff_portal' %}#users"
-        >Clear</a
-      >{% endif %}
-    </form>
-
-    <div class="user-table-card">
-      <div class="table-responsive">
-        <table class="user-activity-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Account type</th>
-              <th>Date created</th>
-              <th>Last sign-in</th>
-              <th>Resources viewed</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for account in users %} {% url 'library:staff_user_delete'
-            account.pk as user_delete_url %}
-            <tr>
-              <td>
-                <strong
-                  >{{
-                  account.get_full_name|default:account.username|default:'Unnamed
-                  user' }}</strong
-                >
-              </td>
-              <td>{{ account.email }}</td>
-              <td>
-                <span class="user-role-badge {{ account.atlas_role }}"
-                  >{{ account.atlas_role_label }}</span
-                >
-              </td>
-              <td>{{ account.date_joined|date:'M j, Y, g:i a' }}</td>
-              <td>
-                {{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}
-              </td>
-              <td>
-                <span class="login-count-badge"
-                  >{{ account.resource_view_total|default:0 }}</span
-                >
-              </td>
-              <td class="resource-actions">
-                {% if account.pk != request.user.pk and not account.is_superuser
-                %}
-                <form
-                  action="{{ user_delete_url }}"
-                  method="post"
-                  class="inline-action-form"
-                  data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone."
-                >
-                  {% csrf_token %}<button class="btn-delete" type="submit">
-                    <i class="fas fa-user-minus" aria-hidden="true"></i> Delete
-                  </button>
-                </form>
-                {% else %}<span class="protected-account">Protected</span>{%
-                endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="7" class="empty-user-row">
-                No accounts match these filters.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
-    <div class="staff-panel-heading usage-heading">
-      <div>
-        <span class="section-kicker">Usage analytics</span>
-        <h2 id="usageHeading">
-          <i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage
-        </h2>
-      </div>
-      <form
-        class="analytics-date-form"
-        method="get"
-        action="{{ staff_portal_url }}#usage"
-        data-auto-submit
-      >
-        <label for="analyticsDate">Date</label>
-        <input
-          class="form-control"
-          id="analyticsDate"
-          type="date"
-          name="analytics_date"
-          value="{{ analytics_date }}"
-        />
-      </form>
-    </div>
-
-    <div
-      class="usage-summary-grid"
-      aria-label="Usage summary for {{ analytics_date }}"
-    >
-      <article>
-        <i class="fas fa-clock" aria-hidden="true"></i>
-        <div>
-          <strong>{{ usage_summary.minutes }}</strong
-          ><span>Active minutes</span>
+    <div class="staff-management-grid">
+      <section class="staff-panel" aria-labelledby="resourceManagementHeading">
+        <div class="staff-panel-heading">
+          <div><span class="section-kicker">Collection</span><h2 id="resourceManagementHeading">Recent resources</h2></div>
+          <a href="{{ catalog_url }}">View all</a>
         </div>
-      </article>
-      <article>
-        <i class="fas fa-window-restore" aria-hidden="true"></i>
-        <div>
-          <strong>{{ usage_summary.sessions }}</strong><span>Sessions</span>
-        </div>
-      </article>
-      <article>
-        <i class="fas fa-eye" aria-hidden="true"></i>
-        <div>
-          <strong>{{ usage_summary.page_views }}</strong><span>Page views</span>
-        </div>
-      </article>
-      <article>
-        <i class="fas fa-user-group" aria-hidden="true"></i>
-        <div>
-          <strong>{{ usage_summary.visitors }}</strong><span>Visitors</span>
-        </div>
-      </article>
-    </div>
-
-    <div class="usage-content-grid">
-      <div class="usage-overview">
-        <div
-          class="usage-pie-chart"
-          style="background: {{ usage_chart_gradient }};"
-          role="img"
-          aria-label="Website usage time by account type for {{ analytics_date }}"
-        >
-          <span>Active time<br />by role</span>
-        </div>
-        <ul class="usage-chart-legend">
-          {% for usage in role_usage %}
-          <li>
-            <span
-              class="usage-swatch"
-              style="background: {{ usage.color }};"
-            ></span>
-            <div>
-              <strong>{{ usage.label }}</strong
-              ><span
-                >{{ usage.minutes }} min · {{ usage.sessions }} session{{
-                usage.sessions|pluralize }} · {{ usage.percent }}%</span
-              >
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      <div class="usage-history-panel">
-        <div class="usage-history-heading">
-          <h3>Visit history</h3>
-          <span>{{ analytics_date }}</span>
-        </div>
-        <form
-          class="staff-filter-bar usage-history-filters"
-          method="get"
-          action="{{ staff_portal_url }}#usage"
-          data-auto-submit
-        >
-          <input
-            type="hidden"
-            name="analytics_date"
-            value="{{ analytics_date }}"
-          />
-          <div class="form-group">
-            <label for="usageSearch">Search visitor</label>
-            <input
-              class="form-control"
-              id="usageSearch"
-              type="search"
-              name="usage_q"
-              value="{{ selected_usage_query }}"
-              placeholder="Example: Maria, email, or session ID"
-            />
+        {% if items %}
+          <div class="table-responsive">
+            <table class="staff-compact-table">
+              <thead><tr><th>Title</th><th>Type</th><th>Published</th><th>Added</th><th>Actions</th></tr></thead>
+              <tbody>
+                {% for item in items|slice:":8" %}
+                  {% url 'library:staff_item_edit' item.pk as edit_url %}
+                  {% url 'library:staff_item_delete' item.pk as delete_url %}
+                  <tr>
+                    <td><strong>{{ item.title }}</strong><small>{{ item.author }}</small></td>
+                    <td>{{ item.get_file_type_display|default:item.file_type }}</td>
+                    <td>{{ item.publication_date_display }}</td>
+                    <td>{{ item.created_at|date:'M j, Y' }}</td>
+                    <td class="resource-actions">
+                      <a class="btn-edit" href="{{ edit_url }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                      <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">
+                        {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ item.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-          <div class="form-group">
-            <label for="usageRole">Account type</label>
-            <select class="form-select" id="usageRole" name="usage_role">
-              <option value="">All account types</option>
-              {% for value, label in usage_role_choices %}
-              <option
-                value="{{ value }}"
-                {%
-                if
-                selected_usage_role=""
-                ="value"
-                %}
-                selected{%
-                endif
-                %}
-              >
+        {% else %}<p class="staff-empty-copy">No repository resources are available.</p>{% endif %}
+      </section>
+
+      <section class="staff-panel" aria-labelledby="announcementManagementHeading">
+        <div class="staff-panel-heading">
+          <div><span class="section-kicker">Communication</span><h2 id="announcementManagementHeading">Announcements</h2></div>
+          <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Create</a>
+        </div>
+        {% if announcements %}
+          <div class="staff-record-list">
+            {% for announcement in announcements|slice:":6" %}
+              {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
+              {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
+              {% url 'library:staff_announcement_publish' announcement.pk as publish_url %}
+              {% url 'library:staff_announcement_unpublish' announcement.pk as unpublish_url %}
+              <article>
+                <div><strong>{{ announcement.title }}</strong><small>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display|default:announcement.category }}{% if not announcement.is_published %} · Draft{% endif %}</small></div>
+                <div class="resource-actions">
+                  {% if announcement.is_published %}
+                    <form action="{{ unpublish_url }}" method="post" class="inline-action-form" data-confirm-form="Return ‘{{ announcement.title|escape }}’ to draft status?">{% csrf_token %}<button class="btn-edit" type="submit" aria-label="Unpublish {{ announcement.title }}"><i class="fas fa-eye-slash" aria-hidden="true"></i></button></form>
+                  {% else %}
+                    <form action="{{ publish_url }}" method="post" class="inline-action-form" data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?">{% csrf_token %}<button class="btn-edit" type="submit" aria-label="Publish {{ announcement.title }}"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></form>
+                  {% endif %}
+                  <a class="btn-edit" href="{{ edit_url }}" aria-label="Edit {{ announcement.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                  <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone.">
+                    {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ announcement.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                  </form>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+          <a class="staff-panel-footer-link" href="{{ announcements_url }}">Manage all announcements</a>
+        {% else %}<p class="staff-empty-copy">No announcements are available.</p>{% endif %}
+      </section>
+    </div>
+
+    <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
+      <div class="user-monitoring-header">
+        <div><span class="section-kicker">Accounts</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2></div>
+        <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
+      </div>
+
+      <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>
+        <div class="form-group">
+          <label for="userSearch">Search users</label>
+          <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Example: Maria or maria@example.com">
+        </div>
+        <div class="form-group">
+          <label for="userRole">Account type</label>
+          <select class="form-select" id="userRole" name="user_role">
+            <option value="">All account types</option>
+
+            {% for value, label in user_role_choices %}
+              <option value="{{ value }}"
+                {% if selected_user_role == value %}selected{% endif %}>
                 {{ label }}
               </option>
-              {% endfor %}
-            </select>
-          </div>
-          {% if selected_usage_query or selected_usage_role %}<a
-            class="btn btn-outline-secondary"
-            href="?analytics_date={{ analytics_date }}#usage"
-            >Clear</a
-          >{% endif %}
-        </form>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="userSort">Created date</label>
+          <select class="form-select" id="userSort" name="user_sort">
+
+            <option value="newest"
+              {% if selected_user_sort == "newest" %}selected{% endif %}>
+              Newest to oldest
+            </option>
+
+            <option value="oldest"
+              {% if selected_user_sort == "oldest" %}selected{% endif %}>
+              Oldest to newest
+            </option>
+
+          </select>
+        </div>
+        {% if selected_user_query or selected_user_role or selected_user_sort == 'oldest' %}<a class="btn btn-outline-secondary" href="{% url 'library:staff_portal' %}#users">Clear</a>{% endif %}
+      </form>
+
+      <div class="user-table-card">
         <div class="table-responsive">
-          <table class="staff-compact-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Type</th>
-                <th>Started</th>
-                <th>Last activity</th>
-                <th>Active time</th>
-                <th>Page views</th>
-                <th>Last page</th>
-              </tr>
-            </thead>
+          <table class="user-activity-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Date created</th><th>Last sign-in</th><th>Resources viewed</th><th>Actions</th></tr></thead>
             <tbody>
-              {% for visit in visit_history %}
-              <tr>
-                <td><strong>{{ visit.display_name }}</strong></td>
-                <td>
-                  <span class="user-role-badge {{ visit.role }}"
-                    >{{ visit.get_role_display }}</span
-                  >
-                </td>
-                <td>{{ visit.started_at|date:'g:i a' }}</td>
-                <td>{{ visit.last_seen_at|date:'g:i a' }}</td>
-                <td>{% widthratio visit.duration_seconds 60 1 %} min</td>
-                <td>{{ visit.page_views }}</td>
-                <td><code>{{ visit.last_path|default:'—' }}</code></td>
-              </tr>
+              {% for account in users %}
+                {% url 'library:staff_user_delete' account.pk as user_delete_url %}
+                <tr>
+                  <td><strong>{{ account.get_full_name|default:account.username|default:'Unnamed user' }}</strong></td>
+                  <td>{{ account.email }}</td>
+                  <td>
+                    <span class="user-role-badge {{ account.atlas_role }}">{{ account.atlas_role_label }}</span>
+                  </td>
+                  <td>{{ account.date_joined|date:'M j, Y, g:i a' }}</td>
+                  <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
+                  <td><span class="login-count-badge">{{ account.resource_view_total|default:0 }}</span></td>
+                  <td class="resource-actions">
+                    {% if account.pk != request.user.pk and not account.is_superuser %}
+                      <form action="{{ user_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone.">
+                        {% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-user-minus" aria-hidden="true"></i> Delete</button>
+                      </form>
+                    {% else %}<span class="protected-account">Protected</span>{% endif %}
+                  </td>
+                </tr>
               {% empty %}
-              <tr>
-                <td colspan="7" class="empty-user-row">
-                  No website visits recorded for this date.
-                </td>
-              </tr>
+                <tr><td colspan="7" class="empty-user-row">No accounts match these filters.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
-  </section>
-
-  <div class="staff-management-grid staff-history-grid">
-    <section
-      class="staff-panel"
-      id="resource-views"
-      aria-labelledby="resourceViewsHeading"
-    >
-      <div class="staff-panel-heading">
-        <div>
-          <span class="section-kicker">Privacy-safe access log</span>
-          <h2 id="resourceViewsHeading">Resource viewing history</h2>
-        </div>
-      </div>
-      <form
-        class="staff-filter-bar resource-view-filters"
-        method="get"
-        action="{{ staff_portal_url }}#resource-views"
-        data-auto-submit
-      >
-        <div class="form-group">
-          <label for="resourceViewSearch">Search resource or user</label>
-          <input
-            class="form-control"
-            id="resourceViewSearch"
-            type="search"
-            name="resource_view_q"
-            value="{{ selected_resource_view_query }}"
-            placeholder="Example: resource title or reader email"
-          />
-        </div>
-        <div class="form-group">
-          <label for="resourceViewRole">Account type</label>
-          <select
-            class="form-select"
-            id="resourceViewRole"
-            name="resource_view_role"
-          >
-            <option value="">All account types</option>
-            {% for value, label in usage_role_choices %}
-            <option
-              value="{{ value }}"
-              {%
-              if
-              selected_resource_view_role=""
-              ="value"
-              %}
-              selected{%
-              endif
-              %}
-            >
-              {{ label }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        {% if selected_resource_view_query or selected_resource_view_role %}<a
-          class="btn btn-outline-secondary"
-          href="{{ staff_portal_url }}#resource-views"
-          >Clear</a
-        >{% endif %}
-      </form>
-      <div class="table-responsive">
-        <table class="staff-compact-table">
-          <thead>
-            <tr>
-              <th>Resource</th>
-              <th>Visitor</th>
-              <th>Account type</th>
-              <th>First viewed</th>
-              <th>Last viewed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for resource_view in resource_view_history %}
-            <tr>
-              <td>
-                <strong>{{ resource_view.item.title }}</strong
-                ><small>{{ resource_view.item.call_number }}</small>
-              </td>
-              <td>{{ resource_view.display_name }}</td>
-              <td>
-                <span class="user-role-badge {{ resource_view.role }}"
-                  >{{ resource_view.get_role_display }}</span
-                >
-              </td>
-              <td>{{ resource_view.first_viewed_at|date:'M j, Y, g:i a' }}</td>
-              <td>{{ resource_view.last_viewed_at|date:'M j, Y, g:i a' }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" class="empty-user-row">
-                No resource views match these filters.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
     </section>
 
-    <section class="staff-panel" id="history" aria-labelledby="historyHeading">
-      <div class="staff-panel-heading">
-        <div>
-          <span class="section-kicker">Audit trail</span>
-          <h2 id="historyHeading">Activity history</h2>
-        </div>
+    <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
+      <div class="staff-panel-heading usage-heading">
+        <div><span class="section-kicker">Usage analytics</span><h2 id="usageHeading"><i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage</h2></div>
+        <form class="analytics-date-form" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
+          <label for="analyticsDate">Date</label>
+          <input class="form-control" id="analyticsDate" type="date" name="analytics_date" value="{{ analytics_date }}">
+        </form>
       </div>
-      <div class="activity-history-list">
-        {% for entry in activity_history %}
-        <article>
-          <span class="activity-action {{ entry.action }}"
-            >{{ entry.get_action_display }}</span
-          >
-          <div>
-            <strong
-              >{{ entry.object_type|capfirst }} · {{ entry.description
-              }}</strong
-            >
-            <small>
-              {% if entry.actor %} {% if entry.actor.get_full_name %} {{
-              entry.actor.get_full_name }} {% elif entry.actor.email %} {% if
-              entry.actor %} {{ entry.actor.email|default:"Unknown user" }} {%
-              else %} Unknown user {% endif %} {{ entry.actor.email }} {% elif
-              entry.actor.username %} {{ entry.actor.username }} {% else %}
-              Unknown account {% endif %} {% else %} System {% endif %} · {{
-              entry.occurred_at|date:'M j, Y, g:i a' }}
-            </small>
+
+      <div class="usage-summary-grid" aria-label="Usage summary for {{ analytics_date }}">
+        <article><i class="fas fa-clock" aria-hidden="true"></i><div><strong>{{ usage_summary.minutes }}</strong><span>Active minutes</span></div></article>
+        <article><i class="fas fa-window-restore" aria-hidden="true"></i><div><strong>{{ usage_summary.sessions }}</strong><span>Sessions</span></div></article>
+        <article><i class="fas fa-eye" aria-hidden="true"></i><div><strong>{{ usage_summary.page_views }}</strong><span>Page views</span></div></article>
+        <article><i class="fas fa-user-group" aria-hidden="true"></i><div><strong>{{ usage_summary.visitors }}</strong><span>Visitors</span></div></article>
+      </div>
+
+      <div class="usage-content-grid">
+      <div class="usage-overview">
+        <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
+          <span>Active time<br>by role</span>
+        </div>
+        <ul class="usage-chart-legend">
+          {% for usage in role_usage %}
+            <li>
+              <span class="usage-swatch" style="background: {{ usage.color }};"></span>
+              <div><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}%</span></div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="usage-history-panel">
+        <div class="usage-history-heading"><h3>Visit history</h3><span>{{ analytics_date }}</span></div>
+        <form class="staff-filter-bar usage-history-filters" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
+          <input type="hidden" name="analytics_date" value="{{ analytics_date }}">
+          <div class="form-group">
+            <label for="usageSearch">Search visitor</label>
+            <input class="form-control" id="usageSearch" type="search" name="usage_q" value="{{ selected_usage_query }}" placeholder="Example: Maria, email, or session ID">
           </div>
-        </article>
-        {% empty %}
-        <p class="staff-empty-copy">No tracked changes yet.</p>
-        {% endfor %}
+          <div class="form-group">
+            <label for="usageRole">Account type</label>
+            <select class="form-select" id="usageRole" name="usage_role">
+              <option value="">All account types</option>
+
+              {% for value, label in usage_role_choices %}
+                <option value="{{ value }}"
+                  {% if selected_usage_role == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if selected_usage_query or selected_usage_role %}<a class="btn btn-outline-secondary" href="?analytics_date={{ analytics_date }}#usage">Clear</a>{% endif %}
+        </form>
+        <div class="table-responsive">
+          <table class="staff-compact-table">
+            <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th><th>Page views</th><th>Last page</th></tr></thead>
+            <tbody>
+              {% for visit in visit_history %}
+                <tr>
+                  <td><strong>{{ visit.display_name }}</strong></td>
+                  <td><span class="user-role-badge {{ visit.role }}">{{ visit.get_role_display }}</span></td>
+                  <td>{{ visit.started_at|date:'g:i a' }}</td>
+                  <td>{{ visit.last_seen_at|date:'g:i a' }}</td>
+                  <td>{% widthratio visit.duration_seconds 60 1 %} min</td>
+                  <td>{{ visit.page_views }}</td>
+                  <td><code>{{ visit.last_path|default:'—' }}</code></td>
+                </tr>
+              {% empty %}<tr><td colspan="7" class="empty-user-row">No website visits recorded for this date.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
       </div>
     </section>
+
+    <div class="staff-management-grid staff-history-grid">
+      <section class="staff-panel" id="resource-views" aria-labelledby="resourceViewsHeading">
+        <div class="staff-panel-heading"><div><span class="section-kicker">Privacy-safe access log</span><h2 id="resourceViewsHeading">Resource viewing history</h2></div></div>
+        <form class="staff-filter-bar resource-view-filters" method="get" action="{{ staff_portal_url }}#resource-views" data-auto-submit>
+          <div class="form-group">
+            <label for="resourceViewSearch">Search resource or user</label>
+            <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Example: resource title or reader email">
+          </div>
+          <div class="form-group">
+            <label for="resourceViewRole">Account type</label>
+            <select class="form-select" id="resourceViewRole" name="resource_view_role">
+              <option value="">All account types</option>
+
+              {% for value, label in usage_role_choices %}
+                <option value="{{ value }}"
+                  {% if selected_resource_view_role == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#resource-views">Clear</a>{% endif %}
+        </form>
+        <div class="table-responsive">
+          <table class="staff-compact-table">
+            <thead><tr><th>Resource</th><th>Visitor</th><th>Account type</th><th>First viewed</th><th>Last viewed</th></tr></thead>
+            <tbody>
+              {% for resource_view in resource_view_history %}
+                <tr>
+                  <td><strong>{{ resource_view.item.title }}</strong><small>{{ resource_view.item.call_number }}</small></td>
+                  <td>{{ resource_view.display_name }}</td>
+                  <td><span class="user-role-badge {{ resource_view.role }}">{{ resource_view.get_role_display }}</span></td>
+                  <td>{{ resource_view.first_viewed_at|date:'M j, Y, g:i a' }}</td>
+                  <td>{{ resource_view.last_viewed_at|date:'M j, Y, g:i a' }}</td>
+                </tr>
+              {% empty %}<tr><td colspan="5" class="empty-user-row">No resource views match these filters.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="staff-panel" id="history" aria-labelledby="historyHeading">
+        <div class="staff-panel-heading"><div><span class="section-kicker">Audit trail</span><h2 id="historyHeading">Activity history</h2></div></div>
+        <div class="activity-history-list">
+          {% for entry in activity_history %}
+            <article>
+              <span class="activity-action {{ entry.action }}">{{ entry.get_action_display }}</span>
+              <div>
+                <strong>{{ entry.object_type|capfirst }} · {{ entry.description }}</strong>
+                <small>
+                  {% if entry.actor %}
+                    {% if entry.actor.get_full_name %}
+                      {{ entry.actor.get_full_name }}
+                    {% elif entry.actor.email %}
+                      {{ entry.actor.email }}
+                    {% elif entry.actor.username %}
+                      {{ entry.actor.username }}
+                    {% else %}
+                      Unknown account
+                    {% endif %}
+                  {% else %}
+                    System
+                  {% endif %}
+                  · {{ entry.occurred_at|date:'M j, Y, g:i a' }}
+                </small>
+              </div>
+            </article>
+          {% empty %}<p class="staff-empty-copy">No tracked changes yet.</p>{% endfor %}
+        </div>
+      </section>
+    </div>
   </div>
-</div>
 {% endblock %}
