@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
@@ -407,7 +408,6 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
 class AIDetectionForm(StyledFormMixin, forms.Form):
     """Accept one bounded text sample or supported in-memory document upload."""
 
-    maximum_upload_size = 10 * 1024 * 1024
     supported_extensions = (".pdf", ".docx")
     document_upload_policy_class = DocumentUploadPolicy
 
@@ -427,11 +427,20 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
     document = forms.FileField(
         required=False,
         label="Upload a document",
-        help_text="Accepted formats: PDF and Word (.docx), up to 10 MB.",
+        help_text="Accepted formats: PDF and Word (.docx).",
         widget=forms.ClearableFileInput(
             attrs={"accept": ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
         ),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.maximum_upload_mb = settings.AI_DETECTION_MAX_UPLOAD_MB
+        self.maximum_upload_size = self.maximum_upload_mb * 1024 * 1024
+        self.fields["document"].help_text = (
+            "Accepted formats: PDF and Word (.docx), up to "
+            f"{self.maximum_upload_mb} MB."
+        )
 
     def clean_document(self):
         document = self.cleaned_data.get("document")
@@ -441,7 +450,9 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
         if not filename.endswith(self.supported_extensions):
             raise ValidationError("Upload a PDF or Word (.docx) document.")
         if document.size > self.maximum_upload_size:
-            raise ValidationError("The document must be 10 MB or smaller.")
+            raise ValidationError(
+                f"The document must be {self.maximum_upload_mb} MB or smaller."
+            )
         try:
             self.document_upload_policy_class().validate(document)
         except DocumentUploadValidationError as exc:

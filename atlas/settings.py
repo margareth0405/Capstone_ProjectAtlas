@@ -439,14 +439,14 @@ PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-09-20")
 # The detector service reads these values only when an analysis is requested.
 # Keeping model identifiers and revisions in configuration makes detector
 # upgrades independent from the staff view and the rest of the application.
-AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "fast").strip().lower()
+AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "transformer").strip().lower()
 AI_DETECTION_PRIMARY_MODEL = os.getenv(
     "AI_DETECTION_PRIMARY_MODEL",
-    "ShantanuT01/vanguard-ai-text-detector",
+    "followsci/bert-ai-text-detector",
 )
 AI_DETECTION_PRIMARY_REVISION = os.getenv(
     "AI_DETECTION_PRIMARY_REVISION",
-    "823061be63b90f2b42f64ac1e1f82772e872533b",
+    "dc41bbaff401c56d325f8466d9f8544287669aa1",
 )
 AI_DETECTION_ENABLE_VALIDATION = env_bool(
     "AI_DETECTION_ENABLE_VALIDATION",
@@ -458,8 +458,9 @@ AI_DETECTION_VALIDATION_MODEL = os.getenv(
 )
 AI_DETECTION_VALIDATION_REVISION = os.getenv(
     "AI_DETECTION_VALIDATION_REVISION",
-    "main",
+    "fe9b4da50ee2cca5c877d607640681609170e363",
 )
+AI_DETECTION_MAX_UPLOAD_MB = env_positive_int("AI_DETECTION_MAX_UPLOAD_MB", 25)
 
 
 # ==========================================

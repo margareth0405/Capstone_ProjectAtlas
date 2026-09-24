@@ -280,14 +280,14 @@ class AIDetectionServiceTests(LibraryTestCase):
         def analyze(self, text):
             return {
                 "score": 76.5,
-                "label": "High AI likelihood",
+                "label": "High AI-pattern score",
                 "tone": "high",
                 "ai_probability": 76.5,
                 "human_probability": 23.5,
                 "confidence": 76.5,
                 "chunks_analyzed": 2,
-                "detector_name": "Vanguard",
-                "model_name": "ShantanuT01/vanguard-ai-text-detector",
+                "detector_name": "Academic BERT",
+                "model_name": "followsci/bert-ai-text-detector",
                 "model_version": "test-commit-123",
             }
 
@@ -309,6 +309,7 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, "AI DETECTION")
         self.assertContains(page_response, "PDF")
         self.assertContains(page_response, "Word (.docx)")
+        self.assertContains(page_response, "up to 25 MB")
         self.assertContains(page_response, 'enctype="multipart/form-data"')
         self.assertContains(page_response, "data-async-upload")
         self.assertContains(page_response, "ATLAS is analyzing the writing patterns")
@@ -342,13 +343,48 @@ class AIDetectionServiceTests(LibraryTestCase):
             response.context["detection_result"]["ai_probability"],
             76.5,
         )
-        self.assertContains(response, "AI likelihood")
-        self.assertContains(response, "Human likelihood")
-        self.assertContains(response, "Vanguard")
+        self.assertContains(response, "AI-pattern score")
+        self.assertContains(response, "Human-pattern score")
+        self.assertContains(response, "Academic BERT")
+        self.assertContains(response, "not proof")
         analysis = AIAnalysis.objects.get(reviewer=self.staff)
         self.assertEqual(analysis.source_name, "Pasted text")
         self.assertEqual(analysis.model_version, "test-commit-123")
         self.assertEqual(float(analysis.ai_probability), 76.5)
+
+    def test_staff_sees_uncertain_when_detectors_disagree(self):
+        self.client.force_login(self.staff)
+        sample = "Academic evidence should be interpreted in context. " * 5
+
+        class DisagreeingAnalyzer(self.StubAnalyzer):
+            def analyze(self, text):
+                result = super().analyze(text)
+                result.update(
+                    {
+                        "label": "Uncertain — detectors disagree",
+                        "tone": "mixed",
+                        "detectors_disagree": True,
+                        "validation": {
+                            "detector_name": "Desklib Academic",
+                            "ai_probability": 22.0,
+                            "model_version": "validator-test-commit",
+                            "agrees_with_primary": False,
+                        },
+                    }
+                )
+                return result
+
+        with patch.object(
+            StaffAIDetectionView,
+            "analyzer_class",
+            DisagreeingAnalyzer,
+        ):
+            response = self.client.post(self.url, {"text": sample})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Uncertain — detectors disagree")
+        self.assertContains(response, "Uncertain: the two detectors disagree.")
+        self.assertContains(response, "not proof")
 
     @override_settings(
         AI_DETECTION_ENGINE="fast",

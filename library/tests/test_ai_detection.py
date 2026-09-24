@@ -7,10 +7,10 @@ from unittest.mock import patch
 from django.test import SimpleTestCase, override_settings
 
 from library.services.ai_detection import (
+    AcademicBertDetector,
     AIDetectionError,
     AIDetectionService,
     FastWritingPatternDetector,
-    VanguardDetector,
 )
 from library.services.documents import DocumentTextExtractor
 
@@ -26,18 +26,18 @@ class FakePipeline:
         return self.predictions
 
 
-class VanguardDetectorTests(SimpleTestCase):
+class AcademicBertDetectorTests(SimpleTestCase):
     def tearDown(self):
-        VanguardDetector._pipeline = None
+        AcademicBertDetector._pipeline = None
 
     def test_long_text_is_chunked_and_probabilities_are_averaged(self):
         pipeline = FakePipeline(
             [
-                {"label": "LABEL_0", "score": 0.80},
-                {"label": "LABEL_0", "score": 0.30},
+                {"label": "LABEL_1", "score": 0.80},
+                {"label": "LABEL_0", "score": 0.70},
             ]
         )
-        detector = VanguardDetector()
+        detector = AcademicBertDetector()
 
         with patch.object(detector, "_get_pipeline", return_value=pipeline):
             result = detector.analyze("word " * 300)
@@ -46,22 +46,22 @@ class VanguardDetectorTests(SimpleTestCase):
         self.assertEqual(result["ai_probability"], 55.0)
         self.assertEqual(result["human_probability"], 45.0)
         self.assertEqual(result["label"], "Mixed / uncertain")
-        self.assertEqual(result["detector_name"], "Vanguard")
+        self.assertEqual(result["detector_name"], "Academic BERT")
         self.assertEqual(result["model_version"], "detector-commit-123")
 
     def test_low_ai_probability_reports_high_human_probability(self):
-        detector = VanguardDetector()
-        pipeline = FakePipeline([{"label": "LABEL_0", "score": 0.08}])
+        detector = AcademicBertDetector()
+        pipeline = FakePipeline([{"label": "LABEL_0", "score": 0.92}])
 
         with patch.object(detector, "_get_pipeline", return_value=pipeline):
             result = detector.analyze("Evidence based writing " * 40)
 
         self.assertEqual(result["ai_probability"], 8.0)
         self.assertEqual(result["human_probability"], 92.0)
-        self.assertEqual(result["label"], "Low AI likelihood")
+        self.assertEqual(result["label"], "Low AI-pattern score")
 
     def test_unknown_model_label_raises_safe_error(self):
-        detector = VanguardDetector()
+        detector = AcademicBertDetector()
         pipeline = FakePipeline([{"label": "unexpected", "score": 0.9}])
 
         with (
@@ -123,9 +123,16 @@ class AIDetectionServiceTests(SimpleTestCase):
             self.probability = probability
 
         def analyze(self, text):
+            classification, tone = (
+                ("High AI-pattern score", "high")
+                if self.probability >= 70
+                else ("Low AI-pattern score", "low")
+            )
             return {
                 "detector_name": self.name,
                 "ai_probability": self.probability,
+                "label": classification,
+                "tone": tone,
             }
 
     def test_primary_detector_is_hidden_behind_service(self):
@@ -156,3 +163,19 @@ class AIDetectionServiceTests(SimpleTestCase):
         ).analyze("sample")
 
         self.assertEqual(result["validation"]["detector_name"], "Academic validator")
+        self.assertTrue(result["validation"]["agrees_with_primary"])
+        self.assertFalse(result["detectors_disagree"])
+
+    def test_disagreeing_detectors_return_uncertain_result(self):
+        primary = self.StubDetector("Primary", 72.0)
+        validator = self.StubDetector("Academic validator", 31.0)
+
+        result = AIDetectionService(
+            primary_detector=primary,
+            validation_detector=validator,
+        ).analyze("sample")
+
+        self.assertEqual(result["label"], "Uncertain — detectors disagree")
+        self.assertEqual(result["tone"], "mixed")
+        self.assertTrue(result["detectors_disagree"])
+        self.assertFalse(result["validation"]["agrees_with_primary"])

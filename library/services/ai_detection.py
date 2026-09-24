@@ -17,10 +17,10 @@ class AIDetectionError(RuntimeError):
 
 def _classification(ai_probability):
     if ai_probability >= 70:
-        return "High AI likelihood", "high"
+        return "High AI-pattern score", "high"
     if ai_probability >= 40:
         return "Mixed / uncertain", "mixed"
-    return "Low AI likelihood", "low"
+    return "Low AI-pattern score", "low"
 
 
 class FastWritingPatternDetector:
@@ -266,11 +266,12 @@ class HuggingFaceDetector:
             for index in range(0, len(words), cls.words_per_chunk)
         ]
 
-class VanguardDetector(HuggingFaceDetector):
-    """Primary general-purpose detector recommended for ATLAS."""
 
-    detector_name = "Vanguard"
-    default_model_name = "ShantanuT01/vanguard-ai-text-detector"
+class AcademicBertDetector(HuggingFaceDetector):
+    """Primary BERT detector optimized for English academic paragraphs."""
+
+    detector_name = "Academic BERT"
+    default_model_name = "followsci/bert-ai-text-detector"
 
     @staticmethod
     def _ai_score(prediction):
@@ -281,15 +282,17 @@ class VanguardDetector(HuggingFaceDetector):
             raise AIDetectionError(
                 "The local AI detector returned an invalid result."
             ) from exc
-        if label not in {"label_0", "ai", "ai_generated"}:
-            raise AIDetectionError(
-                "The local AI detector returned an unknown classification."
-            )
         if not 0 <= probability <= 1:
             raise AIDetectionError(
                 "The local AI detector returned a confidence outside the expected range."
             )
-        return probability
+        if label in {"label_1", "ai", "ai_generated"}:
+            return probability
+        if label in {"label_0", "human", "human_written"}:
+            return 1 - probability
+        raise AIDetectionError(
+            "The local AI detector returned an unknown classification."
+        )
 
 
 class DesklibAcademicDetector(HuggingFaceDetector):
@@ -399,7 +402,7 @@ class DesklibAcademicDetector(HuggingFaceDetector):
 class AIDetectionService:
     """Run the configured primary detector and optional academic validation."""
 
-    primary_detector_class = VanguardDetector
+    primary_detector_class = AcademicBertDetector
     validation_detector_class = DesklibAcademicDetector
 
     def __init__(self, primary_detector=None, validation_detector=None):
@@ -429,5 +432,14 @@ class AIDetectionService:
     def analyze(self, text):
         result = self.primary_detector.analyze(text)
         if self.validation_detector is not None:
-            result["validation"] = self.validation_detector.analyze(text)
+            validation = self.validation_detector.analyze(text)
+            detectors_disagree = (
+                result["ai_probability"] >= 50
+            ) != (validation["ai_probability"] >= 50)
+            validation["agrees_with_primary"] = not detectors_disagree
+            result["validation"] = validation
+            result["detectors_disagree"] = detectors_disagree
+            if detectors_disagree:
+                result["label"] = "Uncertain — detectors disagree"
+                result["tone"] = "mixed"
         return result

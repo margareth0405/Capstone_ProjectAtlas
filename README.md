@@ -40,24 +40,26 @@ JavaScript. Node.js is not required.
   administrator-only AI Detection service.
 
 AI Detection accepts pasted text from 100 to 20,000 characters or one PDF or
-Word (.docx) document up to 10 MB. Uploads are processed in memory and are not
-saved. Scanned image-only PDFs must go through OCR first.
+Word (.docx) document up to 25 MB by default. Set
+`AI_DETECTION_MAX_UPLOAD_MB` to another positive whole-number limit when the
+hosting proxy permits it. Uploads are processed temporarily and are not saved.
+Scanned image-only PDFs must go through OCR first.
 
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The default `fast` engine performs a local, memory-safe writing-pattern review
-without downloading a model. It reports AI likelihood, human likelihood,
-classification confidence, the analyzed text-section count, detector name, and
-detector version. PDF and Word extraction stops after the 20,000-character
-analysis limit instead of parsing the rest of a large document.
+The default `transformer` engine uses `followsci/bert-ai-text-detector` for an
+academic-writing pattern score. The lighter `fast` engine remains available for
+small servers and performs a local heuristic review without downloading a
+model. PDF and Word extraction stops after the 20,000-character analysis limit
+instead of parsing the rest of a large document.
 
-The detector is wrapped by `AIDetectionService`, so operators with a larger
-server can set `AI_DETECTION_ENGINE=transformer` to use the configured Vanguard
-model without changing the view or template. An optional
-`desklib/ai-text-detector-academic-v1.01` validator can provide a second,
-academic-domain estimate. It is disabled by default because enabling both
-models substantially increases memory and disk requirements.
+The detector is wrapped by `AIDetectionService`. The optional
+`desklib/ai-text-detector-academic-v1.01` validator provides a second
+academic-domain estimate. When the primary detector and validator fall on
+opposite sides of the 50% screening threshold, ATLAS reports the overall result
+as uncertain. Validation is disabled by default because loading both models
+substantially increases memory and disk requirements.
 
 ATLAS stores the analysis score, source label, detector identifier, model
 revision, reviewer, and analysis date for reproducibility. Submitted text and
@@ -170,13 +172,11 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
-The default fast AI Detection engine starts immediately and does not download a
-model. If `AI_DETECTION_ENGINE=transformer` is selected, the first analysis
-downloads and caches the public Vanguard model from Hugging Face. Its weights
-are about 1.6 GB, so transformer mode requires a larger server and can take
-several minutes on its first request. If academic validation is enabled, its
-model is downloaded and cached separately and requires substantial additional
-memory and disk space.
+The default AI Detection engine downloads and caches the public academic BERT
+model from Hugging Face on its first analysis. Use `AI_DETECTION_ENGINE=fast`
+on an instance that cannot host a transformer. If academic validation is
+enabled, its model is downloaded and cached separately and requires substantial
+additional memory and disk space.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -235,18 +235,19 @@ set DB_SSL_REQUIRE=True when TLS is required.
 AI Detection model selection is environment-based:
 
 ```dotenv
-AI_DETECTION_ENGINE=fast
-AI_DETECTION_PRIMARY_MODEL=ShantanuT01/vanguard-ai-text-detector
-AI_DETECTION_PRIMARY_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
+AI_DETECTION_ENGINE=transformer
+AI_DETECTION_PRIMARY_MODEL=followsci/bert-ai-text-detector
+AI_DETECTION_PRIMARY_REVISION=dc41bbaff401c56d325f8466d9f8544287669aa1
 AI_DETECTION_ENABLE_VALIDATION=False
 AI_DETECTION_VALIDATION_MODEL=desklib/ai-text-detector-academic-v1.01
-AI_DETECTION_VALIDATION_REVISION=main
+AI_DETECTION_VALIDATION_REVISION=fe9b4da50ee2cca5c877d607640681609170e363
+AI_DETECTION_MAX_UPLOAD_MB=25
 HF_HUB_DISABLE_XET=1
 HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ```
 
-Keep `AI_DETECTION_ENGINE=fast` for small Render instances. Set it to
-`transformer` only when the service has enough memory for the configured model.
+Set `AI_DETECTION_ENGINE=fast` on small Render instances that do not have enough
+memory for the configured transformer model.
 Use a Hugging Face commit hash instead of `main` for a release that must always
 load the same weights. When validation is enabled, ATLAS runs both configured
 detectors and records the secondary result with the primary analysis. The Hub

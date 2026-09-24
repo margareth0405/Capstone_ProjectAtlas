@@ -272,6 +272,31 @@ class SecurityRegressionTests(LibraryTestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("at most 20000", form.errors["text"][0])
 
+    @override_settings(AI_DETECTION_MAX_UPLOAD_MB=25)
+    def test_ai_form_accepts_document_larger_than_ten_mb(self):
+        upload = SimpleUploadedFile(
+            "large-analysis.pdf",
+            b"%PDF-" + (b"0" * (11 * 1024 * 1024)),
+            content_type="application/pdf",
+        )
+
+        form = AIDetectionForm(files={"document": upload})
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    @override_settings(AI_DETECTION_MAX_UPLOAD_MB=25)
+    def test_ai_form_enforces_configured_document_limit(self):
+        upload = SimpleUploadedFile(
+            "too-large.pdf",
+            b"%PDF-" + (b"0" * (25 * 1024 * 1024)),
+            content_type="application/pdf",
+        )
+
+        form = AIDetectionForm(files={"document": upload})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("25 MB or smaller", form.errors["document"][0])
+
     def test_forged_session_cookie_does_not_authenticate(self):
         self.client.cookies["sessionid"] = "forged-session-token"
 
