@@ -89,6 +89,7 @@ class RegistrationTests(LibraryTestCase):
 
     def test_registration_sends_and_accepts_email_verification(self):
         self.client.post(reverse("library:register"), self.registration_payload())
+        self.assertTrue(mail.outbox[0].subject.startswith("[ATLAS] "))
         self.assertIn("does not subscribe you to marketing email", mail.outbox[0].body)
         self.assertIn("request_type=email_preferences", mail.outbox[0].body)
         email_address = EmailAddress.objects.get(email="jamie@gmail.com")

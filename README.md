@@ -305,6 +305,8 @@ SUPPORT_PHONE=+63 912 345 6789
 For real Gmail delivery, create a Google App Password and use:
 
 ```dotenv
+ACCOUNT_EMAIL_VERIFICATION=mandatory
+ACCOUNT_EMAIL_SUBJECT_PREFIX="[ATLAS] "
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 DEFAULT_FROM_EMAIL=ATLAS <atlastshs@gmail.com>
 SUPPORT_EMAIL=atlastshs@gmail.com
@@ -324,6 +326,18 @@ fails, ATLAS keeps the form visible, shows an error, and does not retain a new
 unverified account or record a contact message as successfully sent. Switch back
 to the console backend while developing locally; verification links will be
 printed in the terminal running Django.
+
+After adding a new App Password, verify the SMTP login and send one real test
+message before testing registration:
+
+```powershell
+python manage.py verify_email --to your-test-address@example.com
+```
+
+The command never prints SMTP credentials. It refuses the console, dummy, and
+in-memory test backends so a successful result confirms use of a delivery
+backend. Registration verification, verification resends, password recovery,
+and Contact-page delivery then use the same tested connection settings.
 
 ## Administrator setup
 

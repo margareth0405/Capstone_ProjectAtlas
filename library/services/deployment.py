@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from email.utils import parseaddr
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.db.utils import DatabaseError
@@ -64,6 +67,15 @@ class DeploymentReadinessService:
             "replace-"
         )
 
+    @staticmethod
+    def _is_valid_email(value):
+        _display_name, address = parseaddr(str(value))
+        try:
+            validate_email(address)
+        except ValidationError:
+            return False
+        return True
+
     def inspect_configuration(self):
         findings = []
         database_engine = settings.DATABASES["default"].get("ENGINE", "")
@@ -77,17 +89,13 @@ class DeploymentReadinessService:
                 )
             )
 
-        if (
-            settings.ACCOUNT_EMAIL_VERIFICATION == "mandatory"
-            and settings.EMAIL_BACKEND in self.development_email_backends
-        ):
+        if settings.EMAIL_BACKEND in self.development_email_backends:
             findings.append(
                 DeploymentFinding(
                     code="atlas.E002",
                     severity="error",
                     message=(
-                        "Mandatory account verification is using a non-delivery "
-                        "email backend."
+                        "Account and contact email is using a non-delivery backend."
                     ),
                     hint=(
                         "Configure the SMTP email backend and test delivery before "
@@ -96,21 +104,50 @@ class DeploymentReadinessService:
                 )
             )
 
-        if (
-            settings.ACCOUNT_EMAIL_VERIFICATION == "mandatory"
-            and settings.EMAIL_BACKEND
+        smtp_enabled = (
+            settings.EMAIL_BACKEND
             == "django.core.mail.backends.smtp.EmailBackend"
-            and (
-                self._is_missing_or_placeholder(settings.EMAIL_HOST_USER)
-                or self._is_missing_or_placeholder(settings.EMAIL_HOST_PASSWORD)
-            )
+        )
+        if smtp_enabled and (
+            self._is_missing_or_placeholder(settings.EMAIL_HOST_USER)
+            or self._is_missing_or_placeholder(settings.EMAIL_HOST_PASSWORD)
         ):
             findings.append(
                 DeploymentFinding(
                     code="atlas.E006",
                     severity="error",
-                    message="Mandatory verification email has incomplete SMTP credentials.",
+                    message="ATLAS email delivery has incomplete SMTP credentials.",
                     hint="Set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to working secrets.",
+                )
+            )
+
+        if smtp_enabled and not settings.EMAIL_HOST.strip():
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E007",
+                    severity="error",
+                    message="ATLAS email delivery has no SMTP host.",
+                    hint="Set EMAIL_HOST to the SMTP server hostname.",
+                )
+            )
+
+        if not self._is_valid_email(settings.DEFAULT_FROM_EMAIL):
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E008",
+                    severity="error",
+                    message="DEFAULT_FROM_EMAIL is not a valid mailbox.",
+                    hint="Use a value such as ATLAS <repository@example.edu>.",
+                )
+            )
+
+        if not self._is_valid_email(settings.SUPPORT_EMAIL):
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E009",
+                    severity="error",
+                    message="SUPPORT_EMAIL is not a valid mailbox.",
+                    hint="Set SUPPORT_EMAIL to the inbox that receives contact requests.",
                 )
             )
 

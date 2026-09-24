@@ -93,3 +93,20 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         findings = DeploymentReadinessService().inspect_configuration()
 
         self.assertEqual(findings, [])
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+        EMAIL_HOST="",
+        EMAIL_HOST_USER="replace-with-the-smtp-user",
+        EMAIL_HOST_PASSWORD="replace-with-the-smtp-app-password",
+        DEFAULT_FROM_EMAIL="not-an-email",
+        SUPPORT_EMAIL="also-not-an-email",
+    )
+    def test_broken_email_configuration_has_actionable_findings(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        codes = {finding.code for finding in findings}
+
+        self.assertTrue(
+            {"atlas.E006", "atlas.E007", "atlas.E008", "atlas.E009"}
+            <= codes
+        )

@@ -24,6 +24,18 @@ def env_list(name, default=""):
     return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
+def env_positive_int(name, default):
+    """Read a positive integer setting with an actionable configuration error."""
+    raw_value = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.") from exc
+    if value <= 0:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.")
+    return value
+
+
 # Support both the shorter names commonly provided by hosting platforms and
 # the documented DJANGO_* aliases. The shorter names take precedence.
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
@@ -197,14 +209,23 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = os.getenv(
     "ACCOUNT_EMAIL_VERIFICATION", "optional"
 ).strip().lower()
+if ACCOUNT_EMAIL_VERIFICATION not in {"none", "optional", "mandatory"}:
+    raise ImproperlyConfigured(
+        "ACCOUNT_EMAIL_VERIFICATION must be none, optional, or mandatory."
+    )
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = os.getenv(
+    "ACCOUNT_EMAIL_SUBJECT_PREFIX", "[ATLAS] "
+)
 
 EMAIL_BACKEND = os.getenv(
     "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local>")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com")
+).strip()
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local>"
+).strip()
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com").strip()
 SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
@@ -220,13 +241,13 @@ DATA_PRIVACY_EMAIL = os.getenv("DATA_PRIVACY_EMAIL", SUPPORT_EMAIL).strip()
 TEACHER_EMAIL_DOMAINS = tuple(
     env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph")
 )
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com").strip()
+EMAIL_PORT = env_positive_int("EMAIL_PORT", 587)
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "15"))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = env_positive_int("EMAIL_TIMEOUT", 15)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise ImproperlyConfigured(
