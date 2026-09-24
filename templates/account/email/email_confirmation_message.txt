@@ -1,15 +1,19 @@
 Hello,
 
-Please verify this email address for your ATLAS account by opening the secure link below:
+Welcome to A.T.L.A.S. – Academic Repository Management System of Tingloy Senior High School.
+
+Thank you for registering an account.
+
+To complete your registration, please verify your email address by clicking the link below:
 
 {{ activate_url }}
 
-If you did not create or update an ATLAS account, you can ignore this message.
+If you did not register for an A.T.L.A.S. account, you may safely ignore this email.
 
-ATLAS does not subscribe you to marketing email. For email preferences or a data request, visit:
-https://{{ current_site.domain }}/contact/?request_type=email_preferences
+Please do not share your verification link with anyone.
 
-Privacy and terms:
-https://{{ current_site.domain }}/privacy-and-terms/
+Best regards,
+A.T.L.A.S. System Administration
+Tingloy Senior High School
 
-ATLAS Digital Repository
+This is an automated email. Please do not reply.

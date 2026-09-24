@@ -76,6 +76,8 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
         EMAIL_HOST_USER="atlas@example.edu",
         EMAIL_HOST_PASSWORD="test-production-secret",
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL="https",
+        SITE_ID=1,
         AI_DETECTION_PRIMARY_REVISION="a1b2c3d4",
         AI_DETECTION_ENABLE_VALIDATION=False,
         ADMIN_URL_PATH="private-atlas-console",
@@ -110,3 +112,14 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
             {"atlas.E006", "atlas.E007", "atlas.E008", "atlas.E009"}
             <= codes
         )
+
+    @override_settings(
+        DEBUG=False,
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL="http",
+        SITE_ID=2,
+    )
+    def test_production_account_links_require_https_and_site_one(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        codes = {finding.code for finding in findings}
+
+        self.assertTrue({"atlas.E010", "atlas.E011"} <= codes)

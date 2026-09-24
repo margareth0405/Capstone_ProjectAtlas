@@ -296,7 +296,7 @@ The console backend is safe for local development but prints messages instead
 of delivering them:
 
 ```dotenv
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 SUPPORT_EMAIL=atlastshs@gmail.com
 SUPPORT_HOURS=Monday–Friday, 8:00 AM–5:00 PM
 SUPPORT_PHONE=+63 912 345 6789
@@ -306,8 +306,10 @@ For real Gmail delivery, create a Google App Password and use:
 
 ```dotenv
 ACCOUNT_EMAIL_VERIFICATION=mandatory
-ACCOUNT_EMAIL_SUBJECT_PREFIX="[ATLAS] "
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+ACCOUNT_EMAIL_SUBJECT_PREFIX="[A.T.L.A.S.] "
+ACCOUNT_DEFAULT_HTTP_PROTOCOL=https
+SITE_ID=1
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 DEFAULT_FROM_EMAIL=ATLAS <atlastshs@gmail.com>
 SUPPORT_EMAIL=atlastshs@gmail.com
 SUPPORT_PHONE=+63 912 345 6789
@@ -315,7 +317,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_USE_SSL=False
-EMAIL_TIMEOUT=15
+EMAIL_TIMEOUT=20
 EMAIL_HOST_USER=atlastshs@gmail.com
 EMAIL_HOST_PASSWORD=your-google-app-password
 ```
@@ -338,6 +340,25 @@ The command never prints SMTP credentials. It refuses the console, dummy, and
 in-memory test backends so a successful result confirms use of a delivery
 backend. Registration verification, verification resends, password recovery,
 and Contact-page delivery then use the same tested connection settings.
+
+Production uses Site ID 1 (`atlas-repository.onrender.com`) and HTTPS account
+links. Configure these private Render environment values:
+
+```dotenv
+SITE_ID=1
+ACCOUNT_DEFAULT_HTTP_PROTOCOL=https
+```
+
+For optional local links, create Site ID 2 once and then use `SITE_ID=2` with
+`ACCOUNT_DEFAULT_HTTP_PROTOCOL=http` in the ignored local `.env` file:
+
+```powershell
+python manage.py shell -c "from django.contrib.sites.models import Site; site, created = Site.objects.update_or_create(id=2, defaults={'domain': '127.0.0.1:8000', 'name': 'A.T.L.A.S. Local Development'}); Site.objects.clear_cache(); print(site.domain)"
+```
+
+The Render build command runs `python manage.py migrate --noinput` before the
+deployment-readiness check, so committed data migrations configure the Site
+record in the attached Render PostgreSQL database during deployment.
 
 ## Administrator setup
 

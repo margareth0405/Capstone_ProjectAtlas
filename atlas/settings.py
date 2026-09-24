@@ -24,6 +24,18 @@ def env_list(name, default=""):
     return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
+def env_positive_int(name, default):
+    """Read a positive integer or fail with a clear configuration error."""
+    raw_value = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.") from exc
+    if value <= 0:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.")
+    return value
+
+
 # Support both the shorter names commonly provided by hosting platforms and
 # the documented DJANGO_* aliases. The shorter names take precedence.
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
@@ -69,6 +81,7 @@ INSTALLED_APPS = [
 
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
 
     "accounts.apps.AccountsConfig",
     "repository.apps.RepositoryConfig",
@@ -76,7 +89,7 @@ INSTALLED_APPS = [
     "library.apps.LibraryConfig",
 
 ]
-SITE_ID = 1
+SITE_ID = env_positive_int("SITE_ID", 1)
 
 if DEBUG:
     INSTALLED_APPS.append('django_browser_reload')
@@ -195,16 +208,49 @@ ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = os.getenv(
-    "ACCOUNT_EMAIL_VERIFICATION", "optional"
+    "ACCOUNT_EMAIL_VERIFICATION", "mandatory"
 ).strip().lower()
+if ACCOUNT_EMAIL_VERIFICATION not in {"none", "optional", "mandatory"}:
+    raise ImproperlyConfigured(
+        "ACCOUNT_EMAIL_VERIFICATION must be none, optional, or mandatory."
+    )
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = False
-
-EMAIL_BACKEND = os.getenv(
-    "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+ACCOUNT_EMAIL_SUBJECT_PREFIX = os.getenv(
+    "ACCOUNT_EMAIL_SUBJECT_PREFIX", "[A.T.L.A.S.] "
 )
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATLAS <noreply@atlas.local>")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com")
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.getenv(
+    "ACCOUNT_DEFAULT_HTTP_PROTOCOL", "http"
+).strip().lower()
+if ACCOUNT_DEFAULT_HTTP_PROTOCOL not in {"http", "https"}:
+    raise ImproperlyConfigured(
+        "ACCOUNT_DEFAULT_HTTP_PROTOCOL must be http or https."
+    )
+
+# EMAIL_BACKEND is the documented variable. DJANGO_EMAIL_BACKEND remains a
+# compatibility alias for existing Render and local configurations.
+EMAIL_BACKEND = (
+    os.getenv("EMAIL_BACKEND")
+    or os.getenv("DJANGO_EMAIL_BACKEND")
+    or "django.core.mail.backends.smtp.EmailBackend"
+).strip()
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com").strip()
+EMAIL_PORT = env_positive_int("EMAIL_PORT", 587)
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", "ATLAS <atlastshs@gmail.com>"
+).strip()
+EMAIL_TIMEOUT = env_positive_int("EMAIL_TIMEOUT", 20)
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured(
+        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
+    )
+
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com").strip()
 SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
@@ -220,25 +266,15 @@ DATA_PRIVACY_EMAIL = os.getenv("DATA_PRIVACY_EMAIL", SUPPORT_EMAIL).strip()
 TEACHER_EMAIL_DOMAINS = tuple(
     env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph")
 )
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "15"))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-
-if EMAIL_USE_TLS and EMAIL_USE_SSL:
-    raise ImproperlyConfigured(
-        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
-    )
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", not DEBUG)
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+if env_bool("RENDER", bool(RENDER_EXTERNAL_HOSTNAME)):
+    # Render terminates TLS before proxying the request to Gunicorn.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = int(
     os.getenv("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000")
 )
@@ -294,34 +330,3 @@ AI_DETECTION_VALIDATION_REVISION = os.getenv(
     "AI_DETECTION_VALIDATION_REVISION",
     "main",
 )
-
-
-# ==========================================
-# ATLAS - GMAIL SMTP EMAIL CONFIGURATION
-# ==========================================
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
-EMAIL_HOST = os.getenv(
-    "EMAIL_HOST",
-    "smtp.gmail.com"
-)
-
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-
-EMAIL_USE_TLS = (
-    os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
-)
-
-EMAIL_USE_SSL = False
-
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL",
-    EMAIL_HOST_USER
-)
-
-EMAIL_TIMEOUT = 20

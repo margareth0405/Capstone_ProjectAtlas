@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.management import call_command
+from django.test import override_settings
 from django.urls import reverse
 
 from library.models import Profile
@@ -89,9 +90,18 @@ class RegistrationTests(LibraryTestCase):
 
     def test_registration_sends_and_accepts_email_verification(self):
         self.client.post(reverse("library:register"), self.registration_payload())
-        self.assertTrue(mail.outbox[0].subject.startswith("[ATLAS] "))
-        self.assertIn("does not subscribe you to marketing email", mail.outbox[0].body)
-        self.assertIn("request_type=email_preferences", mail.outbox[0].body)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "[A.T.L.A.S.] Verify your email address",
+        )
+        self.assertIn("Tingloy Senior High School", mail.outbox[0].body)
+        self.assertTrue(
+            any(
+                alternative.mimetype == "text/html"
+                and "Verify My Email" in alternative.content
+                for alternative in mail.outbox[0].alternatives
+            )
+        )
         email_address = EmailAddress.objects.get(email="jamie@gmail.com")
         confirmation = EmailConfirmationHMAC(email_address)
         confirmation_url = reverse(
@@ -125,7 +135,10 @@ class RegistrationTests(LibraryTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("Verify your ATLAS email address", mail.outbox[0].subject)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "[A.T.L.A.S.] Verify your email address",
+        )
 
     def test_teacher_registration_records_teacher_role(self):
         response = self.client.post(
@@ -387,6 +400,36 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(self.user.email, mail.outbox[0].to)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "[A.T.L.A.S.] Reset your account password",
+        )
+        self.assertIn("Tingloy Senior High School", mail.outbox[0].body)
+        self.assertTrue(
+            any(
+                alternative.mimetype == "text/html"
+                and "Reset My Password" in alternative.content
+                for alternative in mail.outbox[0].alternatives
+            )
+        )
+
+    @override_settings(
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL="https",
+        SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
+    )
+    def test_password_reset_link_uses_https_behind_render_proxy(self):
+        self.client.post(
+            reverse("account_reset_password"),
+            {"email": self.user.email},
+            HTTP_X_FORWARDED_PROTO="https",
+        )
+
+        reset_url = next(
+            line.strip()
+            for line in mail.outbox[0].body.splitlines()
+            if "/accounts/password/reset/key/" in line
+        )
+        self.assertTrue(reset_url.startswith("https://"))
 
     def test_allauth_password_reset_link_changes_password(self):
         self.client.post(

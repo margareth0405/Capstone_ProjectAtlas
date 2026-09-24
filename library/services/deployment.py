@@ -151,6 +151,26 @@ class DeploymentReadinessService:
                 )
             )
 
+        if not settings.DEBUG and settings.ACCOUNT_DEFAULT_HTTP_PROTOCOL != "https":
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E010",
+                    severity="error",
+                    message="Production account email links are not configured for HTTPS.",
+                    hint="Set ACCOUNT_DEFAULT_HTTP_PROTOCOL=https on Render.",
+                )
+            )
+
+        if not settings.DEBUG and settings.SITE_ID != 1:
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E011",
+                    severity="error",
+                    message="Production is not using the ATLAS Site record.",
+                    hint="Set SITE_ID=1 on Render.",
+                )
+            )
+
         primary_revision = settings.AI_DETECTION_PRIMARY_REVISION.strip().lower()
         if primary_revision in self.floating_revisions:
             findings.append(

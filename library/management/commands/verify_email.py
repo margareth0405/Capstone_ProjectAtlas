@@ -31,7 +31,7 @@ class Command(BaseCommand):
         if settings.EMAIL_BACKEND in DeploymentReadinessService.development_email_backends:
             raise CommandError(
                 "The configured email backend does not deliver messages. Set "
-                "DJANGO_EMAIL_BACKEND to django.core.mail.backends.smtp.EmailBackend."
+                "EMAIL_BACKEND to django.core.mail.backends.smtp.EmailBackend."
             )
 
         connection = get_connection(fail_silently=False)
