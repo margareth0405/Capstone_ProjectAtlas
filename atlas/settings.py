@@ -331,3 +331,27 @@ AI_DETECTION_VALIDATION_REVISION = os.getenv(
     "AI_DETECTION_VALIDATION_REVISION",
     "main",
 )
+
+
+# ==========================================
+# ATLAS - PRODUCTION ERROR LOGGING
+# ==========================================
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
