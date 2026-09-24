@@ -10,7 +10,7 @@ class DocumentExtractionError(ValueError):
 class DocumentTextExtractor:
     """Extract bounded plain text from PDF and modern Word documents."""
 
-    supported_extensions = {".pdf", ".docx"}
+    supported_extensions = frozenset({".pdf", ".docx"})
     minimum_characters = 100
     maximum_characters = 20000
     maximum_ai_pdf_pages = 75

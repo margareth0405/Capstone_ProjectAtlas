@@ -48,17 +48,21 @@ class HealthCheckService:
 class DeploymentReadinessService:
     """Audit ATLAS-specific settings that Django's checks cannot infer."""
 
-    development_email_backends = {
-        "django.core.mail.backends.console.EmailBackend",
-        "django.core.mail.backends.dummy.EmailBackend",
-        "django.core.mail.backends.locmem.EmailBackend",
-    }
-    floating_revisions = {"", "main", "master", "latest"}
-    placeholder_values = {
-        "replace-me",
-        "replace-with-a-private-admin-path",
-        "replace-with-the-institution-address",
-    }
+    development_email_backends = frozenset(
+        {
+            "django.core.mail.backends.console.EmailBackend",
+            "django.core.mail.backends.dummy.EmailBackend",
+            "django.core.mail.backends.locmem.EmailBackend",
+        }
+    )
+    floating_revisions = frozenset({"", "main", "master", "latest"})
+    placeholder_values = frozenset(
+        {
+            "replace-me",
+            "replace-with-a-private-admin-path",
+            "replace-with-the-institution-address",
+        }
+    )
 
     @classmethod
     def _is_missing_or_placeholder(cls, value):
@@ -171,8 +175,19 @@ class DeploymentReadinessService:
                 )
             )
 
+        ai_engine = settings.AI_DETECTION_ENGINE.strip().lower()
+        if ai_engine not in {"fast", "transformer"}:
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E012",
+                    severity="error",
+                    message="The AI Detection engine is not supported.",
+                    hint="Set AI_DETECTION_ENGINE to fast or transformer.",
+                )
+            )
+
         primary_revision = settings.AI_DETECTION_PRIMARY_REVISION.strip().lower()
-        if primary_revision in self.floating_revisions:
+        if ai_engine == "transformer" and primary_revision in self.floating_revisions:
             findings.append(
                 DeploymentFinding(
                     code="atlas.E003",
@@ -239,7 +254,9 @@ class DeploymentReadinessService:
                 )
             )
 
-        if not os.getenv("HF_HOME", "").strip():
+        if (
+            ai_engine == "transformer" or settings.AI_DETECTION_ENABLE_VALIDATION
+        ) and not os.getenv("HF_HOME", "").strip():
             findings.append(
                 DeploymentFinding(
                     code="atlas.W003",

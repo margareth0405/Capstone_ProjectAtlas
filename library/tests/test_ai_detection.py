@@ -64,12 +64,14 @@ class VanguardDetectorTests(SimpleTestCase):
         detector = VanguardDetector()
         pipeline = FakePipeline([{"label": "unexpected", "score": 0.9}])
 
-        with patch.object(detector, "_get_pipeline", return_value=pipeline):
-            with self.assertRaisesMessage(
+        with (
+            patch.object(detector, "_get_pipeline", return_value=pipeline),
+            self.assertRaisesMessage(
                 AIDetectionError,
                 "unknown classification",
-            ):
-                detector.analyze("A sufficiently long sample " * 30)
+            ),
+        ):
+            detector.analyze("A sufficiently long sample " * 30)
 
 
 class FastWritingPatternDetectorTests(SimpleTestCase):

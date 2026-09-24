@@ -35,19 +35,21 @@ class FastWritingPatternDetector:
     model_name = "atlas/local-writing-patterns"
     model_version = "1.0"
     words_per_chunk = 250
-    transition_phrases = {
-        "additionally",
-        "consequently",
-        "furthermore",
-        "however",
-        "in conclusion",
-        "in summary",
-        "moreover",
-        "nevertheless",
-        "overall",
-        "therefore",
-        "thus",
-    }
+    transition_phrases = frozenset(
+        {
+            "additionally",
+            "consequently",
+            "furthermore",
+            "however",
+            "in conclusion",
+            "in summary",
+            "moreover",
+            "nevertheless",
+            "overall",
+            "therefore",
+            "thus",
+        }
+    )
 
     def analyze(self, text):
         if not text or not text.strip():

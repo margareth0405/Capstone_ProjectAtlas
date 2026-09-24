@@ -10,7 +10,7 @@ from library.views.public import HealthCheckView
 
 
 class HealthCheckTests(SimpleTestCase):
-    databases = {"default"}
+    databases = frozenset({"default"})
 
     def test_health_endpoint_reports_database_ready_without_sensitive_details(self):
         response = self.client.get(reverse("library:health"))
@@ -42,6 +42,7 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
     @override_settings(
         ACCOUNT_EMAIL_VERIFICATION="mandatory",
         EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
+        AI_DETECTION_ENGINE="transformer",
         AI_DETECTION_PRIMARY_REVISION="main",
         AI_DETECTION_ENABLE_VALIDATION=True,
         AI_DETECTION_VALIDATION_REVISION="main",

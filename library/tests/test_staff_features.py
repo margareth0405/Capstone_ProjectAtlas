@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from docx import Document
@@ -348,6 +349,27 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertEqual(analysis.source_name, "Pasted text")
         self.assertEqual(analysis.model_version, "test-commit-123")
         self.assertEqual(float(analysis.ai_probability), 76.5)
+
+    @override_settings(
+        AI_DETECTION_ENGINE="fast",
+        AI_DETECTION_ENABLE_VALIDATION=False,
+    )
+    def test_fast_engine_completes_real_text_request(self):
+        self.client.force_login(self.staff)
+        sample = (
+            "A research claim needs evidence from more than one source. "
+            "The writer should compare the methods, discuss conflicting results, "
+            "and explain the limitations before drawing a conclusion. "
+        ) * 3
+
+        response = self.client.post(self.url, {"text": sample})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["detection_result"]["detector_name"],
+            "ATLAS Fast Pattern Review",
+        )
+        self.assertTrue(AIAnalysis.objects.filter(reviewer=self.staff).exists())
 
     def test_analysis_result_survives_history_database_failure(self):
         self.client.force_login(self.staff)
