@@ -153,11 +153,7 @@
                   <td><strong>{{ account.get_full_name|default:account.username|default:'Unnamed user' }}</strong></td>
                   <td>{{ account.email }}</td>
                   <td>
-                    {% if account.is_staff or account.is_superuser %}
-                      <span class="user-role-badge administrator">Administrator</span>
-                    {% else %}
-                      <span class="user-role-badge {{ account.profile.role|default:'student' }}">{{ account.profile.get_role_display|default:'Student' }}</span>
-                    {% endif %}
+                    <span class="user-role-badge {{ account.atlas_role }}">{{ account.atlas_role_label }}</span>
                   </td>
                   <td>{{ account.date_joined|date:'M j, Y, g:i a' }}</td>
                   <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
@@ -290,7 +286,25 @@
           {% for entry in activity_history %}
             <article>
               <span class="activity-action {{ entry.action }}">{{ entry.get_action_display }}</span>
-              <div><strong>{{ entry.object_type|capfirst }} · {{ entry.description }}</strong><small>{{ entry.actor.get_full_name|default:entry.actor.email|default:'System' }} · {{ entry.occurred_at|date:'M j, Y, g:i a' }}</small></div>
+              <div>
+                <strong>{{ entry.object_type|capfirst }} · {{ entry.description }}</strong>
+                <small>
+                  {% if entry.actor %}
+                    {% if entry.actor.get_full_name %}
+                      {{ entry.actor.get_full_name }}
+                    {% elif entry.actor.email %}
+                      {{ entry.actor.email }}
+                    {% elif entry.actor.username %}
+                      {{ entry.actor.username }}
+                    {% else %}
+                      Unknown account
+                    {% endif %}
+                  {% else %}
+                    System
+                  {% endif %}
+                  · {{ entry.occurred_at|date:'M j, Y, g:i a' }}
+                </small>
+              </div>
             </article>
           {% empty %}<p class="staff-empty-copy">No tracked changes yet.</p>{% endfor %}
         </div>

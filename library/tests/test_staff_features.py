@@ -4,6 +4,7 @@ from datetime import datetime, time, timedelta
 from io import BytesIO
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from django.test import override_settings
@@ -18,6 +19,7 @@ from library.models import (
     ResourceViewEvent,
     WebsiteVisit,
 )
+from library.services.staff_portal import StaffUserDirectory
 from library.tests.base import LibraryTestCase
 from library.views.staff_ai import StaffAIDetectionView
 
@@ -44,6 +46,87 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertEqual(list(response.context["users"]), [teacher])
         self.assertNotIn(student, response.context["users"])
         self.assertEqual(response.context["selected_user_sort"], "oldest")
+
+    def test_user_directory_handles_account_without_profile(self):
+        legacy_user = get_user_model()(
+            username="legacy-without-profile@example.com",
+            email="legacy-without-profile@example.com",
+        )
+        get_user_model().objects.bulk_create([legacy_user])
+
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "legacy-without-profile@example.com")
+        self.assertContains(response, "Student")
+
+    def test_user_directory_falls_back_when_optional_join_fails(self):
+        fallback_accounts = [self.staff]
+
+        with patch.object(
+            StaffUserDirectory,
+            "build",
+            side_effect=[
+                DatabaseError("resource-view relation unavailable"),
+                fallback_accounts,
+            ],
+        ):
+            response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["users"], fallback_accounts)
+        self.assertContains(response, self.staff.email)
+
+    def test_staff_portal_survives_unavailable_optional_history_tables(self):
+        with (
+            patch(
+                "library.services.staff_portal.ResourceViewEvent.objects.count",
+                side_effect=DatabaseError("resource-view count unavailable"),
+            ),
+            patch(
+                "library.services.staff_portal.ResourceViewDirectory.build",
+                side_effect=DatabaseError("resource-view history unavailable"),
+            ),
+            patch(
+                "library.services.staff_portal.UsageAnalytics.role_usage",
+                side_effect=DatabaseError("usage analytics unavailable"),
+            ),
+            patch(
+                "library.services.staff_portal.ActivityLog.objects.select_related",
+                side_effect=DatabaseError("activity history unavailable"),
+            ),
+        ):
+            response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["resource_view_count"], 0)
+        self.assertEqual(response.context["resource_view_history"], [])
+        self.assertEqual(response.context["activity_history"], [])
+        self.assertEqual(response.context["visit_history"], [])
+        self.assertEqual(response.context["usage_summary"]["sessions"], 0)
+
+    def test_staff_portal_renders_guest_visit_and_null_activity_actor(self):
+        WebsiteVisit.objects.create(
+            session_key="anonymous-dashboard-visit",
+            user=None,
+            role=WebsiteVisit.Role.GUEST,
+            duration_seconds=45,
+            page_views=1,
+            last_path="/repository/",
+        )
+        ActivityLog.objects.create(
+            actor=None,
+            action=ActivityLog.Action.UPDATE,
+            object_type="system task",
+            description="Automated maintenance",
+        )
+
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Guest visitor")
+        self.assertContains(response, "Automated maintenance")
+        self.assertContains(response, "System")
 
     def test_staff_can_delete_reader_account_and_action_is_logged(self):
         reader = self.create_user(email="delete-reader@example.com")
