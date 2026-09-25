@@ -594,13 +594,18 @@ deletion requests with explicit form consent. Configure `BUSINESS_NAME`,
 `DATA_PRIVACY_EMAIL` with the responsible institution's exact details before
 public launch.
 
-Fixed-window rate limits protect general traffic, sign-in, registration,
-contact, password-reset/email actions, and AI Detection. The included Procfile
-uses one worker, so Django's default in-memory cache applies these limits
-consistently. A deployment with multiple workers or application instances must
-configure a shared atomic cache (for example Redis); otherwise each instance
-maintains a separate counter. Set `RATE_LIMIT_TRUST_PROXY=True` only when the
-application is behind a trusted proxy that replaces `X-Forwarded-For`.
+Endpoint-specific fixed-window limits protect failed sign-in attempts,
+registration, contact, password-reset/email actions, staff uploads/actions,
+catalog searches, and AI Detection. Home pages, repository browsing, and
+resource viewing do not share a global IP limit. Authenticated operations are
+keyed by user account, while anonymous account actions are keyed by the
+submitted email/username so unrelated readers behind one school router do not
+share an allowance. The included Procfile uses one worker, so Django's default
+in-memory cache applies these limits consistently. A deployment with multiple
+workers or application instances must configure a shared atomic cache (for
+example Redis); otherwise each instance maintains a separate counter. Set
+`RATE_LIMIT_TRUST_PROXY=True` only when the application is behind a trusted
+proxy that replaces `X-Forwarded-For`.
 
 Linux deployment platforms can start ATLAS with the included `Procfile`. It
 uses one Gunicorn worker with four threads so the lazily loaded detector weights

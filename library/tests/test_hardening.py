@@ -1,5 +1,6 @@
 """Security, privacy, performance, and public-error regression coverage."""
 
+from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.cache import cache
@@ -105,7 +106,8 @@ class ErrorPageTests(LibraryTestCase):
     RATE_LIMIT_ENABLED=True,
     RATE_LIMIT_LOGIN_REQUESTS=2,
     RATE_LIMIT_LOGIN_WINDOW=300,
-    RATE_LIMIT_GLOBAL_REQUESTS=100,
+    RATE_LIMIT_SEARCH_REQUESTS=2,
+    RATE_LIMIT_SEARCH_WINDOW=60,
 )
 class AbuseProtectionTests(LibraryTestCase):
     def setUp(self):
@@ -130,6 +132,82 @@ class AbuseProtectionTests(LibraryTestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response["Retry-After"], "300")
         self.assertContains(response, "Please slow down", status_code=429)
+
+    def test_failed_login_limits_are_separate_for_accounts_on_the_same_ip(self):
+        url = reverse("library:login")
+
+        def payload(email):
+            return {
+                "email": email,
+                "password": "incorrect",
+                "role": "student",
+                "privacy_consent": "on",
+            }
+
+        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 429)
+        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 429)
+
+    @override_settings(RATE_LIMIT_LOGIN_REQUESTS=1)
+    def test_successful_login_does_not_consume_failed_attempt_allowance(self):
+        user = self.create_user(email="reader@example.com")
+        EmailAddress.objects.create(
+            user=user,
+            email=user.email,
+            primary=True,
+            verified=True,
+        )
+        url = reverse("library:login")
+        successful_payload = {
+            "email": user.email,
+            "password": "Atlas-Test-Pass-2026!",
+            "role": "student",
+            "privacy_consent": "on",
+        }
+        failed_payload = {**successful_payload, "password": "incorrect"}
+
+        self.assertEqual(self.client.post(url, successful_payload).status_code, 302)
+        self.client.post(reverse("library:logout"))
+        self.assertEqual(self.client.post(url, failed_payload).status_code, 200)
+        self.assertEqual(self.client.post(url, failed_payload).status_code, 429)
+
+    def test_repository_browsing_has_no_shared_ip_rate_limit(self):
+        url = reverse("library:catalog")
+
+        for _ in range(8):
+            self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_catalog_search_has_a_separate_generous_limit(self):
+        url = reverse("library:catalog")
+
+        self.assertEqual(self.client.get(url, {"q": "science"}).status_code, 200)
+        self.assertEqual(self.client.get(url, {"q": "history"}).status_code, 200)
+        response = self.client.get(url, {"q": "mathematics"})
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response["Retry-After"], "60")
+
+    @override_settings(RATE_LIMIT_REGISTER_REQUESTS=1)
+    def test_registration_limits_are_separate_for_submitted_accounts(self):
+        url = reverse("library:register")
+
+        def payload(email):
+            return {
+                "full_name": "Test Reader",
+                "email": email,
+                "role": "student",
+                "password1": "Atlas-Test-Pass-2026!",
+                "password2": "does-not-match",
+                "age_consent": "on",
+                "privacy_consent": "on",
+            }
+
+        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
+        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 429)
 
     def test_registration_honeypot_rejects_bot_submission(self):
         payload = {

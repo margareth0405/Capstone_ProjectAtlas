@@ -416,13 +416,14 @@ CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 CSRF_FAILURE_VIEW = "library.views.errors.csrf_failure"
 
-# Fixed-window limits protect expensive and abuse-sensitive endpoints. The
-# default LocMem cache is correct for the one-worker Procfile; multi-instance
-# deployments must configure a shared atomic cache such as Redis.
+# Fixed-window limits protect expensive and abuse-sensitive endpoints. Normal
+# browsing has no global IP limit because many school users can share one NAT
+# address. The default LocMem cache is correct for the one-worker Procfile;
+# multi-instance deployments must configure a shared atomic cache such as Redis.
 RATE_LIMIT_ENABLED = env_bool("RATE_LIMIT_ENABLED", True)
 RATE_LIMIT_TRUST_PROXY = env_bool("RATE_LIMIT_TRUST_PROXY", False)
-RATE_LIMIT_GLOBAL_REQUESTS = int(os.getenv("RATE_LIMIT_GLOBAL_REQUESTS", "300"))
-RATE_LIMIT_GLOBAL_WINDOW = int(os.getenv("RATE_LIMIT_GLOBAL_WINDOW", "60"))
+RATE_LIMIT_SEARCH_REQUESTS = int(os.getenv("RATE_LIMIT_SEARCH_REQUESTS", "600"))
+RATE_LIMIT_SEARCH_WINDOW = int(os.getenv("RATE_LIMIT_SEARCH_WINDOW", "60"))
 RATE_LIMIT_LOGIN_REQUESTS = int(os.getenv("RATE_LIMIT_LOGIN_REQUESTS", "10"))
 RATE_LIMIT_LOGIN_WINDOW = int(os.getenv("RATE_LIMIT_LOGIN_WINDOW", "300"))
 RATE_LIMIT_REGISTER_REQUESTS = int(os.getenv("RATE_LIMIT_REGISTER_REQUESTS", "5"))
@@ -431,8 +432,12 @@ RATE_LIMIT_CONTACT_REQUESTS = int(os.getenv("RATE_LIMIT_CONTACT_REQUESTS", "5"))
 RATE_LIMIT_CONTACT_WINDOW = int(os.getenv("RATE_LIMIT_CONTACT_WINDOW", "3600"))
 RATE_LIMIT_EMAIL_REQUESTS = int(os.getenv("RATE_LIMIT_EMAIL_REQUESTS", "5"))
 RATE_LIMIT_EMAIL_WINDOW = int(os.getenv("RATE_LIMIT_EMAIL_WINDOW", "3600"))
+RATE_LIMIT_UPLOAD_REQUESTS = int(os.getenv("RATE_LIMIT_UPLOAD_REQUESTS", "30"))
+RATE_LIMIT_UPLOAD_WINDOW = int(os.getenv("RATE_LIMIT_UPLOAD_WINDOW", "3600"))
 RATE_LIMIT_AI_REQUESTS = int(os.getenv("RATE_LIMIT_AI_REQUESTS", "10"))
 RATE_LIMIT_AI_WINDOW = int(os.getenv("RATE_LIMIT_AI_WINDOW", "3600"))
+RATE_LIMIT_STAFF_REQUESTS = int(os.getenv("RATE_LIMIT_STAFF_REQUESTS", "120"))
+RATE_LIMIT_STAFF_WINDOW = int(os.getenv("RATE_LIMIT_STAFF_WINDOW", "60"))
 
 PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-09-20")
 
