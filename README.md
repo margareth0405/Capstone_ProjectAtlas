@@ -629,7 +629,8 @@ bash build.sh
 ```
 
 The script installs the locked dependencies, collects static assets, applies
-database migrations, and runs the complete production verification command.
+database migrations, performs a temporary media write/read/delete round trip,
+and runs the complete production verification command.
 The deployment stops instead of launching with placeholder email, security,
 database, storage, or institution settings. The `Procfile` then starts the web
 process with Gunicorn.
@@ -661,6 +662,12 @@ Environment page. In particular, configure the R2 credentials, Gmail App
 Password, private administrator path, business/privacy details, HTTPS flags,
 and AI cache path as private environment variables. Never upload `.env` or
 paste secrets into the Git repository.
+
+`R2_STORAGE_ENABLED=True` is mandatory on Render. Its local filesystem is
+ephemeral: PostgreSQL retains an uploaded file's object name, but a restart or
+redeploy removes a file saved under local `media/`. ATLAS now treats that
+configuration as a blocking production error and the build verifies real R2
+write, read, and delete access before starting the release.
 
 On Windows Server, use the installed Waitress server instead:
 

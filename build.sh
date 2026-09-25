@@ -5,4 +5,5 @@ set -o errexit
 python -m pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
+python manage.py check_storage --write-test
 python manage.py verify_deployment

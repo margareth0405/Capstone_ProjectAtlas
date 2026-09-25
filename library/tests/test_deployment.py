@@ -68,9 +68,9 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
             <= codes
         )
         self.assertTrue(
-            {"atlas.W001", "atlas.W002", "atlas.W003", "atlas.W004"}
-            <= codes
+            {"atlas.W001", "atlas.W003", "atlas.W004"} <= codes
         )
+        self.assertTrue({"atlas.W002", "atlas.E013"} & codes)
 
     @override_settings(
         ACCOUNT_EMAIL_VERIFICATION="mandatory",
@@ -96,6 +96,26 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         findings = DeploymentReadinessService().inspect_configuration()
 
         self.assertEqual(findings, [])
+
+    @override_settings(
+        DEBUG=False,
+        STORAGES={
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage"
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+            },
+        },
+    )
+    def test_production_local_upload_storage_is_a_blocking_error(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        storage_finding = next(
+            finding for finding in findings if finding.code == "atlas.E013"
+        )
+
+        self.assertEqual(storage_finding.severity, "error")
+        self.assertIn("ephemeral", storage_finding.message)
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",

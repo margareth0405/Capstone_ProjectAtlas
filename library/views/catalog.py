@@ -1,9 +1,11 @@
 """Catalog browsing, bookmarks, and privacy-safe resource reading."""
 
+import logging
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
 
+from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
@@ -23,6 +25,10 @@ from library.services.documents import DocumentExtractionError, DocumentTextExtr
 from library.services.resource_views import ResourceViewTracker
 
 from .mixins import PageContextMixin
+
+logger = logging.getLogger(__name__)
+
+STORAGE_READ_EXCEPTIONS = (BotoCoreError, ClientError, OSError)
 
 
 class CatalogView(PageContextMixin, TemplateView):
@@ -101,10 +107,28 @@ class ProtectedDocumentReaderView(PageContextMixin, TemplateView):
             try:
                 document.open("rb")
                 content = self.extractor_class().extract_for_reading(document)
-            except (DocumentExtractionError, OSError) as exc:
+            except DocumentExtractionError as exc:
                 reader_error = str(exc)
+            except STORAGE_READ_EXCEPTIONS:
+                logger.exception(
+                    "Stored %s is unavailable for repository item %s.",
+                    self.document_field,
+                    item.pk,
+                )
+                reader_error = (
+                    "This stored document is temporarily unavailable. Please ask a "
+                    "repository administrator to restore or replace the upload."
+                )
             finally:
-                document.close()
+                try:
+                    document.close()
+                except STORAGE_READ_EXCEPTIONS:
+                    logger.warning(
+                        "Unable to close stored %s for repository item %s.",
+                        self.document_field,
+                        item.pk,
+                        exc_info=True,
+                    )
 
         context.update(
             {
@@ -136,7 +160,7 @@ class ResourceAbstractReaderView(ProtectedDocumentReaderView):
 class ResourceCoverView(View):
     """Serve a bounded WebP derivative while keeping MEDIA_ROOT private."""
 
-    supported_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    supported_extensions = frozenset({".jpg", ".jpeg", ".png", ".webp"})
     maximum_dimensions = (800, 1200)
 
     def get(self, request, pk):
@@ -171,14 +195,28 @@ class ResourceCoverView(View):
                 output = BytesIO()
                 image.save(output, format="WEBP", quality=80, method=6)
         except (
+            BotoCoreError,
+            ClientError,
             Image.DecompressionBombError,
             OSError,
             UnidentifiedImageError,
             ValueError,
         ) as exc:
+            logger.warning(
+                "Cover image is unavailable for repository item %s.",
+                cover.instance.pk,
+                exc_info=True,
+            )
             raise Http404("Cover image not found.") from exc
         finally:
-            cover.close()
+            try:
+                cover.close()
+            except STORAGE_READ_EXCEPTIONS:
+                logger.warning(
+                    "Unable to close cover image for repository item %s.",
+                    cover.instance.pk,
+                    exc_info=True,
+                )
         return output.getvalue()
 
 

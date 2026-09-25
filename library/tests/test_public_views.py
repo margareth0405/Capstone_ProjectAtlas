@@ -325,6 +325,17 @@ class ResourceAbstractReaderTests(LibraryTestCase):
         response = self.client.get(f"/media/{self.item.resource_abstract.name}")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_missing_stored_document_has_safe_recovery_message(self):
+        document = self.item.resource_abstract
+        document.storage.delete(document.name)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "stored document is temporarily unavailable")
+        self.assertNotContains(response, "Errno 2")
+
     def test_old_download_path_is_not_available(self):
         response = self.client.get(f"/library/{self.item.pk}/download/")
 
@@ -394,6 +405,16 @@ class ResourceAttachmentsTests(LibraryTestCase):
             self.assertLessEqual(optimized.width, 800)
             self.assertLessEqual(optimized.height, 1200)
         self.assertLess(len(response.content), len(self.cover_bytes))
+
+    def test_missing_stored_cover_returns_not_found_instead_of_server_error(self):
+        cover = self.item.cover_image
+        cover.storage.delete(cover.name)
+
+        response = self.client.get(
+            reverse("library:resource_cover", args=[self.item.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_guest_can_read_uploaded_abstract_inside_atlas(self):
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):

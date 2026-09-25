@@ -243,13 +243,22 @@ class DeploymentReadinessService:
 
         storage_backend = settings.STORAGES["default"].get("BACKEND", "")
         if storage_backend == "django.core.files.storage.FileSystemStorage":
+            production = not settings.DEBUG
             findings.append(
                 DeploymentFinding(
-                    code="atlas.W002",
-                    message="Uploaded media uses local filesystem storage.",
+                    code="atlas.E013" if production else "atlas.W002",
+                    severity="error" if production else "warning",
+                    message=(
+                        "Production uploads use ephemeral local filesystem storage."
+                        if production
+                        else "Uploaded media uses local filesystem storage."
+                    ),
                     hint=(
-                        "Mount durable private storage and back it up, or configure a "
-                        "private remote storage backend."
+                        "Configure private Cloudflare R2 storage before deploying. "
+                        "Local media files are removed when an ephemeral host restarts."
+                        if production
+                        else "Use private Cloudflare R2 storage before deploying to an "
+                        "ephemeral host."
                     ),
                 )
             )
