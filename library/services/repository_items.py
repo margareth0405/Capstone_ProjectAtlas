@@ -25,12 +25,17 @@ class RepositoryItemPersistenceService:
     )
 
     def save(self, form, *, prepare_instance):
-        original_files = self._file_snapshots(form.instance)
+        original_files = self._persisted_file_snapshots(form.instance)
+        changed_file_fields = set(form.changed_data).intersection(self.file_fields)
         instance = prepare_instance(form.save(commit=False))
         try:
             with transaction.atomic():
                 instance.save()
+                self._verify_changed_files(instance, changed_file_fields)
                 form.save_m2m()
+        except ResourceStorageError:
+            self._remove_new_files(instance, original_files)
+            raise
         except self.storage_exceptions as exc:
             self._remove_new_files(instance, original_files)
             raise ResourceStorageError(
@@ -45,6 +50,27 @@ class RepositoryItemPersistenceService:
 
         self._remove_replaced_files(instance, original_files)
         return instance
+
+    def _persisted_file_snapshots(self, instance):
+        """Read old names from the database before a ModelForm replaces them."""
+        if not instance.pk:
+            return {}
+        model = type(instance)
+        try:
+            persisted = model._default_manager.get(pk=instance.pk)
+        except model.DoesNotExist:
+            return {}
+        return self._file_snapshots(persisted)
+
+    def _verify_changed_files(self, instance, changed_file_fields):
+        """Do not commit a database pointer until storage confirms the object."""
+        for field_name in changed_file_fields:
+            field_file = getattr(instance, field_name, None)
+            name = getattr(field_file, "name", "")
+            if name and not field_file.storage.exists(name):
+                raise ResourceStorageError(
+                    "The uploaded file could not be verified in configured storage."
+                )
 
     def delete(self, instance):
         stored_files = self._file_snapshots(instance)

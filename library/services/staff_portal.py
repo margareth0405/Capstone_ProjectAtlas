@@ -1,6 +1,7 @@
 """Query and presentation services for the administrator dashboard."""
 
 import logging
+from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 
 from django.contrib.auth import get_user_model
@@ -113,10 +114,8 @@ class StaffUserDirectory:
                 continue
             profile = None
             if profiles_available:
-                try:
+                with suppress(ObjectDoesNotExist):
                     profile = account.profile
-                except ObjectDoesNotExist:
-                    pass
             account.atlas_role = (
                 profile.role if profile is not None else Profile.Role.STUDENT
             )

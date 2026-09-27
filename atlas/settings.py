@@ -457,6 +457,10 @@ AI_DETECTION_ENABLE_VALIDATION = env_bool(
     "AI_DETECTION_ENABLE_VALIDATION",
     False,
 )
+AI_DETECTION_FALLBACK_TO_FAST = env_bool(
+    "AI_DETECTION_FALLBACK_TO_FAST",
+    True,
+)
 AI_DETECTION_VALIDATION_MODEL = os.getenv(
     "AI_DETECTION_VALIDATION_MODEL",
     "desklib/ai-text-detector-academic-v1.01",

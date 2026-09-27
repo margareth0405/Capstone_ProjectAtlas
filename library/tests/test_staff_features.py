@@ -135,7 +135,10 @@ class StaffManagementFeatureTests(LibraryTestCase):
             reverse("library:staff_user_delete", args=[reader.pk])
         )
 
-        self.assertRedirects(response, reverse("library:staff_portal"))
+        self.assertRedirects(
+            response,
+            f'{reverse("library:staff_portal")}#users',
+        )
         self.assertFalse(type(reader).objects.filter(pk=reader.pk).exists())
         self.assertTrue(
             ActivityLog.objects.filter(
@@ -150,7 +153,10 @@ class StaffManagementFeatureTests(LibraryTestCase):
         response = self.client.post(
             reverse("library:staff_user_delete", args=[self.staff.pk])
         )
-        self.assertRedirects(response, reverse("library:staff_portal"))
+        self.assertRedirects(
+            response,
+            f'{reverse("library:staff_portal")}#users',
+        )
         self.assertTrue(type(self.staff).objects.filter(pk=self.staff.pk).exists())
 
         superuser = self.create_user(

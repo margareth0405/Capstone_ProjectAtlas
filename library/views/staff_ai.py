@@ -63,6 +63,12 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
             return self.render_to_response(context)
         context["detection_result"] = result
         context["detection_source"] = source_label
+        if result.get("fallback_used"):
+            messages.warning(
+                request,
+                "The academic BERT model was unavailable, so ATLAS completed "
+                "this report with its fast writing-pattern review.",
+            )
         try:
             AIAnalysis.record(
                 reviewer=request.user,
@@ -77,5 +83,7 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
                 "history. Ask an administrator to verify the database migrations.",
             )
         else:
+            if result.get("fallback_used"):
+                return self.render_to_response(context)
             messages.success(request, f"Analysis completed for {source_label}.")
         return self.render_to_response(context)

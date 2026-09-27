@@ -150,7 +150,10 @@ class Command(BaseCommand):
 
     def _seed_announcements(self, created_by):
         for title, body, category, featured, date_parts in ANNOUNCEMENTS:
-            published_at = timezone.make_aware(datetime(*date_parts))
+            published_at = datetime(
+                *date_parts,
+                tzinfo=timezone.get_default_timezone(),
+            )
             Announcement.objects.update_or_create(
                 title=title,
                 defaults={

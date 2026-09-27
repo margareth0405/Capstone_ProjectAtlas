@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
     [switch]$PrepareOnly,
-    [switch]$UseSQLite,
     [switch]$OpenBrowser,
     [string]$Address = "127.0.0.1:8000"
 )
@@ -16,14 +15,6 @@ $requirementsFile = Join-Path $projectRoot "requirements.txt"
 $requirementsMarker = Join-Path $venvDirectory ".atlas-requirements.sha256"
 
 Set-Location $projectRoot
-
-if ($UseSQLite) {
-    $localDatabase = (Join-Path $projectRoot "db.sqlite3").Replace("\", "/")
-    $env:DATABASE_URL = "sqlite:///$localDatabase"
-    $env:DJANGO_EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    Write-Host "Quick-start mode: using the local development database." -ForegroundColor Yellow
-    Write-Host "Development email mode: verification links appear in this terminal." -ForegroundColor Yellow
-}
 
 if (-not (Test-Path -LiteralPath $venvPython)) {
     Write-Host "Creating the ATLAS virtual environment..." -ForegroundColor Cyan
@@ -65,7 +56,7 @@ Write-Host "Using $(& $venvPython --version) from $venvDirectory" -ForegroundCol
 
 if ($PrepareOnly) {
     Write-Host "ATLAS environment is ready." -ForegroundColor Green
-    exit 0
+    return
 }
 
 Write-Host "Checking the Django configuration..." -ForegroundColor Cyan

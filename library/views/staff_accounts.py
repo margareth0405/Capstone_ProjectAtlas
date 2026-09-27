@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views import View
 
 from library.forms import AdminCreatedUserForm
@@ -77,6 +78,11 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
     activity_recorder_class = ActivityRecorder
     user_model = get_user_model()
 
+    @staticmethod
+    def users_url():
+        """Return staff to the account list instead of the portal's first tab."""
+        return f'{reverse("library:staff_portal")}#users'
+
     def post(self, request, pk):
         try:
             account = get_object_or_404(self.user_model, pk=pk)
@@ -87,7 +93,7 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
                 "ATLAS could not access that account. Ask an administrator to "
                 "verify the database migrations, then try again.",
             )
-            return redirect("library:staff_portal")
+            return redirect(self.users_url())
         if account == request.user:
             messages.error(
                 request,
@@ -123,4 +129,4 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
                 )
             else:
                 messages.info(request, f"Account deleted for {email}.")
-        return redirect("library:staff_portal")
+        return redirect(self.users_url())

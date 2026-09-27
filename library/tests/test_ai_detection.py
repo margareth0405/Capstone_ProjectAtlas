@@ -135,6 +135,10 @@ class AIDetectionServiceTests(SimpleTestCase):
                 "tone": tone,
             }
 
+    class FailingDetector:
+        def analyze(self, text):
+            raise AIDetectionError("model unavailable")
+
     def test_primary_detector_is_hidden_behind_service(self):
         primary = self.StubDetector("Primary", 61.0)
 
@@ -179,3 +183,26 @@ class AIDetectionServiceTests(SimpleTestCase):
         self.assertEqual(result["tone"], "mixed")
         self.assertTrue(result["detectors_disagree"])
         self.assertFalse(result["validation"]["agrees_with_primary"])
+
+    @override_settings(
+        AI_DETECTION_ENGINE="transformer",
+        AI_DETECTION_FALLBACK_TO_FAST=True,
+    )
+    def test_transformer_failure_uses_transparent_fast_fallback(self):
+        result = AIDetectionService(
+            primary_detector=self.FailingDetector()
+        ).analyze("Evidence and reasoning with clear limitations. " * 12)
+
+        self.assertTrue(result["fallback_used"])
+        self.assertEqual(result["detector_name"], "ATLAS Fast Pattern Review")
+        self.assertIn("transformer was unavailable", result["fallback_reason"])
+
+    @override_settings(
+        AI_DETECTION_ENGINE="transformer",
+        AI_DETECTION_FALLBACK_TO_FAST=False,
+    )
+    def test_transformer_failure_is_reported_when_fallback_is_disabled(self):
+        with self.assertRaisesMessage(AIDetectionError, "model unavailable"):
+            AIDetectionService(
+                primary_detector=self.FailingDetector()
+            ).analyze("Evidence and reasoning. " * 12)

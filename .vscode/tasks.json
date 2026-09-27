@@ -2,17 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "ATLAS: Quick Start",
+      "label": "ATLAS: Activate Virtual Environment",
       "type": "process",
       "command": "powershell.exe",
       "args": [
+        "-NoExit",
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\start_atlas.ps1",
-        "-UseSQLite",
-        "-OpenBrowser"
+        "-Command",
+        "& '${workspaceFolder}\\scripts\\start_atlas.ps1' -PrepareOnly; if (-not $?) { exit 1 }; & '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'; Set-Location '${workspaceFolder}'; Write-Host 'ATLAS virtual environment activated.' -ForegroundColor Green"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -27,67 +26,6 @@
         "panel": "dedicated",
         "clear": true,
         "focus": true
-      },
-      "runOptions": {
-        "instanceLimit": 1
-      }
-    },
-    {
-      "label": "ATLAS: Prepare Environment",
-      "type": "process",
-      "command": "powershell.exe",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\start_atlas.ps1",
-        "-PrepareOnly"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      },
-      "runOptions": {
-        "instanceLimit": 1
-      }
-    },
-    {
-      "label": "ATLAS: Check Database",
-      "type": "process",
-      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-      "args": ["manage.py", "check_database"],
-      "dependsOn": "ATLAS: Prepare Environment",
-      "dependsOrder": "sequence",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "ATLAS: Start with configured database",
-      "type": "process",
-      "command": "powershell.exe",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\start_atlas.ps1"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
       },
       "runOptions": {
         "instanceLimit": 1

@@ -58,6 +58,12 @@
         </div>
 
         {% if detection_result %}
+          {% if detection_result.fallback_used %}
+            <div class="ai-detection-notice" role="alert">
+              <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+              <p><strong>Fallback detector used.</strong> Academic BERT was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
+            </div>
+          {% endif %}
           <div class="ai-detection-notice" role="note">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
             <p>Every percentage below is a model-generated pattern score, not proof that a person or AI authored the text.</p>

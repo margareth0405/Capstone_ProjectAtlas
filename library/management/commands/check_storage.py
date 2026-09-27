@@ -7,6 +7,8 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 
+from library.models import LibraryItem
+
 
 class Command(BaseCommand):
     help = "Show the media backend and optionally test write/read/delete access."
@@ -17,11 +19,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Create, read, and delete one temporary storage probe.",
         )
+        parser.add_argument(
+            "--check-references",
+            action="store_true",
+            help="Verify that every repository file referenced by the database exists.",
+        )
 
     def handle(self, *args, **options):
         backend = settings.STORAGES["default"]["BACKEND"]
         self.stdout.write(f"Media storage backend: {backend}")
-        if not options["write_test"]:
+        if not options["write_test"] and not options["check_references"]:
             self.stdout.write(
                 self.style.WARNING(
                     "Configuration loaded. Add --write-test to verify remote access."
@@ -29,6 +36,12 @@ class Command(BaseCommand):
             )
             return
 
+        if options["write_test"]:
+            self._run_write_test()
+        if options["check_references"]:
+            self._check_references()
+
+    def _run_write_test(self):
         probe_name = f"_atlas_storage_checks/{uuid4().hex}.txt"
         saved_name = ""
         try:
@@ -53,3 +66,24 @@ class Command(BaseCommand):
                     ) from exc
 
         self.stdout.write(self.style.SUCCESS("Storage write/read/delete check passed."))
+
+    def _check_references(self):
+        missing = []
+        for item in LibraryItem.objects.iterator():
+            for field_name in ("cover_image", "resource_abstract", "resource"):
+                field_file = getattr(item, field_name)
+                if field_file.name and not field_file.storage.exists(field_file.name):
+                    missing.append(f"item {item.pk} {field_name}: {field_file.name}")
+
+        if missing:
+            details = "\n".join(f"- {entry}" for entry in missing[:20])
+            remainder = len(missing) - 20
+            if remainder > 0:
+                details += f"\n- ...and {remainder} more"
+            raise CommandError(
+                f"Found {len(missing)} missing repository object(s):\n{details}"
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS("All repository database file references exist.")
+        )

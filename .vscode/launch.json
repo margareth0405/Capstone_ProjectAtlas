@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ATLAS: Start Django",
+      "name": "ATLAS: Start Project",
       "type": "debugpy",
       "request": "launch",
       "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
@@ -11,8 +11,7 @@
         "runserver"
       ],
       "django": true,
-      "justMyCode": true,
-      "preLaunchTask": "ATLAS: Prepare Environment"
+      "justMyCode": true
     }
   ]
 }

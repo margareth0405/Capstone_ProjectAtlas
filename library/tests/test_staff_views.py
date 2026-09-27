@@ -11,7 +11,7 @@ from docx import Document
 from PIL import Image
 
 from library.models import Announcement, LibraryItem, Profile
-from library.services import ResourceStorageError
+from library.services import RepositoryItemPersistenceService, ResourceStorageError
 from library.views.staff_crud import StaffItemCreateView
 
 from .base import TEST_PASSWORD, LibraryTestCase
@@ -208,6 +208,23 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "could not be uploaded to storage")
         self.assertFalse(
             LibraryItem.objects.filter(call_number="FAILED-UPLOAD-001").exists()
+        )
+
+    def test_unverified_storage_object_rolls_back_database_record(self):
+        with patch.object(
+            RepositoryItemPersistenceService,
+            "_verify_changed_files",
+            side_effect=ResourceStorageError("object missing after upload"),
+        ):
+            response = self.client.post(
+                reverse("library:staff_item_create"),
+                self.item_payload(call_number="UNVERIFIED-UPLOAD-001"),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "could not be uploaded to storage")
+        self.assertFalse(
+            LibraryItem.objects.filter(call_number="UNVERIFIED-UPLOAD-001").exists()
         )
 
     def test_resource_rejects_invalid_cover_and_abstract_formats(self):

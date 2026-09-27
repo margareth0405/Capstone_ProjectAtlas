@@ -176,7 +176,8 @@ The default AI Detection engine downloads and caches the public academic BERT
 model from Hugging Face on its first analysis. Use `AI_DETECTION_ENGINE=fast`
 on an instance that cannot host a transformer. If academic validation is
 enabled, its model is downloaded and cached separately and requires substantial
-additional memory and disk space.
+additional memory and disk space. Run `python manage.py check_ai --run-analysis`
+in the deployed service shell to verify real inference, not only configuration.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -186,28 +187,17 @@ the verification email.
 
 ## Start from VS Code
 
-The repository contains a Windows one-key launcher and matching VS Code tasks.
+ATLAS has only two development keyboard shortcuts:
 
-- Press **Ctrl+Shift+B** to prepare the environment, migrate a private local
-  SQLite database, start ATLAS, and open it in your default browser.
-- Double-click **START_ATLAS.cmd** for the same quick-start experience without
-  opening VS Code.
-- Press Ctrl+Shift+P, choose Tasks: Run Task, then select
-  **ATLAS: Start with configured database** when you want to use PostgreSQL
-  from `.env` instead of the quick-start database.
-- Press F5 and select ATLAS: Start Django to run with the debugger.
-- Without VS Code, run:
-
-  ```powershell
-  powershell -ExecutionPolicy Bypass -File .\scripts\start_atlas.ps1 -UseSQLite -OpenBrowser
-  ```
+- Press **Ctrl+Shift+B** to create or update `.venv` and open an activated
+  virtual-environment terminal.
+- Press **F5** to start the ATLAS project with the debugger and the database
+  configured in `.env`.
 
 The first run creates .venv and installs dependencies. Later runs reinstall
-only when requirements.txt changes. The script always runs Django with the
-virtual-environment interpreter and applies pending migrations before starting
-the server. This avoids using a different global Python installation. Quick
-Start stores local-only data in the ignored `db.sqlite3` file; deployment and
-the configured-database task continue to use `DATABASE_URL` from `.env`.
+only when requirements.txt changes. Both shortcuts use the project virtual
+environment, and the project reads its database and service configuration from
+`.env`.
 
 ## Environment configuration
 
@@ -239,6 +229,7 @@ AI_DETECTION_ENGINE=transformer
 AI_DETECTION_PRIMARY_MODEL=followsci/bert-ai-text-detector
 AI_DETECTION_PRIMARY_REVISION=dc41bbaff401c56d325f8466d9f8544287669aa1
 AI_DETECTION_ENABLE_VALIDATION=False
+AI_DETECTION_FALLBACK_TO_FAST=True
 AI_DETECTION_VALIDATION_MODEL=desklib/ai-text-detector-academic-v1.01
 AI_DETECTION_VALIDATION_REVISION=fe9b4da50ee2cca5c877d607640681609170e363
 AI_DETECTION_MAX_UPLOAD_MB=25
@@ -247,7 +238,9 @@ HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ```
 
 Set `AI_DETECTION_ENGINE=fast` on small Render instances that do not have enough
-memory for the configured transformer model.
+memory for the configured transformer model. When
+`AI_DETECTION_FALLBACK_TO_FAST=True`, ATLAS attempts the transformer first and
+shows an explicit warning if it must use the lower-memory pattern review.
 Use a Hugging Face commit hash instead of `main` for a release that must always
 load the same weights. When validation is enabled, ATLAS runs both configured
 detectors and records the secondary result with the primary analysis. The Hub
@@ -674,15 +667,22 @@ redeploy removes a file saved under local `media/`. ATLAS now treats that
 configuration as a blocking production error and the build verifies real R2
 write, read, and delete access before starting the release.
 
+Enabling R2 does not migrate older files that were written to local media or a
+different bucket. Audit stored database references with
+`python manage.py check_storage --check-references`; edit and re-upload every
+resource it reports as missing.
+
 On Windows Server, use the installed Waitress server instead:
 
 ```powershell
 waitress-serve --listen=0.0.0.0:8000 atlas.wsgi:application
 ```
 
-The AI model cache must be stored on persistent disk in production. If the
-hosting platform has an ephemeral filesystem, set `HF_HOME` to a mounted
-persistent directory; otherwise each new instance may download the model again.
+The AI model cache must be stored on persistent disk in production. On Render,
+mount a persistent disk at `/var/data` and set `HF_HOME=/var/data/huggingface`;
+otherwise each new instance may download the model again. Render's build and
+pre-deploy phases cannot access that runtime disk, so run the AI smoke check in
+the running service shell.
 
 ```dotenv
 DJANGO_DEBUG=False

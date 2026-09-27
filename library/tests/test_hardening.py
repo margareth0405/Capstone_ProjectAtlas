@@ -59,6 +59,8 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
             html=True,
         )
         self.assertNotContains(landing, "fonts.googleapis.com")
+        self.assertContains(landing, 'media="print"')
+        self.assertContains(landing, 'class="page-loader is-hidden"')
 
         self.client.post(reverse("library:guest_login"))
         dashboard = self.client.get(reverse("library:dashboard"))

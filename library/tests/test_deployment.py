@@ -92,6 +92,10 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         },
     )
     @patch.dict("os.environ", {"HF_HOME": "/persistent/huggingface"})
+    @patch(
+        "library.services.deployment.settings.DATABASES",
+        {"default": {"ENGINE": "django.db.backends.postgresql"}},
+    )
     def test_safe_configuration_has_no_atlas_findings(self):
         findings = DeploymentReadinessService().inspect_configuration()
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from collections import Counter
@@ -9,6 +10,8 @@ from statistics import fmean
 from threading import RLock
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class AIDetectionError(RuntimeError):
@@ -92,7 +95,7 @@ class FastWritingPatternDetector:
             1,
         )
 
-        trigrams = list(zip(words, words[1:], words[2:]))
+        trigrams = list(zip(words, words[1:], words[2:], strict=False))
         repeated_trigrams = sum(
             count - 1 for count in Counter(trigrams).values() if count > 1
         )
@@ -430,8 +433,27 @@ class AIDetectionService:
             self.validation_detector = None
 
     def analyze(self, text):
-        result = self.primary_detector.analyze(text)
-        if self.validation_detector is not None:
+        fallback_used = False
+        try:
+            result = self.primary_detector.analyze(text)
+        except AIDetectionError as error:
+            if not (
+                settings.AI_DETECTION_ENGINE == "transformer"
+                and settings.AI_DETECTION_FALLBACK_TO_FAST
+            ):
+                raise
+            logger.warning(
+                "The configured transformer detector failed; using fast review: %s",
+                error,
+            )
+            result = FastWritingPatternDetector().analyze(text)
+            result["fallback_used"] = True
+            result["fallback_reason"] = (
+                "The academic transformer was unavailable for this analysis."
+            )
+            fallback_used = True
+
+        if self.validation_detector is not None and not fallback_used:
             validation = self.validation_detector.analyze(text)
             detectors_disagree = (
                 result["ai_probability"] >= 50
