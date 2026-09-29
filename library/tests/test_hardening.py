@@ -29,6 +29,17 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
         self.assertContains(landing, 'id="pageLoader"')
         self.assertContains(landing, 'id="optimisticStatus"')
 
+    def test_cookie_banner_is_in_initial_paint_only_until_a_choice_is_saved(self):
+        def opening_tag(response):
+            content = response.content.decode()
+            marker = content.index('id="cookieConsent"')
+            return content[content.rfind("<section", 0, marker):content.index(">", marker)]
+
+        self.assertNotIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
+
+        self.client.cookies["atlas_cookie_consent"] = "essential"
+        self.assertIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
+
     def test_robots_links_sitemap_without_disclosing_admin_path(self):
         response = self.client.get(reverse("library:robots_txt"))
 
@@ -59,7 +70,9 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
             html=True,
         )
         self.assertNotContains(landing, "fonts.googleapis.com")
-        self.assertContains(landing, 'media="print"')
+        self.assertNotContains(landing, "cdn.jsdelivr.net")
+        self.assertNotContains(landing, "font-awesome/6.5.0/css/all.min.css")
+        self.assertContains(landing, "library/css/django.css")
         self.assertContains(landing, 'class="page-loader is-hidden"')
 
         self.client.post(reverse("library:guest_login"))

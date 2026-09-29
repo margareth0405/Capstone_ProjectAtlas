@@ -66,8 +66,14 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
         if result.get("fallback_used"):
             messages.warning(
                 request,
-                "The academic BERT model was unavailable, so ATLAS completed "
+                "The Gradient AI model was unavailable, so ATLAS completed "
                 "this report with its fast writing-pattern review.",
+            )
+        elif result.get("comparison_error"):
+            messages.warning(
+                request,
+                "Gradient completed, but Vanguard was unavailable. This report "
+                "does not contain the required two-model comparison.",
             )
         try:
             AIAnalysis.record(
@@ -83,7 +89,7 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
                 "history. Ask an administrator to verify the database migrations.",
             )
         else:
-            if result.get("fallback_used"):
+            if result.get("fallback_used") or result.get("comparison_error"):
                 return self.render_to_response(context)
             messages.success(request, f"Analysis completed for {source_label}.")
         return self.render_to_response(context)

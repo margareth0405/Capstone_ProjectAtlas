@@ -662,18 +662,39 @@
 
   function initializeMessages() {
     document.querySelectorAll(".atlas-message").forEach(function (element) {
-      var dismissButton = element.querySelector("[data-bs-dismiss='toast']");
+      var dismissButton = element.querySelector("[data-dismiss-message]");
+      var dismissTimer = null;
+
+      function cancelDismissal() {
+        if (dismissTimer !== null) {
+          window.clearTimeout(dismissTimer);
+          dismissTimer = null;
+        }
+      }
+
+      function dismiss() {
+        cancelDismissal();
+        element.classList.add("is-hiding");
+        window.setTimeout(function () { element.remove(); }, 160);
+      }
+
+      function scheduleDismissal() {
+        cancelDismissal();
+        if (element.dataset.autoDismiss === "true") {
+          dismissTimer = window.setTimeout(dismiss, 4500);
+        }
+      }
+
       if (dismissButton) {
-        dismissButton.addEventListener("click", function () {
-          element.remove();
-        });
+        dismissButton.addEventListener("click", dismiss);
       }
-      if (window.bootstrap && window.bootstrap.Toast) {
-        window.bootstrap.Toast.getOrCreateInstance(element, {
-          autohide: element.dataset.autoDismiss === "true",
-          delay: 4500,
-        }).show();
-      }
+      element.addEventListener("mouseenter", cancelDismissal);
+      element.addEventListener("mouseleave", scheduleDismissal);
+      element.addEventListener("focusin", cancelDismissal);
+      element.addEventListener("focusout", function (event) {
+        if (!element.contains(event.relatedTarget)) scheduleDismissal();
+      });
+      scheduleDismissal();
     });
   }
 

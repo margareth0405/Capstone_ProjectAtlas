@@ -200,20 +200,31 @@ class DeploymentReadinessService:
                 )
             )
 
-        validation_revision = settings.AI_DETECTION_VALIDATION_REVISION.strip().lower()
+        comparison_revision = settings.AI_DETECTION_COMPARISON_REVISION.strip().lower()
         if (
-            settings.AI_DETECTION_ENABLE_VALIDATION
-            and validation_revision in self.floating_revisions
+            ai_engine == "transformer"
+            and settings.AI_DETECTION_ENABLE_COMPARISON
+            and comparison_revision in self.floating_revisions
         ):
             findings.append(
                 DeploymentFinding(
                     code="atlas.E004",
                     severity="error",
-                    message="The optional AI validator uses a floating model revision.",
+                    message="The Vanguard comparison uses a floating model revision.",
                     hint=(
-                        "Pin AI_DETECTION_VALIDATION_REVISION before enabling the "
-                        "validator in production."
+                        "Set AI_DETECTION_COMPARISON_REVISION to a Hugging Face "
+                        "commit hash for reproducible comparisons."
                     ),
+                )
+            )
+
+        if ai_engine == "transformer" and not settings.AI_DETECTION_ENABLE_COMPARISON:
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E014",
+                    severity="error",
+                    message="The required dual-model AI comparison is disabled.",
+                    hint="Set AI_DETECTION_ENABLE_COMPARISON=True before deployment.",
                 )
             )
 
@@ -263,9 +274,7 @@ class DeploymentReadinessService:
                 )
             )
 
-        if (
-            ai_engine == "transformer" or settings.AI_DETECTION_ENABLE_VALIDATION
-        ) and not os.getenv("HF_HOME", "").strip():
+        if ai_engine == "transformer" and not os.getenv("HF_HOME", "").strip():
             findings.append(
                 DeploymentFinding(
                     code="atlas.W003",

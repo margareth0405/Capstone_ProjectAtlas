@@ -178,7 +178,8 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
             with self.subTest(expected=expected):
                 self.assertContains(response, expected)
         self.assertNotContains(response, "Refund Policy")
-        self.assertContains(response, "jsDelivr")
+        self.assertNotContains(response, "jsDelivr")
+        self.assertNotContains(response, "Bootstrap")
         self.assertContains(response, "cdnjs")
         self.assertContains(response, "ATLAS Digital Repository")
 

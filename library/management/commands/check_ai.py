@@ -20,7 +20,17 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(f"AI detection engine: {settings.AI_DETECTION_ENGINE}")
-        self.stdout.write(f"Primary model: {settings.AI_DETECTION_PRIMARY_MODEL}")
+        self.stdout.write(
+            "Primary model: "
+            f"{settings.AI_DETECTION_PRIMARY_MODEL} "
+            f"@ {settings.AI_DETECTION_PRIMARY_REVISION}"
+        )
+        self.stdout.write(
+            "Comparison model: "
+            f"{settings.AI_DETECTION_COMPARISON_MODEL} "
+            f"@ {settings.AI_DETECTION_COMPARISON_REVISION} "
+            f"({'enabled' if settings.AI_DETECTION_ENABLE_COMPARISON else 'disabled'})"
+        )
         self.stdout.write(
             "Fast fallback enabled: "
             f"{'yes' if settings.AI_DETECTION_FALLBACK_TO_FAST else 'no'}"
@@ -46,12 +56,30 @@ class Command(BaseCommand):
         except AIDetectionError as exc:
             raise CommandError(f"AI analysis check failed: {exc}") from exc
 
+        if settings.AI_DETECTION_ENGINE == "transformer" and result.get(
+            "fallback_used"
+        ):
+            raise CommandError(
+                "AI analysis check failed: Gradient used the fast fallback."
+            )
+        if settings.AI_DETECTION_ENABLE_COMPARISON and not result.get(
+            "comparison_complete"
+        ):
+            raise CommandError(
+                "AI analysis check failed: Vanguard did not complete the comparison."
+            )
+
         elapsed = monotonic() - started
-        mode = "fallback" if result.get("fallback_used") else "primary"
+        comparison = result.get("comparison")
+        comparison_summary = (
+            f"; {comparison['detector_name']} version {comparison['model_version']}"
+            if comparison
+            else ""
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 "AI analysis check passed "
-                f"({mode}; {result['detector_name']}; "
-                f"version {result['model_version']}; {elapsed:.2f}s)."
+                f"({result['detector_name']} version {result['model_version']}"
+                f"{comparison_summary}; {elapsed:.2f}s)."
             )
         )

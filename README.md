@@ -48,24 +48,25 @@ Scanned image-only PDFs must go through OCR first.
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The default `transformer` engine uses `followsci/bert-ai-text-detector` for an
-academic-writing pattern score. The lighter `fast` engine remains available for
-small servers and performs a local heuristic review without downloading a
-model. PDF and Word extraction stops after the 20,000-character analysis limit
-instead of parsing the rest of a large document.
+The default `transformer` engine uses
+`ShantanuT01/gradient-ai-text-detector`, a DeBERTa-v3-large binary classifier
+whose single output is P(AI), and compares it with
+`ShantanuT01/vanguard-ai-text-detector`, a ModernBERT-large classifier with the
+same output contract. ATLAS displays both estimates separately and marks the
+review inconclusive when they fall on opposite sides of the models' 50%
+threshold. It does not average the scores into an unsupported ensemble result.
+The lighter `fast` engine remains available for small servers and performs a
+local heuristic review without downloading a model. PDF and Word extraction
+stops after the 20,000-character analysis limit instead of parsing the rest of
+a large document. Both detectors are wrapped by `AIDetectionService` so the
+staff view stays independent from model loading and inference details.
 
-The detector is wrapped by `AIDetectionService`. The optional
-`desklib/ai-text-detector-academic-v1.01` validator provides a second
-academic-domain estimate. When the primary detector and validator fall on
-opposite sides of the 50% screening threshold, ATLAS reports the overall result
-as uncertain. Validation is disabled by default because loading both models
-substantially increases memory and disk requirements.
-
-ATLAS stores the analysis score, source label, detector identifier, model
-revision, reviewer, and analysis date for reproducibility. Submitted text and
-uploaded document contents are not retained in the analysis record. Detector
-results can include false positives and false negatives, cannot prove
-authorship, and must not be used as the sole basis for an academic decision.
+ATLAS stores the primary score, the Vanguard comparison result, source label,
+detector identifiers, pinned model revisions, reviewer, and analysis date for
+reproducibility. Submitted text and uploaded document contents are not retained
+in the analysis record. Detector results can include false positives and false
+negatives, cannot prove authorship, and must not be used as the sole basis for
+an academic decision.
 
 ## Interface behavior
 
@@ -155,7 +156,7 @@ deduplicated.
 - Pillow for cover-image validation
 - PyTorch for local CPU model inference
 - Hugging Face Transformers for replaceable local text detectors
-- HTML, CSS, Bootstrap-compatible markup, and presentation JavaScript
+- HTML, project-owned CSS components, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
 
@@ -172,12 +173,14 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
-The default AI Detection engine downloads and caches the public academic BERT
-model from Hugging Face on its first analysis. Use `AI_DETECTION_ENGINE=fast`
-on an instance that cannot host a transformer. If academic validation is
-enabled, its model is downloaded and cached separately and requires substantial
-additional memory and disk space. Run `python manage.py check_ai --run-analysis`
-in the deployed service shell to verify real inference, not only configuration.
+The default AI Detection engine downloads and caches the public Gradient
+DeBERTa and Vanguard ModernBERT model files (about 3.34 GB combined) from
+Hugging Face on its first analysis. Runtime memory use is higher than the model
+files alone, so measure the complete dual-model analysis on the intended
+hosting plan before release. Use `AI_DETECTION_ENGINE=fast` only when an
+instance cannot host the transformer comparison. Run
+`python manage.py check_ai --run-analysis` in the deployed service shell; this
+command now fails unless both configured models complete real inference.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -226,12 +229,12 @@ AI Detection model selection is environment-based:
 
 ```dotenv
 AI_DETECTION_ENGINE=transformer
-AI_DETECTION_PRIMARY_MODEL=followsci/bert-ai-text-detector
-AI_DETECTION_PRIMARY_REVISION=dc41bbaff401c56d325f8466d9f8544287669aa1
-AI_DETECTION_ENABLE_VALIDATION=False
+AI_DETECTION_PRIMARY_MODEL=ShantanuT01/gradient-ai-text-detector
+AI_DETECTION_PRIMARY_REVISION=c2e8b6df87f8a211cbffb713fa9873a0c3a9713f
+AI_DETECTION_ENABLE_COMPARISON=True
+AI_DETECTION_COMPARISON_MODEL=ShantanuT01/vanguard-ai-text-detector
+AI_DETECTION_COMPARISON_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
 AI_DETECTION_FALLBACK_TO_FAST=True
-AI_DETECTION_VALIDATION_MODEL=desklib/ai-text-detector-academic-v1.01
-AI_DETECTION_VALIDATION_REVISION=fe9b4da50ee2cca5c877d607640681609170e363
 AI_DETECTION_MAX_UPLOAD_MB=25
 HF_HUB_DISABLE_XET=1
 HF_HUB_DISABLE_SYMLINKS_WARNING=1
@@ -241,11 +244,13 @@ Set `AI_DETECTION_ENGINE=fast` on small Render instances that do not have enough
 memory for the configured transformer model. When
 `AI_DETECTION_FALLBACK_TO_FAST=True`, ATLAS attempts the transformer first and
 shows an explicit warning if it must use the lower-memory pattern review.
+When Vanguard is unavailable after Gradient succeeds, ATLAS keeps the Gradient
+score but labels the comparison incomplete. Production readiness treats a
+disabled comparison or a floating Vanguard revision as an error.
 Use a Hugging Face commit hash instead of `main` for a release that must always
-load the same weights. When validation is enabled, ATLAS runs both configured
-detectors and records the secondary result with the primary analysis. The Hub
-settings use the standard resumable HTTP downloader on Windows and suppress the
-non-fatal symlink-cache warning; operators can explicitly set
+load the same weights. The Hub settings use the standard resumable HTTP
+downloader on Windows and suppress the non-fatal symlink-cache warning;
+operators can explicitly set
 `HF_HUB_DISABLE_XET=0` after confirming Xet works on their network.
 
 ## Private Cloudflare R2 storage

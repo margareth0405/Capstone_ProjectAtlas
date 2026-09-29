@@ -61,33 +61,48 @@
           {% if detection_result.fallback_used %}
             <div class="ai-detection-notice" role="alert">
               <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-              <p><strong>Fallback detector used.</strong> Academic BERT was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
+              <p><strong>Fallback detector used.</strong> Gradient AI Text Detector was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
             </div>
           {% endif %}
           <div class="ai-detection-notice" role="note">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
             <p>Every percentage below is a model-generated pattern score, not proof that a person or AI authored the text.</p>
           </div>
-          <div class="ai-result-grid">
-            <div class="ai-score {{ detection_result.tone }}">
-              <strong>{% if detection_result.detectors_disagree %}Uncertain{% else %}{{ detection_result.score }}%{% endif %}</strong>
-              <span>{{ detection_result.label }}</span>
+          {% if detection_result.comparison_error %}
+            <div class="ai-detection-notice" role="alert">
+              <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+              <p><strong>Comparison incomplete.</strong> {{ detection_result.comparison_error }}</p>
             </div>
-            <dl class="ai-metrics">
-              <div><dt>AI-pattern score</dt><dd>{{ detection_result.ai_probability }}%</dd></div>
-              <div><dt>Human-pattern score</dt><dd>{{ detection_result.human_probability }}%</dd></div>
-              <div><dt>Model certainty score</dt><dd>{{ detection_result.confidence }}%</dd></div>
-              <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
-              <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
-              <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
-            </dl>
-          </div>
-          {% if detection_result.validation %}
-            <div class="ai-validation-result" role="group" aria-label="Academic validation result">
-              <strong>{{ detection_result.validation.detector_name }} validation</strong>
-              <span>{{ detection_result.validation.ai_probability }}% AI-pattern score</span>
-              {% if detection_result.detectors_disagree %}<span><strong>Uncertain: the two detectors disagree.</strong></span>{% else %}<span>Detectors agree</span>{% endif %}
-              <span>Version {{ detection_result.validation.model_version }}</span>
+          {% endif %}
+          {% if detection_result.comparison %}
+            <section class="ai-comparison" aria-labelledby="aiComparisonHeading">
+              <div class="ai-comparison-summary {% if detection_result.detectors_disagree %}mixed{% else %}agree{% endif %}" role="status">
+                <div>
+                  <span class="section-kicker">Two-model comparison</span>
+                  <h3 id="aiComparisonHeading">{% if detection_result.detectors_disagree %}Inconclusive — models disagree{% else %}Models agree at the 50% threshold{% endif %}</h3>
+                  <p>{{ detection_result.comparison_status }}</p>
+                </div>
+                <strong>{{ detection_result.score_difference }} percentage-point difference</strong>
+              </div>
+              <div class="ai-model-comparison-grid">
+                {% include "library/admin/includes/ai_model_result.html" with result=detection_result.primary heading="Gradient result" %}
+                {% include "library/admin/includes/ai_model_result.html" with result=detection_result.comparison heading="Vanguard result" %}
+              </div>
+            </section>
+          {% else %}
+            <div class="ai-result-grid">
+              <div class="ai-score {{ detection_result.tone }}">
+                <strong>{{ detection_result.score }}%</strong>
+                <span>{{ detection_result.label }}</span>
+              </div>
+              <dl class="ai-metrics">
+                <div><dt>AI-pattern score</dt><dd>{{ detection_result.ai_probability }}%</dd></div>
+                <div><dt>Human-pattern score</dt><dd>{{ detection_result.human_probability }}%</dd></div>
+                <div><dt>Model certainty score</dt><dd>{{ detection_result.confidence }}%</dd></div>
+                <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
+                <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
+                <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
+              </dl>
             </div>
           {% endif %}
         {% else %}

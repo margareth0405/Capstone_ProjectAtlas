@@ -189,7 +189,7 @@ class AIAnalysisAdmin(admin.ModelAdmin):
         "detector_name",
         "model_name",
         "model_version",
-        "validation_result",
+        "comparison_result",
         "created_at",
     )
     date_hierarchy = "created_at"

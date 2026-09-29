@@ -1,17 +1,17 @@
 {% if messages %}
   <div
-    class="atlas-messages toast-container position-fixed bottom-0 end-0 p-3"
+    class="atlas-messages"
     aria-live="polite"
     aria-atomic="false"
   >
     {% for message in messages %}
       <div
-        class="atlas-message toast show border-0"
+        class="atlas-message"
         role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
         data-level="{{ message.tags|default:'info' }}"
         data-auto-dismiss="true"
       >
-        <div class="d-flex align-items-center">
+        <div class="atlas-message-row">
           <div class="toast-body">
             {% if message.tags == 'error' %}
               <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
@@ -26,10 +26,10 @@
           </div>
           <button
             type="button"
-            class="btn-close btn-close-white me-2"
-            data-bs-dismiss="toast"
+            class="atlas-message-dismiss"
+            data-dismiss-message
             aria-label="Dismiss notification"
-          ></button>
+          ><span aria-hidden="true">&times;</span></button>
         </div>
       </div>
     {% endfor %}

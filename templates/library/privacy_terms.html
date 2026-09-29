@@ -81,8 +81,7 @@
               <caption>Third-party components and services</caption>
               <thead><tr><th scope="col">Provider</th><th scope="col">Purpose</th><th scope="col">Data exposure</th><th scope="col">Status</th></tr></thead>
               <tbody>
-                <tr><th scope="row">jsDelivr</th><td>Bootstrap layout and interface components</td><td>Standard web request information, such as IP address and user agent</td><td>Required presentation dependency</td></tr>
-                <tr><th scope="row">cdnjs</th><td>Font Awesome interface icons</td><td>Standard web request information, such as IP address and user agent</td><td>Required presentation dependency</td></tr>
+                <tr><th scope="row">cdnjs</th><td>Font Awesome icon font files; ATLAS serves its own reduced icon styles</td><td>Standard web request information, such as IP address and user agent</td><td>Required presentation dependency</td></tr>
                 <tr><th scope="row">Hugging Face</th><td>Optional administrator-only model download when transformer analysis is configured</td><td>Server connection information; submitted analysis text is not sent to the model host</td><td>Optional server-side model distribution only</td></tr>
               </tbody>
             </table>
@@ -130,7 +129,6 @@
         <section id="licenses">
           <h2>11. Fonts, icons, images, and software licenses</h2>
           <ul>
-            <li>Bootstrap code is used under the <a href="https://getbootstrap.com/docs/5.3/about/license/" rel="noopener noreferrer">MIT License</a>.</li>
             <li>Font Awesome Free icons, fonts, and code are used under the licenses listed in the <a href="https://fontawesome.com/license/free" rel="noopener noreferrer">Font Awesome Free License</a>.</li>
             <li>The ATLAS favicon is a project interface asset. Catalog covers are supplied by authorized administrators; the uploader must have permission to use each image.</li>
             <li>Uploaded repository materials remain subject to their copyright and institutional permissions. ATLAS does not claim ownership merely because a resource is listed.</li>
@@ -145,7 +143,7 @@
 
         <section id="ai-detection">
           <h2>13. AI Detection</h2>
-          <p>AI Detection produces an automated estimate that can be wrong. It is not proof of authorship, does not guarantee an academic conclusion, and must not be the sole basis for a penalty. Authorized reviewers must consider context and other evidence.</p>
+          <p>AI Detection compares separate Gradient and Vanguard model estimates. Agreement does not prove authorship, disagreement is reported as inconclusive, and either model can be wrong. The results do not guarantee an academic conclusion and must not be the sole basis for a penalty. Authorized reviewers must consider context and other evidence.</p>
         </section>
 
         <aside class="legal-review-note" role="note">

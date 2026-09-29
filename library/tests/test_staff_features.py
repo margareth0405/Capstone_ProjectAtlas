@@ -375,8 +375,8 @@ class AIDetectionServiceTests(LibraryTestCase):
                 "human_probability": 23.5,
                 "confidence": 76.5,
                 "chunks_analyzed": 2,
-                "detector_name": "Academic BERT",
-                "model_name": "followsci/bert-ai-text-detector",
+                "detector_name": "Gradient AI Text Detector",
+                "model_name": "ShantanuT01/gradient-ai-text-detector",
                 "model_version": "test-commit-123",
             }
 
@@ -434,30 +434,96 @@ class AIDetectionServiceTests(LibraryTestCase):
         )
         self.assertContains(response, "AI-pattern score")
         self.assertContains(response, "Human-pattern score")
-        self.assertContains(response, "Academic BERT")
+        self.assertContains(response, "Gradient AI Text Detector")
         self.assertContains(response, "not proof")
         analysis = AIAnalysis.objects.get(reviewer=self.staff)
         self.assertEqual(analysis.source_name, "Pasted text")
         self.assertEqual(analysis.model_version, "test-commit-123")
         self.assertEqual(float(analysis.ai_probability), 76.5)
 
-    def test_staff_sees_uncertain_when_detectors_disagree(self):
+    def test_staff_sees_gradient_and_vanguard_comparison(self):
+        self.client.force_login(self.staff)
+        sample = "Academic evidence should be interpreted in context. " * 5
+
+        class ComparingAnalyzer(self.StubAnalyzer):
+            def analyze(self, text):
+                primary = super().analyze(text)
+                result = dict(primary)
+                result.update(
+                    {
+                        "primary": primary,
+                        "comparison_complete": True,
+                        "detectors_disagree": False,
+                        "score_difference": 4.5,
+                        "comparison_status": (
+                            "Both models are on the AI-pattern side of the 50% "
+                            "threshold."
+                        ),
+                        "comparison": {
+                            "score": 72.0,
+                            "label": "High AI-pattern score",
+                            "tone": "high",
+                            "ai_probability": 72.0,
+                            "human_probability": 28.0,
+                            "confidence": 72.0,
+                            "chunks_analyzed": 2,
+                            "detector_name": "Vanguard AI Text Detector",
+                            "model_name": "ShantanuT01/vanguard-ai-text-detector",
+                            "model_version": "vanguard-test-commit",
+                        },
+                    }
+                )
+                return result
+
+        with patch.object(
+            StaffAIDetectionView,
+            "analyzer_class",
+            ComparingAnalyzer,
+        ):
+            response = self.client.post(self.url, {"text": sample})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Gradient result")
+        self.assertContains(response, "Vanguard result")
+        self.assertContains(response, "Models agree at the 50% threshold")
+        self.assertContains(response, "4.5 percentage-point difference")
+        analysis = AIAnalysis.objects.get(reviewer=self.staff)
+        self.assertEqual(
+            analysis.comparison_result["model_name"],
+            "ShantanuT01/vanguard-ai-text-detector",
+        )
+
+    def test_staff_sees_inconclusive_when_models_disagree(self):
         self.client.force_login(self.staff)
         sample = "Academic evidence should be interpreted in context. " * 5
 
         class DisagreeingAnalyzer(self.StubAnalyzer):
             def analyze(self, text):
-                result = super().analyze(text)
+                primary = super().analyze(text)
+                result = dict(primary)
                 result.update(
                     {
-                        "label": "Uncertain — detectors disagree",
+                        "label": "Inconclusive — models disagree",
                         "tone": "mixed",
+                        "primary": primary,
+                        "comparison_complete": True,
                         "detectors_disagree": True,
-                        "validation": {
-                            "detector_name": "Desklib Academic",
+                        "score_difference": 54.5,
+                        "comparison_status": (
+                            "The models fall on opposite sides of the 50% "
+                            "screening threshold."
+                        ),
+                        "comparison": {
+                            "score": 22.0,
+                            "label": "Low AI-pattern score",
+                            "tone": "low",
                             "ai_probability": 22.0,
-                            "model_version": "validator-test-commit",
-                            "agrees_with_primary": False,
+                            "human_probability": 78.0,
+                            "confidence": 78.0,
+                            "chunks_analyzed": 2,
+                            "detector_name": "Vanguard AI Text Detector",
+                            "model_name": "ShantanuT01/vanguard-ai-text-detector",
+                            "model_version": "vanguard-test-commit",
                         },
                     }
                 )
@@ -471,14 +537,10 @@ class AIDetectionServiceTests(LibraryTestCase):
             response = self.client.post(self.url, {"text": sample})
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Uncertain — detectors disagree")
-        self.assertContains(response, "Uncertain: the two detectors disagree.")
-        self.assertContains(response, "not proof")
+        self.assertContains(response, "Inconclusive — models disagree")
+        self.assertContains(response, "opposite sides")
 
-    @override_settings(
-        AI_DETECTION_ENGINE="fast",
-        AI_DETECTION_ENABLE_VALIDATION=False,
-    )
+    @override_settings(AI_DETECTION_ENGINE="fast")
     def test_fast_engine_completes_real_text_request(self):
         self.client.force_login(self.staff)
         sample = (

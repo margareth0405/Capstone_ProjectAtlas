@@ -17,6 +17,221 @@
   src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/webfonts/fa-solid-900.woff2") format("woff2");
 }
 
+/* Only the Font Awesome glyphs used by ATLAS. This replaces the full 18 KB
+   third-party icon stylesheet while retaining the existing icon markup. */
+.fas,
+.far {
+  display: inline-block;
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+.fas { font-weight: 900; }
+.far { font-weight: 400; }
+.fa-address-card::before { content: "\f2bb"; }
+.fa-align-left::before { content: "\f036"; }
+.fa-arrow-left::before { content: "\f060"; }
+.fa-arrow-right::before { content: "\f061"; }
+.fa-arrow-up::before { content: "\f062"; }
+.fa-bars::before { content: "\f0c9"; }
+.fa-bell::before { content: "\f0f3"; }
+.fa-book::before { content: "\f02d"; }
+.fa-bookmark::before { content: "\f02e"; }
+.fa-book-open::before { content: "\f518"; }
+.fa-book-reader::before { content: "\f5da"; }
+.fa-bullhorn::before { content: "\f0a1"; }
+.fa-calendar-alt::before { content: "\f073"; }
+.fa-chalkboard-user::before { content: "\f51c"; }
+.fa-chart-pie::before { content: "\f200"; }
+.fa-check::before { content: "\f00c"; }
+.fa-check-circle::before,
+.fa-circle-check::before { content: "\f058"; }
+.fa-chevron-left::before { content: "\f053"; }
+.fa-chevron-right::before { content: "\f054"; }
+.fa-circle::before { content: "\f111"; }
+.fa-circle-exclamation::before { content: "\f06a"; }
+.fa-circle-half-stroke::before { content: "\f042"; }
+.fa-circle-info::before,
+.fa-info-circle::before { content: "\f05a"; }
+.fa-clock::before { content: "\f017"; }
+.fa-cloud-arrow-up::before { content: "\f0ee"; }
+.fa-cookie-bite::before { content: "\f564"; }
+.fa-copy::before { content: "\f0c5"; }
+.fa-envelope::before { content: "\f0e0"; }
+.fa-envelope-circle-check::before { content: "\e4e8"; }
+.fa-eye::before { content: "\f06e"; }
+.fa-eye-slash::before { content: "\f070"; }
+.fa-file::before { content: "\f15b"; }
+.fa-file-circle-exclamation::before { content: "\e4eb"; }
+.fa-file-circle-question::before { content: "\e4ef"; }
+.fa-file-lines::before { content: "\f15c"; }
+.fa-file-pdf::before { content: "\f1c1"; }
+.fa-file-word::before { content: "\f1c2"; }
+.fa-flask::before { content: "\f0c3"; }
+.fa-floppy-disk::before { content: "\f0c7"; }
+.fa-gears::before { content: "\f085"; }
+.fa-graduation-cap::before { content: "\f19d"; }
+.fa-home::before { content: "\f015"; }
+.fa-key::before { content: "\f084"; }
+.fa-list::before { content: "\f03a"; }
+.fa-lock::before { content: "\f023"; }
+.fa-magnifying-glass-chart::before { content: "\e522"; }
+.fa-paper-plane::before { content: "\f1d8"; }
+.fa-pen::before { content: "\f304"; }
+.fa-phone::before { content: "\f095"; }
+.fa-plus::before { content: "\2b"; }
+.fa-plus-circle::before { content: "\f055"; }
+.fa-robot::before { content: "\f544"; }
+.fa-search::before { content: "\f002"; }
+.fa-share-alt::before { content: "\f1e0"; }
+.fa-shield-halved::before { content: "\f3ed"; }
+.fa-sign-out-alt::before { content: "\f2f5"; }
+.fa-text-height::before { content: "\f034"; }
+.fa-times::before,
+.fa-xmark::before { content: "\f00d"; }
+.fa-trash::before { content: "\f1f8"; }
+.fa-triangle-exclamation::before { content: "\f071"; }
+.fa-undo::before { content: "\f0e2"; }
+.fa-universal-access::before { content: "\f29a"; }
+.fa-upload::before { content: "\f093"; }
+.fa-user::before { content: "\f007"; }
+.fa-user-check::before { content: "\f4fc"; }
+.fa-user-friends::before,
+.fa-user-group::before { content: "\f500"; }
+.fa-user-gear::before { content: "\f4fe"; }
+.fa-user-graduate::before { content: "\f501"; }
+.fa-user-minus::before { content: "\f503"; }
+.fa-user-pen::before { content: "\f4ff"; }
+.fa-user-plus::before { content: "\f234"; }
+.fa-users::before { content: "\f0c0"; }
+.fa-user-shield::before { content: "\f505"; }
+.fa-window-restore::before { content: "\f2d2"; }
+
+/* Small local component layer for the Bootstrap classes ATLAS actually uses. */
+.btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 400;
+  gap: 0.35rem;
+  justify-content: center;
+  line-height: 1.5;
+  padding: 0.375rem 0.75rem;
+  text-align: center;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.btn-primary {
+  background: var(--maroon-800);
+  border-color: var(--maroon-800);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: var(--maroon-900);
+  border-color: var(--maroon-900);
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #5c636a;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus-visible {
+  background: #5c636a;
+  border-color: #5c636a;
+  color: #fff;
+}
+
+.btn-outline-danger {
+  border-color: #a52834;
+  color: #a52834;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus-visible {
+  background: #a52834;
+  color: #fff;
+}
+
+.btn-light {
+  background: #f8f9fa;
+  border-color: #f8f9fa;
+  color: #212529;
+}
+
+.btn-light:hover,
+.btn-light:focus-visible { background: #e2e6ea; }
+.btn-sm { font-size: 0.875rem; padding: 0.25rem 0.5rem; }
+.rounded-pill { border-radius: 50rem; }
+
+.form-control,
+.form-select {
+  appearance: none;
+  background-color: #fff;
+  border: 1px solid #b9b2af;
+  border-radius: 0.375rem;
+  color: #282326;
+  display: block;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  width: 100%;
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%233b3437' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 2.25rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--maroon-400);
+  box-shadow: 0 0 0 3px rgba(176, 58, 79, 0.14);
+  outline: 0;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid { border-color: #a52834; }
+.invalid-feedback { color: #9b1c2c; display: none; font-size: 0.875rem; margin-top: 0.25rem; }
+.d-block { display: block; }
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-3 { gap: 1rem; }
+.mt-2 { margin-top: 0.5rem; }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.visually-hidden {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -678,23 +893,55 @@ a.role-btn,
 }
 
 .atlas-messages {
+  bottom: 0;
   max-width: 100%;
+  padding: 1rem;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
   z-index: 10020;
 }
 
 .atlas-message {
+  border: 0;
+  border-radius: 0.375rem;
+  display: block;
   max-width: calc(100vw - 2rem);
   margin-top: 0.65rem;
   background: var(--maroon-800);
   color: #fff;
+  opacity: 1;
+  pointer-events: auto;
   box-shadow: 0 12px 32px rgba(39, 13, 20, 0.22);
+  transition: opacity 160ms ease, transform 160ms ease;
+  width: 350px;
 }
 
+.atlas-message.is-hiding { opacity: 0; transform: translateY(0.5rem); }
 .atlas-message[data-level="success"] { background: #24623d; }
 .atlas-message[data-level="warning"] { background: #7b5812; }
 .atlas-message[data-level="error"] { background: #8c2434; }
-.atlas-message .toast-body { display: flex; gap: 0.55rem; align-items: center; }
+.atlas-message-row { align-items: center; display: flex; }
+.atlas-message .toast-body { align-items: center; display: flex; flex: 1 1 auto; gap: 0.55rem; padding: 0.75rem; }
 .atlas-message .toast-body i { color: var(--gold); }
+
+.atlas-message-dismiss {
+  align-items: center;
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 2.75rem;
+  font: inherit;
+  font-size: 1.5rem;
+  justify-content: center;
+  opacity: 0.8;
+}
+
+.atlas-message-dismiss:hover,
+.atlas-message-dismiss:focus-visible { opacity: 1; }
 
 .atlas-shell {
   min-height: 100vh;
@@ -1561,17 +1808,33 @@ textarea {
 }
 
 .skeleton-block {
-  background: linear-gradient(90deg, #ece5e1 25%, #f8f4f1 50%, #ece5e1 75%);
-  background-size: 220% 100%;
+  background: #ece5e1;
   border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.skeleton-block::after {
+  background: linear-gradient(90deg, transparent 0%, #f8f4f1 50%, transparent 100%);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+  will-change: transform;
+}
+
+.page-loader:not(.is-hidden) .skeleton-block::after {
   animation: atlas-skeleton-shimmer 1.15s linear infinite;
 }
 
 .skeleton-sidebar {
   background-color: var(--maroon-800);
-  background-image: linear-gradient(90deg, #4a111c 25%, #652033 50%, #4a111c 75%);
   border-radius: 0;
   min-height: 100%;
+}
+
+.skeleton-sidebar::after {
+  background: linear-gradient(90deg, transparent 0%, #652033 50%, transparent 100%);
 }
 
 .skeleton-main {
@@ -1600,8 +1863,8 @@ textarea {
 }
 
 @keyframes atlas-skeleton-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -120% 0; }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 
 .file-drop-target {
@@ -1791,7 +2054,7 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-block,
+  .skeleton-block::after,
   .upload-processing-dots span {
     animation: none;
   }

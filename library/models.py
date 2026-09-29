@@ -263,7 +263,7 @@ class AIAnalysis(models.Model):
     detector_name = models.CharField(max_length=80)
     model_name = models.CharField(max_length=255)
     model_version = models.CharField(max_length=255)
-    validation_result = models.JSONField(default=dict, blank=True)
+    comparison_result = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -286,7 +286,7 @@ class AIAnalysis(models.Model):
             detector_name=result["detector_name"],
             model_name=result["model_name"],
             model_version=result["model_version"],
-            validation_result=result.get("validation", {}),
+            comparison_result=result.get("comparison", {}),
         )
 
     def __str__(self):

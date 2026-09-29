@@ -1,0 +1,15 @@
+<article class="ai-model-result">
+  <h4>{{ heading }}</h4>
+  <div class="ai-score {{ result.tone }}">
+    <strong>{{ result.score }}%</strong>
+    <span>{{ result.label }}</span>
+  </div>
+  <dl class="ai-model-metrics">
+    <div><dt>AI-pattern score</dt><dd>{{ result.ai_probability }}%</dd></div>
+    <div><dt>Human-pattern score</dt><dd>{{ result.human_probability }}%</dd></div>
+    <div><dt>Model certainty</dt><dd>{{ result.confidence }}%</dd></div>
+    <div><dt>Text sections</dt><dd>{{ result.chunks_analyzed }}</dd></div>
+    <div class="ai-model-detail"><dt>Detector</dt><dd>{{ result.detector_name }}</dd></div>
+    <div class="ai-model-detail"><dt>Model version</dt><dd>{{ result.model_version }}</dd></div>
+  </dl>
+</article>

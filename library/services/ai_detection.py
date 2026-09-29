@@ -187,6 +187,7 @@ class HuggingFaceDetector:
                     chunks,
                     truncation=True,
                     batch_size=4,
+                    function_to_apply="sigmoid",
                 )
         except AIDetectionError:
             raise
@@ -270,16 +271,12 @@ class HuggingFaceDetector:
         ]
 
 
-class AcademicBertDetector(HuggingFaceDetector):
-    """Primary BERT detector optimized for English academic paragraphs."""
-
-    detector_name = "Academic BERT"
-    default_model_name = "followsci/bert-ai-text-detector"
+class SingleProbabilityDetector(HuggingFaceDetector):
+    """Detector whose single sigmoid output is the model's P(AI)."""
 
     @staticmethod
     def _ai_score(prediction):
         try:
-            label = str(prediction["label"]).strip().lower().replace("-", "_")
             probability = float(prediction["score"])
         except (KeyError, TypeError, ValueError) as exc:
             raise AIDetectionError(
@@ -289,126 +286,30 @@ class AcademicBertDetector(HuggingFaceDetector):
             raise AIDetectionError(
                 "The local AI detector returned a confidence outside the expected range."
             )
-        if label in {"label_1", "ai", "ai_generated"}:
-            return probability
-        if label in {"label_0", "human", "human_written"}:
-            return 1 - probability
-        raise AIDetectionError(
-            "The local AI detector returned an unknown classification."
-        )
-
-
-class DesklibAcademicDetector(HuggingFaceDetector):
-    """Optional academic-domain validator using the publisher's custom head."""
-
-    detector_name = "Desklib Academic"
-    default_model_name = "desklib/ai-text-detector-academic-v1.01"
-
-    @staticmethod
-    def _ai_score(prediction):
-        try:
-            probability = float(prediction["score"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise AIDetectionError(
-                "The validation detector returned an invalid result."
-            ) from exc
-        if not 0 <= probability <= 1:
-            raise AIDetectionError(
-                "The validation detector returned a confidence outside the expected range."
-            )
         return probability
 
-    def _load_pipeline(self):
-        try:
-            import torch
-            from torch import nn
-            from transformers import (
-                AutoConfig,
-                AutoModel,
-                AutoTokenizer,
-                PreTrainedModel,
-            )
-        except ImportError as exc:
-            raise AIDetectionError(
-                "Academic validation is unavailable. Install the project requirements."
-            ) from exc
 
-        model_name = self.model_name
-        revision = self.revision
+class GradientAIDetector(SingleProbabilityDetector):
+    """Gradient's DeBERTa-v3-large AI-text detector."""
 
-        class AcademicDetectionModel(PreTrainedModel):
-            config_class = AutoConfig
+    detector_name = "Gradient AI Text Detector"
+    default_model_name = "ShantanuT01/gradient-ai-text-detector"
 
-            def __init__(self, config):
-                super().__init__(config)
-                self.model = AutoModel.from_config(config)
-                self.classifier = nn.Linear(config.hidden_size, 1)
-                self.init_weights()
 
-            def forward(self, input_ids, attention_mask=None, labels=None):
-                # Transformers may supply labels through the standard model
-                # interface; inference only needs the encoded inputs.
-                del labels
-                outputs = self.model(input_ids, attention_mask=attention_mask)
-                hidden_state = outputs[0]
-                expanded_mask = attention_mask.unsqueeze(-1).expand(
-                    hidden_state.size()
-                ).float()
-                pooled = (hidden_state * expanded_mask).sum(dim=1) / torch.clamp(
-                    expanded_mask.sum(dim=1), min=1e-9
-                )
-                logits = self.classifier(pooled)
-                return {"logits": logits}
+class VanguardAIDetector(SingleProbabilityDetector):
+    """Vanguard's ModernBERT-large AI-text detector."""
 
-        try:
-            tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
-            model = AcademicDetectionModel.from_pretrained(
-                model_name,
-                revision=revision,
-            )
-            model.to(torch.device("cpu"))
-            model.eval()
-        except Exception as exc:
-            raise AIDetectionError(
-                "ATLAS could not load Desklib Academic. Check the internet "
-                "connection for the first model download."
-            ) from exc
-
-        class AcademicPipeline:
-            def __init__(self, loaded_model, loaded_tokenizer):
-                self.model = loaded_model
-                self.tokenizer = loaded_tokenizer
-
-            def __call__(self, chunks, truncation=True, batch_size=4):
-                predictions = []
-                for index in range(0, len(chunks), batch_size):
-                    batch = chunks[index : index + batch_size]
-                    encoded = self.tokenizer(
-                        batch,
-                        padding=True,
-                        truncation=truncation,
-                        max_length=768,
-                        return_tensors="pt",
-                    )
-                    with torch.no_grad():
-                        logits = self.model(**encoded)["logits"].view(-1)
-                        probabilities = torch.sigmoid(logits).tolist()
-                    predictions.extend(
-                        {"label": "ai_generated", "score": probability}
-                        for probability in probabilities
-                    )
-                return predictions
-
-        return AcademicPipeline(model, tokenizer)
+    detector_name = "Vanguard AI Text Detector"
+    default_model_name = "ShantanuT01/vanguard-ai-text-detector"
 
 
 class AIDetectionService:
-    """Run the configured primary detector and optional academic validation."""
+    """Run Gradient and compare its result with Vanguard when configured."""
 
-    primary_detector_class = AcademicBertDetector
-    validation_detector_class = DesklibAcademicDetector
+    primary_detector_class = GradientAIDetector
+    comparison_detector_class = VanguardAIDetector
 
-    def __init__(self, primary_detector=None, validation_detector=None):
+    def __init__(self, primary_detector=None, comparison_detector=None):
         if primary_detector is not None:
             self.primary_detector = primary_detector
         elif settings.AI_DETECTION_ENGINE == "fast":
@@ -422,18 +323,20 @@ class AIDetectionService:
             raise AIDetectionError(
                 "AI_DETECTION_ENGINE must be either 'fast' or 'transformer'."
             )
-        if validation_detector is not None:
-            self.validation_detector = validation_detector
-        elif settings.AI_DETECTION_ENABLE_VALIDATION:
-            self.validation_detector = self.validation_detector_class(
-                model_name=settings.AI_DETECTION_VALIDATION_MODEL,
-                revision=settings.AI_DETECTION_VALIDATION_REVISION,
+        if comparison_detector is not None:
+            self.comparison_detector = comparison_detector
+        elif (
+            settings.AI_DETECTION_ENGINE == "transformer"
+            and settings.AI_DETECTION_ENABLE_COMPARISON
+        ):
+            self.comparison_detector = self.comparison_detector_class(
+                model_name=settings.AI_DETECTION_COMPARISON_MODEL,
+                revision=settings.AI_DETECTION_COMPARISON_REVISION,
             )
         else:
-            self.validation_detector = None
+            self.comparison_detector = None
 
     def analyze(self, text):
-        fallback_used = False
         try:
             result = self.primary_detector.analyze(text)
         except AIDetectionError as error:
@@ -449,19 +352,48 @@ class AIDetectionService:
             result = FastWritingPatternDetector().analyze(text)
             result["fallback_used"] = True
             result["fallback_reason"] = (
-                "The academic transformer was unavailable for this analysis."
+                "The Gradient transformer was unavailable for this analysis."
             )
-            fallback_used = True
+            return result
 
-        if self.validation_detector is not None and not fallback_used:
-            validation = self.validation_detector.analyze(text)
-            detectors_disagree = (
-                result["ai_probability"] >= 50
-            ) != (validation["ai_probability"] >= 50)
-            validation["agrees_with_primary"] = not detectors_disagree
-            result["validation"] = validation
-            result["detectors_disagree"] = detectors_disagree
-            if detectors_disagree:
-                result["label"] = "Uncertain — detectors disagree"
-                result["tone"] = "mixed"
+        if self.comparison_detector is None:
+            return result
+
+        try:
+            comparison = self.comparison_detector.analyze(text)
+        except AIDetectionError as error:
+            logger.warning("The comparison detector failed: %s", error)
+            result["comparison_complete"] = False
+            result["comparison_error"] = (
+                "Vanguard could not complete this comparison. Treat the Gradient "
+                "result as a single-model screening result and check server AI health."
+            )
+            return result
+
+        primary = dict(result)
+        detectors_disagree = (primary["ai_probability"] > 50) != (
+            comparison["ai_probability"] > 50
+        )
+        result["primary"] = primary
+        result["comparison"] = comparison
+        result["comparison_complete"] = True
+        result["detectors_disagree"] = detectors_disagree
+        result["score_difference"] = round(
+            abs(primary["ai_probability"] - comparison["ai_probability"]),
+            2,
+        )
+        if detectors_disagree:
+            result["comparison_status"] = (
+                "The models fall on opposite sides of the 50% screening threshold."
+            )
+            result["label"] = "Inconclusive — models disagree"
+            result["tone"] = "mixed"
+        elif primary["ai_probability"] > 50:
+            result["comparison_status"] = (
+                "Both models are on the AI-pattern side of the 50% threshold."
+            )
+        else:
+            result["comparison_status"] = (
+                "Both models are on the human-pattern side of the 50% threshold."
+            )
         return result
