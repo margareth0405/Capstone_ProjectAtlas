@@ -365,6 +365,20 @@ class SecurityRegressionTests(LibraryTestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("at most 20000", form.errors["text"][0])
 
+    def test_ai_form_rejects_text_and_document_together_without_javascript(self):
+        upload = SimpleUploadedFile(
+            "analysis.pdf",
+            b"%PDF-1.4 valid-enough-test-fixture",
+            content_type="application/pdf",
+        )
+        form = AIDetectionForm(
+            data={"text": "A sufficiently long academic text sample. " * 4},
+            files={"document": upload},
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("not both", form.non_field_errors()[0])
+
     @override_settings(AI_DETECTION_MAX_UPLOAD_MB=25)
     def test_ai_form_accepts_document_larger_than_ten_mb(self):
         upload = SimpleUploadedFile(

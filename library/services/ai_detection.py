@@ -5,6 +5,7 @@ from __future__ import annotations
 import gc
 import logging
 import math
+import os
 import re
 from collections import Counter
 from statistics import fmean
@@ -13,6 +14,55 @@ from threading import RLock
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _runtime_memory_limit_mb():
+    """Return the effective host/container memory limit when it is discoverable."""
+
+    limits = []
+    for path in (
+        "/sys/fs/cgroup/memory.max",
+        "/sys/fs/cgroup/memory/memory.limit_in_bytes",
+    ):
+        try:
+            with open(path, encoding="ascii") as memory_file:
+                raw_value = memory_file.read().strip()
+            if raw_value and raw_value != "max":
+                value = int(raw_value)
+                # Some cgroup v1 hosts expose an enormous sentinel for no limit.
+                if 0 < value < 2**60:
+                    limits.append(value)
+        except (OSError, ValueError):
+            continue
+
+    try:
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        page_count = os.sysconf("SC_PHYS_PAGES")
+        physical_memory = page_size * page_count
+        if physical_memory > 0:
+            limits.append(physical_memory)
+    except (AttributeError, OSError, ValueError):
+        pass
+
+    if not limits:
+        return None
+    return max(1, min(limits) // (1024 * 1024))
+
+
+def _desklib_weights_are_cached(model_name, revision):
+    """Check for the pinned weights without contacting Hugging Face."""
+
+    try:
+        from huggingface_hub import try_to_load_from_cache
+
+        cached_path = try_to_load_from_cache(
+            model_name,
+            "model.safetensors",
+            revision=revision,
+        )
+    except (ImportError, OSError, ValueError):
+        return False
+    return isinstance(cached_path, str) and os.path.isfile(cached_path)
 
 
 class AIDetectionError(RuntimeError):
@@ -165,13 +215,15 @@ class HuggingFaceDetector:
     detector_name = "AI text detector"
     default_model_name = ""
     words_per_chunk = 250
+    batch_size = 4
     _pipeline = None
     _pipeline_lock = RLock()
     _inference_lock = RLock()
 
-    def __init__(self, model_name=None, revision=None):
+    def __init__(self, model_name=None, revision=None, *, allow_download=True):
         self.model_name = model_name or self.default_model_name
         self.revision = (revision or "main").strip() or "main"
+        self.allow_download = allow_download
 
     def analyze(self, text):
         if not text or not text.strip():
@@ -187,7 +239,7 @@ class HuggingFaceDetector:
                 predictions = pipeline(
                     chunks,
                     truncation=True,
-                    batch_size=4,
+                    batch_size=self.batch_size,
                     function_to_apply="sigmoid",
                 )
         except AIDetectionError:
@@ -338,12 +390,35 @@ class DesklibAcademicDetector(SingleProbabilityDetector):
 
     detector_name = "Desklib Academic AI Text Detector"
     default_model_name = "desklib/ai-text-detector-academic-v1.01"
+    batch_size = 1
 
     def _load_pipeline(self):
+        memory_limit_mb = _runtime_memory_limit_mb()
+        minimum_memory_mb = settings.AI_DETECTION_MIN_MEMORY_MB
+        if memory_limit_mb is not None and memory_limit_mb < minimum_memory_mb:
+            raise AIDetectionError(
+                "The Desklib model needs a larger server memory allocation "
+                f"(at least {minimum_memory_mb} MB; this runtime exposes "
+                f"{memory_limit_mb} MB)."
+            )
+        if not self.allow_download and not _desklib_weights_are_cached(
+            self.model_name,
+            self.revision,
+        ):
+            raise AIDetectionError(
+                "The pinned Desklib model is not ready in the server cache. "
+                "Run 'python manage.py check_ai --run-analysis' from the "
+                "deployment shell to download and verify it."
+            )
         try:
             import torch
-            import torch.nn as nn
-            from transformers import AutoConfig, AutoModel, AutoTokenizer, PreTrainedModel
+            from torch import nn
+            from transformers import (
+                AutoConfig,
+                AutoModel,
+                AutoTokenizer,
+                PreTrainedModel,
+            )
         except ImportError as exc:
             raise AIDetectionError(
                 "Local AI Detection is unavailable. Install the project requirements."
@@ -377,18 +452,27 @@ class DesklibAcademicDetector(SingleProbabilityDetector):
             config = AutoConfig.from_pretrained(
                 self.model_name,
                 revision=self.revision,
+                local_files_only=not self.allow_download,
             )
             tokenizer = AutoTokenizer.from_pretrained(
                 self.model_name,
                 revision=self.revision,
+                local_files_only=not self.allow_download,
             )
             model = DesklibAIDetectionModel.from_pretrained(
                 self.model_name,
                 config=config,
                 revision=self.revision,
+                local_files_only=not self.allow_download,
             )
             model.eval()
         except Exception as exc:
+            if not self.allow_download:
+                raise AIDetectionError(
+                    "The pinned Desklib model is not ready in the server cache. "
+                    "Run 'python manage.py check_ai --run-analysis' from the "
+                    "deployment shell to download and verify it."
+                ) from exc
             raise AIDetectionError(
                 "ATLAS could not load the Desklib Academic AI Text Detector. "
                 "Check the internet connection for the first model download."
@@ -408,7 +492,7 @@ class AIDetectionService:
 
     primary_detector_class = DesklibAcademicDetector
 
-    def __init__(self, primary_detector=None):
+    def __init__(self, primary_detector=None, *, allow_model_download=False):
         if primary_detector is not None:
             self.primary_detector = primary_detector
         elif settings.AI_DETECTION_ENGINE == "fast":
@@ -417,6 +501,7 @@ class AIDetectionService:
             self.primary_detector = self.primary_detector_class(
                 model_name=settings.AI_DETECTION_PRIMARY_MODEL,
                 revision=settings.AI_DETECTION_PRIMARY_REVISION,
+                allow_download=allow_model_download,
             )
         else:
             raise AIDetectionError(
@@ -439,7 +524,8 @@ class AIDetectionService:
             result = FastWritingPatternDetector().analyze(text)
             result["fallback_used"] = True
             result["fallback_reason"] = (
-                "The Desklib transformer was unavailable for this analysis."
+                "The Desklib transformer was unavailable for this analysis. "
+                f"{error}"
             )
         return result
 
@@ -449,11 +535,21 @@ class AIDetectionBenchmarkService:
 
     comparison_detector_class = VanguardAIDetector
 
-    def __init__(self, primary_detector=None, comparison_detector=None):
-        self.primary_service = AIDetectionService(primary_detector=primary_detector)
+    def __init__(
+        self,
+        primary_detector=None,
+        comparison_detector=None,
+        *,
+        allow_model_download=False,
+    ):
+        self.primary_service = AIDetectionService(
+            primary_detector=primary_detector,
+            allow_model_download=allow_model_download,
+        )
         self.comparison_detector = comparison_detector or self.comparison_detector_class(
             model_name=settings.AI_DETECTION_COMPARISON_MODEL,
             revision=settings.AI_DETECTION_COMPARISON_REVISION,
+            allow_download=allow_model_download,
         )
 
     @staticmethod

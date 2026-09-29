@@ -470,6 +470,8 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, "up to 25 MB")
         self.assertContains(page_response, 'enctype="multipart/form-data"')
         self.assertContains(page_response, "data-async-upload")
+        self.assertContains(page_response, "data-exclusive-ai-inputs")
+        self.assertContains(page_response, "Selecting a document clears pasted text")
         self.assertContains(page_response, "ATLAS is analyzing the writing patterns")
         self.assertContains(page_response, 'class="ai-input-grid"')
         self.assertContains(page_response, 'class="staff-panel ai-detection-form-card"')

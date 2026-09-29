@@ -466,6 +466,7 @@ AI_DETECTION_FALLBACK_TO_FAST = env_bool(
     True,
 )
 AI_DETECTION_MAX_UPLOAD_MB = env_positive_int("AI_DETECTION_MAX_UPLOAD_MB", 25)
+AI_DETECTION_MIN_MEMORY_MB = env_positive_int("AI_DETECTION_MIN_MEMORY_MB", 3072)
 
 
 # ==========================================

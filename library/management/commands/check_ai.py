@@ -67,9 +67,9 @@ class Command(BaseCommand):
         started = monotonic()
         try:
             service = (
-                AIDetectionBenchmarkService()
+                AIDetectionBenchmarkService(allow_model_download=True)
                 if options["benchmark"]
-                else AIDetectionService()
+                else AIDetectionService(allow_model_download=True)
             )
             result = service.analyze(sample)
         except AIDetectionError as exc:

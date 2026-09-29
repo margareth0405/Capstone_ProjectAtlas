@@ -59,6 +59,40 @@ class DesklibAcademicDetectorTests(SimpleTestCase):
         )
         self.assertEqual(result["model_version"], "detector-commit-123")
         self.assertEqual(pipeline.call_kwargs["function_to_apply"], "sigmoid")
+        self.assertEqual(pipeline.call_kwargs["batch_size"], 1)
+
+    @override_settings(AI_DETECTION_MIN_MEMORY_MB=3072)
+    def test_model_load_stops_before_oom_on_small_container(self):
+        detector = DesklibAcademicDetector()
+
+        with (
+            patch(
+                "library.services.ai_detection._runtime_memory_limit_mb",
+                return_value=512,
+            ),
+            self.assertRaisesMessage(
+                AIDetectionError,
+                "at least 3072 MB; this runtime exposes 512 MB",
+            ),
+        ):
+            detector._load_pipeline()
+
+    @override_settings(AI_DETECTION_MIN_MEMORY_MB=3072)
+    def test_web_request_does_not_download_uncached_model(self):
+        detector = DesklibAcademicDetector(allow_download=False)
+
+        with (
+            patch(
+                "library.services.ai_detection._runtime_memory_limit_mb",
+                return_value=4096,
+            ),
+            patch(
+                "library.services.ai_detection._desklib_weights_are_cached",
+                return_value=False,
+            ),
+            self.assertRaisesMessage(AIDetectionError, "not ready in the server cache"),
+        ):
+            detector._load_pipeline()
 
     def test_low_ai_probability_reports_high_human_probability(self):
         detector = DesklibAcademicDetector()
@@ -258,6 +292,7 @@ class AIDetectionServiceTests(SimpleTestCase):
             "desklib/ai-text-detector-academic-v1.01",
         )
         self.assertEqual(service.primary_detector.revision, "desklib-revision")
+        self.assertFalse(service.primary_detector.allow_download)
         self.assertFalse(hasattr(service, "comparison_detector"))
 
         benchmark = AIDetectionBenchmarkService(primary_detector=self.StubDetector("Desklib", 50))
@@ -267,6 +302,7 @@ class AIDetectionServiceTests(SimpleTestCase):
             "ShantanuT01/vanguard-ai-text-detector",
         )
         self.assertEqual(benchmark.comparison_detector.revision, "vanguard-revision")
+        self.assertFalse(benchmark.comparison_detector.allow_download)
 
     @override_settings(
         AI_DETECTION_ENGINE="transformer",
@@ -308,6 +344,7 @@ class CheckAICommandTests(SimpleTestCase):
 
         call_command("check_ai", "--run-analysis", stdout=output)
 
+        service_class.assert_called_once_with(allow_model_download=True)
         self.assertIn(
             "Desklib Academic AI Text Detector version desklib-revision",
             output.getvalue(),
@@ -324,6 +361,7 @@ class CheckAICommandTests(SimpleTestCase):
 
         with self.assertRaisesMessage(CommandError, "Vanguard did not complete"):
             call_command("check_ai", "--run-analysis", "--benchmark")
+        service_class.assert_called_once_with(allow_model_download=True)
 
     def test_benchmark_requires_analysis_flag(self):
         with self.assertRaisesMessage(CommandError, "requires --run-analysis"):

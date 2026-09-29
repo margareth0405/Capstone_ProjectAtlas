@@ -22,7 +22,7 @@
           </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is analyzing the writing patterns...">
+        <form method="post" enctype="multipart/form-data" novalidate data-async-upload data-exclusive-ai-inputs data-processing-label="Upload complete. ATLAS is analyzing the writing patterns...">
           {% csrf_token %}
           {% include "library/includes/form_errors.html" with form=form %}
 
@@ -45,6 +45,10 @@
             </div>
           </div>
 
+          <p class="form-helper" data-ai-input-guidance>
+            Choose one input method. Selecting a document clears pasted text, and typing text clears a selected document.
+          </p>
+
           <div class="ai-form-actions">
             <button class="btn-create-admin" type="submit"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i> Analyze content</button>
           </div>
@@ -61,13 +65,14 @@
           {% if detection_result.fallback_used %}
             <div class="ai-detection-notice" role="alert">
               <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-              <p><strong>Fallback detector used.</strong> Desklib Academic AI Text Detector was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
+              <p><strong>Fallback detector used.</strong> Desklib Academic AI Text Detector was unavailable, so this report uses the faster pattern review. {{ detection_result.fallback_reason }}</p>
             </div>
           {% endif %}
           <div class="ai-detection-notice" role="note">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
             <p>Every percentage below is a model-generated pattern score, not proof that a person or AI authored the text.</p>
           </div>
+
           {% if detection_result.comparison_error %}
             <div class="ai-detection-notice" role="alert">
               <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>

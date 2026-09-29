@@ -465,6 +465,27 @@
     return panel;
   }
 
+  function initializeExclusiveAIInputs(form) {
+    if (form.dataset.exclusiveInputsReady === "true") return;
+    var fileInput = form.querySelector("input[type='file'][name='document']");
+    var textInput = form.querySelector("textarea[name='text']");
+    if (!fileInput || !textInput) return;
+    form.dataset.exclusiveInputsReady = "true";
+
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files && fileInput.files.length && textInput.value) {
+        textInput.value = "";
+      }
+    });
+
+    textInput.addEventListener("input", function () {
+      if (textInput.value.trim() && fileInput.files && fileInput.files.length) {
+        fileInput.value = "";
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  }
+
   function replaceDocument(html) {
     document.open();
     document.write(html);
@@ -475,6 +496,9 @@
     document.querySelectorAll("input[type='file']").forEach(enhanceFileInput);
 
     document.querySelectorAll("form[data-async-upload]").forEach(function (form) {
+      if (form.hasAttribute("data-exclusive-ai-inputs")) {
+        initializeExclusiveAIInputs(form);
+      }
       var panel = uploadProgressPanel(form);
       var meter = panel.querySelector("[data-upload-meter]");
       var title = panel.querySelector("[data-upload-title]");
@@ -530,7 +554,7 @@
             } else if (request.status === 413) {
               message = "The selected file is larger than the server accepts. Choose a smaller file and try again.";
             } else if (request.status >= 500) {
-              message = "ATLAS could not complete this request on the server. Try again; if it continues, ask an administrator to check the deployment and database migrations.";
+              message = "ATLAS could not complete this request on the server. Try again; if it continues, check the deployment logs, server memory, storage, and database health.";
             } else {
               message = "ATLAS could not process this request. Review the file and form, then try again.";
             }

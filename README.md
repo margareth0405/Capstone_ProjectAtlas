@@ -177,7 +177,10 @@ higher than the model files alone, so measure a complete analysis on the
 intended hosting plan before release. Use `AI_DETECTION_ENGINE=fast` only when
 an instance cannot host the transformer. Run
 `python manage.py check_ai --run-analysis` in the deployed service shell to
-verify the live primary model. Run
+download, cache, and verify the live primary model before accepting web
+requests. Normal administrator requests never start a multi-gigabyte model
+download; if the pinned revision is not cached, they complete with the safe
+fast fallback and explain how an operator can prepare the model. Run
 `python manage.py check_ai --run-analysis --benchmark` only when you explicitly
 want to compare the primary result with Vanguard; the models are released and
 loaded sequentially to reduce peak memory pressure.
@@ -235,6 +238,7 @@ AI_DETECTION_COMPARISON_MODEL=ShantanuT01/vanguard-ai-text-detector
 AI_DETECTION_COMPARISON_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
 AI_DETECTION_FALLBACK_TO_FAST=True
 AI_DETECTION_MAX_UPLOAD_MB=25
+AI_DETECTION_MIN_MEMORY_MB=3072
 HF_HUB_DISABLE_XET=1
 HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ```
@@ -243,6 +247,10 @@ Set `AI_DETECTION_ENGINE=fast` on small Render instances that do not have enough
 memory for the configured transformer model. When
 `AI_DETECTION_FALLBACK_TO_FAST=True`, ATLAS attempts the transformer first and
 shows an explicit warning if it must use the lower-memory pattern review.
+Before loading Desklib, ATLAS checks a detectable container memory limit against
+`AI_DETECTION_MIN_MEMORY_MB`. This prevents a small Render instance from being
+terminated while loading the roughly 434-million-parameter model. Desklib uses
+one text section per inference batch to reduce peak memory.
 Vanguard is only invoked by the explicit `--benchmark` command. If it is
 unavailable, the command reports an incomplete benchmark without affecting the
 primary model used by the administrator page. Production readiness requires
