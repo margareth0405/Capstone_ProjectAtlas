@@ -66,8 +66,8 @@ class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
         if result.get("fallback_used"):
             messages.warning(
                 request,
-                "The Desklib Academic model was unavailable, so ATLAS completed "
-                "this report with its fast writing-pattern review.",
+                "The configured AI model was unavailable, so ATLAS completed this "
+                "report with its fast writing-pattern review.",
             )
         try:
             AIAnalysis.record(

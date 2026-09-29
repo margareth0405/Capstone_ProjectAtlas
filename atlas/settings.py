@@ -1,4 +1,4 @@
-﻿"""Django settings for ATLAS using PostgreSQL."""
+"""Django settings for ATLAS using PostgreSQL."""
 
 import os
 from pathlib import Path
@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / ".env")
 
 # The Xet transport can stall on some Windows networks. Prefer the standard
 # resumable HTTP path unless an operator explicitly opts back into Xet.
@@ -21,7 +21,9 @@ def env_bool(name, default=False):
 
 
 def env_list(name, default=""):
-    return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
+    return [
+        value.strip() for value in os.getenv(name, default).split(",") if value.strip()
+    ]
 
 
 def env_positive_int(name, default):
@@ -78,29 +80,25 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.staticfiles",
     "django.contrib.sites",
-
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-
     "accounts.apps.AccountsConfig",
     "repository.apps.RepositoryConfig",
     "ai_detection.apps.AIDetectionConfig",
     "library.apps.LibraryConfig",
-
     "anymail",
-
 ]
 SITE_ID = int(os.getenv("SITE_ID", "1"))
 
 if DEBUG:
-    INSTALLED_APPS.append('django_browser_reload')
+    INSTALLED_APPS.append("django_browser_reload")
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.middleware.gzip.GZipMiddleware',
-    'django.middleware.http.ConditionalGetMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
+    "django.middleware.http.ConditionalGetMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -152,7 +150,9 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 6},
@@ -170,12 +170,12 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
-    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-    'staticfiles': {
-        'BACKEND': (
-            'whitenoise.storage.CompressedStaticFilesStorage'
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedStaticFilesStorage"
             if DEBUG
-            else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
         )
     },
 }
@@ -209,9 +209,9 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = os.getenv(
-    "ACCOUNT_EMAIL_VERIFICATION", "mandatory"
-).strip().lower()
+ACCOUNT_EMAIL_VERIFICATION = (
+    os.getenv("ACCOUNT_EMAIL_VERIFICATION", "mandatory").strip().lower()
+)
 if ACCOUNT_EMAIL_VERIFICATION not in {"none", "optional", "mandatory"}:
     raise ImproperlyConfigured(
         "ACCOUNT_EMAIL_VERIFICATION must be none, optional, or mandatory."
@@ -221,13 +221,11 @@ ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_EMAIL_SUBJECT_PREFIX = os.getenv(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX", "[A.T.L.A.S.] "
 )
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.getenv(
-    "ACCOUNT_DEFAULT_HTTP_PROTOCOL", "http"
-).strip().lower()
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = (
+    os.getenv("ACCOUNT_DEFAULT_HTTP_PROTOCOL", "http").strip().lower()
+)
 if ACCOUNT_DEFAULT_HTTP_PROTOCOL not in {"http", "https"}:
-    raise ImproperlyConfigured(
-        "ACCOUNT_DEFAULT_HTTP_PROTOCOL must be http or https."
-    )
+    raise ImproperlyConfigured("ACCOUNT_DEFAULT_HTTP_PROTOCOL must be http or https.")
 
 
 # ==========================================
@@ -256,9 +254,7 @@ EMAIL_BACKEND = (
 # anymail.backends.brevo.EmailBackend
 
 ANYMAIL = {
-    "BREVO_API_KEY": os.getenv(
-        "BREVO_API_KEY", ""
-    ).strip(),
+    "BREVO_API_KEY": os.getenv("BREVO_API_KEY", "").strip(),
 }
 
 
@@ -269,29 +265,17 @@ ANYMAIL = {
 # These settings remain available for local
 # development using Gmail SMTP.
 
-EMAIL_HOST = os.getenv(
-    "EMAIL_HOST", "smtp.gmail.com"
-).strip()
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com").strip()
 
-EMAIL_PORT = env_positive_int(
-    "EMAIL_PORT", 587
-)
+EMAIL_PORT = env_positive_int("EMAIL_PORT", 587)
 
-EMAIL_USE_TLS = env_bool(
-    "EMAIL_USE_TLS", True
-)
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 
-EMAIL_USE_SSL = env_bool(
-    "EMAIL_USE_SSL", False
-)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 
-EMAIL_HOST_USER = os.getenv(
-    "EMAIL_HOST_USER", ""
-).strip()
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
 
-EMAIL_HOST_PASSWORD = os.getenv(
-    "EMAIL_HOST_PASSWORD", ""
-).strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
 
 
 # ==========================================
@@ -305,13 +289,10 @@ EMAIL_HOST_PASSWORD = os.getenv(
 # address for Gmail SMTP.
 
 DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL",
-    "ATLAS <atlastshs@gmail.com>"
+    "DEFAULT_FROM_EMAIL", "ATLAS <atlastshs@gmail.com>"
 ).strip()
 
-EMAIL_TIMEOUT = env_positive_int(
-    "EMAIL_TIMEOUT", 20
-)
+EMAIL_TIMEOUT = env_positive_int("EMAIL_TIMEOUT", 20)
 
 
 # ==========================================
@@ -320,81 +301,50 @@ EMAIL_TIMEOUT = env_positive_int(
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise ImproperlyConfigured(
-        "EMAIL_USE_TLS and EMAIL_USE_SSL "
-        "cannot both be enabled."
+        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
     )
 
 # A Brevo API key is required when using
 # the Brevo email backend.
 
 if EMAIL_BACKEND == "anymail.backends.brevo.EmailBackend":
-
     if not ANYMAIL["BREVO_API_KEY"]:
         raise ImproperlyConfigured(
-            "BREVO_API_KEY is missing. "
-            "Add it to your Render environment variables."
+            "BREVO_API_KEY is missing. Add it to your Render environment variables."
         )
 
     # Check that a production sender is configured.
     if not DEFAULT_FROM_EMAIL:
-        raise ImproperlyConfigured(
-            "DEFAULT_FROM_EMAIL must be configured."
-        )
+        raise ImproperlyConfigured("DEFAULT_FROM_EMAIL must be configured.")
 
 
 # ==========================================
 # ATLAS SUPPORT AND BUSINESS INFORMATION
 # ==========================================
 
-SUPPORT_EMAIL = os.getenv(
-    "SUPPORT_EMAIL",
-    "atlastshs@gmail.com"
-).strip()
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "atlastshs@gmail.com").strip()
 
-SUPPORT_HOURS = os.getenv(
-    "SUPPORT_HOURS",
-    "Monday–Friday, 8:00 AM–5:00 PM"
-)
+SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 
-SUPPORT_PHONE = os.getenv(
-    "SUPPORT_PHONE", ""
-).strip()
+SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
 
-BUSINESS_NAME = os.getenv(
-    "BUSINESS_NAME",
-    "ATLAS Digital Repository"
-).strip()
+BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
 
 BUSINESS_OPERATOR = os.getenv(
-    "BUSINESS_OPERATOR",
-    "ATLAS Digital Repository team"
+    "BUSINESS_OPERATOR", "ATLAS Digital Repository team"
 ).strip()
 
 BUSINESS_SERVICE_TYPE = os.getenv(
-    "BUSINESS_SERVICE_TYPE",
-    "Non-commercial academic digital repository"
+    "BUSINESS_SERVICE_TYPE", "Non-commercial academic digital repository"
 ).strip()
 
-BUSINESS_COUNTRY = os.getenv(
-    "BUSINESS_COUNTRY",
-    "Philippines"
-).strip()
+BUSINESS_COUNTRY = os.getenv("BUSINESS_COUNTRY", "Philippines").strip()
 
-BUSINESS_ADDRESS = os.getenv(
-    "BUSINESS_ADDRESS", ""
-).strip()
+BUSINESS_ADDRESS = os.getenv("BUSINESS_ADDRESS", "").strip()
 
-DATA_PRIVACY_EMAIL = os.getenv(
-    "DATA_PRIVACY_EMAIL",
-    SUPPORT_EMAIL
-).strip()
+DATA_PRIVACY_EMAIL = os.getenv("DATA_PRIVACY_EMAIL", SUPPORT_EMAIL).strip()
 
-TEACHER_EMAIL_DOMAINS = tuple(
-    env_list(
-        "TEACHER_EMAIL_DOMAINS",
-        "deped.gov.ph"
-    )
-)
+TEACHER_EMAIL_DOMAINS = tuple(env_list("TEACHER_EMAIL_DOMAINS", "deped.gov.ph"))
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
@@ -444,15 +394,18 @@ PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-09-20")
 # The detector service reads these values only when an analysis is requested.
 # Keeping model identifiers and revisions in configuration makes detector
 # upgrades independent from the staff view and the rest of the application.
-AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "transformer").strip().lower()
+AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "onnx").strip().lower()
 AI_DETECTION_PRIMARY_MODEL = os.getenv(
     "AI_DETECTION_PRIMARY_MODEL",
-    "desklib/ai-text-detector-academic-v1.01",
+    "bsgcasa/ai-text-detector-distilbert",
 )
 AI_DETECTION_PRIMARY_REVISION = os.getenv(
     "AI_DETECTION_PRIMARY_REVISION",
-    "fe9b4da50ee2cca5c877d607640681609170e363",
+    "07a004b5e04fa4d145c73da42ecab754ab6730d0",
 )
+AI_DETECTION_MODEL_DIR = Path(os.getenv("AI_DETECTION_MODEL_DIR", "models/ai_detector"))
+if not AI_DETECTION_MODEL_DIR.is_absolute():
+    AI_DETECTION_MODEL_DIR = BASE_DIR / AI_DETECTION_MODEL_DIR
 AI_DETECTION_COMPARISON_MODEL = os.getenv(
     "AI_DETECTION_COMPARISON_MODEL",
     "ShantanuT01/vanguard-ai-text-detector",
@@ -467,6 +420,9 @@ AI_DETECTION_FALLBACK_TO_FAST = env_bool(
 )
 AI_DETECTION_MAX_UPLOAD_MB = env_positive_int("AI_DETECTION_MAX_UPLOAD_MB", 25)
 AI_DETECTION_MIN_MEMORY_MB = env_positive_int("AI_DETECTION_MIN_MEMORY_MB", 3072)
+AI_DETECTION_REMOTE_URL = os.getenv("AI_DETECTION_REMOTE_URL", "").strip().rstrip("/")
+AI_DETECTION_REMOTE_TOKEN = os.getenv("AI_DETECTION_REMOTE_TOKEN", "").strip()
+AI_DETECTION_REMOTE_TIMEOUT = env_positive_int("AI_DETECTION_REMOTE_TIMEOUT", 180)
 
 
 # ==========================================
@@ -476,13 +432,11 @@ AI_DETECTION_MIN_MEMORY_MB = env_positive_int("AI_DETECTION_MIN_MEMORY_MB", 3072
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
         },
     },
-
     "loggers": {
         "django.request": {
             "handlers": ["console"],

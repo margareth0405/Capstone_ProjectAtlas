@@ -37,18 +37,35 @@ class Command(BaseCommand):
             f"{settings.AI_DETECTION_PRIMARY_MODEL} "
             f"@ {settings.AI_DETECTION_PRIMARY_REVISION}"
         )
-        self.stdout.write(
-            "Benchmark model: "
-            f"{settings.AI_DETECTION_COMPARISON_MODEL} "
-            f"@ {settings.AI_DETECTION_COMPARISON_REVISION} "
-            "(explicit benchmark only)"
-        )
-        self.stdout.write(
-            "Fast fallback enabled: "
-            f"{'yes' if settings.AI_DETECTION_FALLBACK_TO_FAST else 'no'}"
-        )
+        if settings.AI_DETECTION_ENGINE == "onnx":
+            self.stdout.write(
+                f"Local model directory: {settings.AI_DETECTION_MODEL_DIR}"
+            )
+            self.stdout.write("Runtime: ONNX Runtime CPU (PyTorch is not required)")
+        elif settings.AI_DETECTION_ENGINE == "remote":
+            self.stdout.write(
+                f"Dedicated inference service: {settings.AI_DETECTION_REMOTE_URL}"
+            )
+            self.stdout.write("Remote model enforcement: strict (no fast fallback)")
+        else:
+            self.stdout.write(
+                "Fast fallback enabled: "
+                f"{'yes' if settings.AI_DETECTION_FALLBACK_TO_FAST else 'no'}"
+            )
+        if settings.AI_DETECTION_ENGINE == "transformer" or options["benchmark"]:
+            self.stdout.write(
+                "Benchmark model: "
+                f"{settings.AI_DETECTION_COMPARISON_MODEL} "
+                f"@ {settings.AI_DETECTION_COMPARISON_REVISION} "
+                "(explicit benchmark only)"
+            )
         if options["benchmark"] and not options["run_analysis"]:
             raise CommandError("--benchmark requires --run-analysis.")
+        if options["benchmark"] and settings.AI_DETECTION_ENGINE != "transformer":
+            raise CommandError(
+                "--benchmark must run on the high-memory inference service with "
+                "AI_DETECTION_ENGINE=transformer."
+            )
         if not options["run_analysis"]:
             self.stdout.write(
                 self.style.WARNING(
@@ -75,11 +92,11 @@ class Command(BaseCommand):
         except AIDetectionError as exc:
             raise CommandError(f"AI analysis check failed: {exc}") from exc
 
-        if settings.AI_DETECTION_ENGINE == "transformer" and result.get(
+        if settings.AI_DETECTION_ENGINE in {"onnx", "transformer"} and result.get(
             "fallback_used"
         ):
             raise CommandError(
-                "AI analysis check failed: Desklib used the fast fallback."
+                "AI analysis check failed: the configured model used the fast fallback."
             )
         if options["benchmark"] and not result.get("comparison_complete"):
             raise CommandError(

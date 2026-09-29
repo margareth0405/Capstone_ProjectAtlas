@@ -65,7 +65,7 @@
           {% if detection_result.fallback_used %}
             <div class="ai-detection-notice" role="alert">
               <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-              <p><strong>Fallback detector used.</strong> Desklib Academic AI Text Detector was unavailable, so this report uses the faster pattern review. {{ detection_result.fallback_reason }}</p>
+              <p><strong>Fallback detector used.</strong> The configured AI model was unavailable, so this report uses the faster pattern review. {{ detection_result.fallback_reason }}</p>
             </div>
           {% endif %}
           <div class="ai-detection-notice" role="note">
@@ -105,6 +105,12 @@
                 <div><dt>Human-pattern score</dt><dd>{{ detection_result.human_probability }}%</dd></div>
                 <div><dt>Model certainty score</dt><dd>{{ detection_result.confidence }}%</dd></div>
                 <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
+                {% if detection_result.aggregation_method %}
+                  <div><dt>Sections with strong AI indicators</dt><dd>{{ detection_result.strong_ai_sections }} / {{ detection_result.chunks_analyzed }}</dd></div>
+                  <div><dt>Highest indicator</dt><dd>Section {{ detection_result.highest_ai_section }} — {{ detection_result.highest_ai_probability }}%</dd></div>
+                  <div><dt>Lowest indicator</dt><dd>Section {{ detection_result.lowest_ai_section }} — {{ detection_result.lowest_ai_probability }}%</dd></div>
+                  <div><dt>Aggregation</dt><dd>{{ detection_result.aggregation_method }}</dd></div>
+                {% endif %}
                 <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
                 <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
               </dl>

@@ -1,6 +1,9 @@
 """Unit tests for the replaceable local AI Detection service."""
 
 from io import BytesIO, StringIO
+from math import log
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -14,6 +17,8 @@ from library.services.ai_detection import (
     AIDetectionService,
     DesklibAcademicDetector,
     FastWritingPatternDetector,
+    OnnxDistilBertDetector,
+    RemoteDesklibDetector,
     VanguardAIDetector,
 )
 from library.services.documents import DocumentTextExtractor
@@ -23,13 +28,81 @@ class FakePipeline:
     def __init__(self, predictions, commit_hash="detector-commit-123"):
         self.predictions = predictions
         self.call_kwargs = None
-        self.model = SimpleNamespace(
-            config=SimpleNamespace(_commit_hash=commit_hash)
-        )
+        self.model = SimpleNamespace(config=SimpleNamespace(_commit_hash=commit_hash))
 
     def __call__(self, chunks, **kwargs):
         self.call_kwargs = kwargs
         return self.predictions
+
+
+class OnnxDistilBertDetectorTests(SimpleTestCase):
+    class FakeTokenizer:
+        def __call__(self, texts, **kwargs):
+            import numpy as np
+
+            batch_size = len(texts)
+            input_ids = np.zeros((batch_size, 256), dtype=np.int64)
+            attention_mask = np.zeros((batch_size, 256), dtype=np.int64)
+            attention_mask[0, :102] = 1
+            attention_mask[1, :52] = 1
+            return {"input_ids": input_ids, "attention_mask": attention_mask}
+
+    class FakeSession:
+        @staticmethod
+        def get_inputs():
+            return [
+                SimpleNamespace(name="input_ids"),
+                SimpleNamespace(name="attention_mask"),
+            ]
+
+        @staticmethod
+        def get_outputs():
+            return [SimpleNamespace(name="logits")]
+
+        @staticmethod
+        def run(output_names, inputs):
+            import numpy as np
+
+            return [np.array([[0.0, log(4)], [log(4), 0.0]], dtype=np.float32)]
+
+    def tearDown(self):
+        OnnxDistilBertDetector.release()
+
+    def test_sections_use_token_weighted_aggregate_and_report_context(self):
+        detector = OnnxDistilBertDetector(
+            model_dir="models/ai_detector",
+            revision="pinned-revision",
+        )
+        resources = (
+            self.FakeTokenizer(),
+            self.FakeSession(),
+            {"0": "human", "1": "chatgpt"},
+        )
+
+        with (
+            patch.object(detector, "_get_resources", return_value=resources),
+            patch.object(detector, "_split_text", return_value=["first", "second"]),
+        ):
+            result = detector.analyze("A sufficiently long test sample.")
+
+        self.assertAlmostEqual(result["ai_probability"], 60.0, places=1)
+        self.assertEqual(result["chunks_analyzed"], 2)
+        self.assertEqual(result["strong_ai_sections"], 1)
+        self.assertEqual(result["highest_ai_section"], 1)
+        self.assertAlmostEqual(result["highest_ai_probability"], 80.0, places=1)
+        self.assertEqual(result["lowest_ai_section"], 2)
+        self.assertAlmostEqual(result["lowest_ai_probability"], 20.0, places=1)
+        self.assertEqual(result["label_mapping"], "0=human, 1=chatgpt")
+
+    def test_missing_local_model_files_fail_with_setup_instruction(self):
+        with TemporaryDirectory() as directory:
+            detector = OnnxDistilBertDetector(model_dir=Path(directory))
+
+            with self.assertRaisesMessage(
+                AIDetectionError,
+                "python manage.py download_ai_model",
+            ):
+                detector.prepare()
 
 
 class DesklibAcademicDetectorTests(SimpleTestCase):
@@ -152,6 +225,90 @@ class VanguardAIDetectorTests(SimpleTestCase):
         )
         self.assertEqual(result["model_version"], "vanguard-commit-456")
         self.assertEqual(pipeline.call_kwargs["function_to_apply"], "sigmoid")
+
+
+class RemoteDesklibDetectorTests(SimpleTestCase):
+    token = "remote-test-token-with-at-least-32-characters"
+
+    @staticmethod
+    def result():
+        return {
+            "score": 73.0,
+            "label": "High AI-pattern score",
+            "tone": "high",
+            "ai_probability": 73.0,
+            "human_probability": 27.0,
+            "confidence": 73.0,
+            "chunks_analyzed": 1,
+            "detector_name": "Desklib Academic AI Text Detector",
+            "model_name": "desklib/ai-text-detector-academic-v1.01",
+            "model_version": "pinned-revision",
+        }
+
+    def detector(self):
+        return RemoteDesklibDetector(
+            base_url="http://atlas-ai-inference:8000",
+            token=self.token,
+            model_name="desklib/ai-text-detector-academic-v1.01",
+            revision="pinned-revision",
+            timeout=90,
+        )
+
+    @patch("httpx.post")
+    def test_calls_authenticated_private_service_and_accepts_pinned_model(self, post):
+        expected_result = self.result()
+        post.return_value.status_code = 200
+        post.return_value.json.return_value = {"result": expected_result}
+
+        result = self.detector().analyze("Academic evidence and context. " * 5)
+
+        self.assertEqual(result, expected_result)
+        self.assertEqual(
+            post.call_args.kwargs["headers"]["Authorization"],
+            f"Bearer {self.token}",
+        )
+        self.assertEqual(post.call_args.kwargs["timeout"], 90)
+
+    @patch("httpx.post")
+    def test_rejects_response_from_wrong_model(self, post):
+        post.return_value.status_code = 200
+        post.return_value.json.return_value = {
+            "result": {**self.result(), "model_name": "another/model"}
+        }
+
+        with self.assertRaisesMessage(AIDetectionError, "did not use the pinned"):
+            self.detector().analyze("Academic evidence and context. " * 5)
+
+    @override_settings(
+        AI_DETECTION_ENGINE="remote",
+        AI_DETECTION_REMOTE_URL="http://atlas-ai-inference:8000",
+        AI_DETECTION_REMOTE_TOKEN=token,
+        AI_DETECTION_REMOTE_TIMEOUT=90,
+        AI_DETECTION_PRIMARY_MODEL="desklib/ai-text-detector-academic-v1.01",
+        AI_DETECTION_PRIMARY_REVISION="pinned-revision",
+    )
+    def test_remote_engine_constructs_strict_remote_detector(self):
+        service = AIDetectionService()
+
+        self.assertIsInstance(service.primary_detector, RemoteDesklibDetector)
+        self.assertEqual(
+            service.primary_detector.endpoint_url,
+            "http://atlas-ai-inference:8000/v1/analyze",
+        )
+
+    @override_settings(
+        AI_DETECTION_ENGINE="remote",
+        AI_DETECTION_FALLBACK_TO_FAST=True,
+    )
+    def test_remote_failure_never_substitutes_fast_detector(self):
+        class UnavailableRemoteDetector:
+            def analyze(self, text):
+                raise AIDetectionError("model unavailable")
+
+        service = AIDetectionService(primary_detector=UnavailableRemoteDetector())
+
+        with self.assertRaisesMessage(AIDetectionError, "model unavailable"):
+            service.analyze("Academic evidence and context. " * 5)
 
 
 class FastWritingPatternDetectorTests(SimpleTestCase):
@@ -295,7 +452,9 @@ class AIDetectionServiceTests(SimpleTestCase):
         self.assertFalse(service.primary_detector.allow_download)
         self.assertFalse(hasattr(service, "comparison_detector"))
 
-        benchmark = AIDetectionBenchmarkService(primary_detector=self.StubDetector("Desklib", 50))
+        benchmark = AIDetectionBenchmarkService(
+            primary_detector=self.StubDetector("Desklib", 50)
+        )
         self.assertIsInstance(benchmark.comparison_detector, VanguardAIDetector)
         self.assertEqual(
             benchmark.comparison_detector.model_name,
@@ -305,17 +464,35 @@ class AIDetectionServiceTests(SimpleTestCase):
         self.assertFalse(benchmark.comparison_detector.allow_download)
 
     @override_settings(
+        AI_DETECTION_ENGINE="onnx",
+        AI_DETECTION_MODEL_DIR=Path("models/ai_detector"),
+        AI_DETECTION_PRIMARY_MODEL="bsgcasa/ai-text-detector-distilbert",
+        AI_DETECTION_PRIMARY_REVISION="pinned-revision",
+    )
+    def test_onnx_engine_constructs_local_int8_detector(self):
+        service = AIDetectionService()
+
+        self.assertIsInstance(service.primary_detector, OnnxDistilBertDetector)
+        self.assertEqual(
+            service.primary_detector.model_name,
+            "bsgcasa/ai-text-detector-distilbert",
+        )
+        self.assertEqual(service.primary_detector.revision, "pinned-revision")
+
+    @override_settings(
         AI_DETECTION_ENGINE="transformer",
         AI_DETECTION_FALLBACK_TO_FAST=True,
     )
     def test_transformer_failure_uses_transparent_fast_fallback(self):
-        result = AIDetectionService(
-            primary_detector=self.FailingDetector()
-        ).analyze("Evidence and reasoning with clear limitations. " * 12)
+        result = AIDetectionService(primary_detector=self.FailingDetector()).analyze(
+            "Evidence and reasoning with clear limitations. " * 12
+        )
 
         self.assertTrue(result["fallback_used"])
         self.assertEqual(result["detector_name"], "ATLAS Fast Pattern Review")
-        self.assertIn("Desklib transformer was unavailable", result["fallback_reason"])
+        self.assertIn(
+            "configured local AI model was unavailable", result["fallback_reason"]
+        )
 
     @override_settings(
         AI_DETECTION_ENGINE="transformer",
@@ -323,9 +500,9 @@ class AIDetectionServiceTests(SimpleTestCase):
     )
     def test_transformer_failure_is_reported_when_fallback_is_disabled(self):
         with self.assertRaisesMessage(AIDetectionError, "model unavailable"):
-            AIDetectionService(
-                primary_detector=self.FailingDetector()
-            ).analyze("Evidence and reasoning. " * 12)
+            AIDetectionService(primary_detector=self.FailingDetector()).analyze(
+                "Evidence and reasoning. " * 12
+            )
 
 
 @override_settings(

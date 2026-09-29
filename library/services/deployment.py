@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from email.utils import parseaddr
+from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -67,8 +69,10 @@ class DeploymentReadinessService:
     @classmethod
     def _is_missing_or_placeholder(cls, value):
         normalized = str(value).strip().lower()
-        return not normalized or normalized in cls.placeholder_values or normalized.startswith(
-            "replace-"
+        return (
+            not normalized
+            or normalized in cls.placeholder_values
+            or normalized.startswith("replace-")
         )
 
     @staticmethod
@@ -109,8 +113,7 @@ class DeploymentReadinessService:
             )
 
         smtp_enabled = (
-            settings.EMAIL_BACKEND
-            == "django.core.mail.backends.smtp.EmailBackend"
+            settings.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
         )
         if smtp_enabled and (
             self._is_missing_or_placeholder(settings.EMAIL_HOST_USER)
@@ -176,18 +179,23 @@ class DeploymentReadinessService:
             )
 
         ai_engine = settings.AI_DETECTION_ENGINE.strip().lower()
-        if ai_engine not in {"fast", "transformer"}:
+        if ai_engine not in {"onnx", "fast", "transformer", "remote"}:
             findings.append(
                 DeploymentFinding(
                     code="atlas.E012",
                     severity="error",
                     message="The AI Detection engine is not supported.",
-                    hint="Set AI_DETECTION_ENGINE to fast or transformer.",
+                    hint=(
+                        "Set AI_DETECTION_ENGINE to onnx, fast, transformer, or remote."
+                    ),
                 )
             )
 
         primary_revision = settings.AI_DETECTION_PRIMARY_REVISION.strip().lower()
-        if ai_engine == "transformer" and primary_revision in self.floating_revisions:
+        if (
+            ai_engine in {"onnx", "transformer", "remote"}
+            and primary_revision in self.floating_revisions
+        ):
             findings.append(
                 DeploymentFinding(
                     code="atlas.E003",
@@ -200,8 +208,72 @@ class DeploymentReadinessService:
                 )
             )
 
+        if ai_engine == "onnx":
+            required_model_files = (
+                "model_int8.onnx",
+                "tokenizer.json",
+                "tokenizer_config.json",
+                "label_order.json",
+            )
+            missing_model_files = [
+                filename
+                for filename in required_model_files
+                if not (Path(settings.AI_DETECTION_MODEL_DIR) / filename).is_file()
+            ]
+            if missing_model_files:
+                findings.append(
+                    DeploymentFinding(
+                        code="atlas.E016",
+                        severity="error",
+                        message="The pinned local ONNX detector files are missing.",
+                        hint=(
+                            "Run 'python manage.py download_ai_model' on the "
+                            "development computer and include models/ai_detector "
+                            "in the deployment."
+                        ),
+                    )
+                )
+
+        if ai_engine == "remote":
+            remote_url = settings.AI_DETECTION_REMOTE_URL
+            parsed_remote_url = urlsplit(remote_url)
+            if (
+                parsed_remote_url.scheme not in {"http", "https"}
+                or not parsed_remote_url.netloc
+                or parsed_remote_url.username
+                or parsed_remote_url.password
+                or parsed_remote_url.query
+                or parsed_remote_url.fragment
+            ):
+                findings.append(
+                    DeploymentFinding(
+                        code="atlas.E014",
+                        severity="error",
+                        message="The dedicated AI inference URL is missing or invalid.",
+                        hint=(
+                            "Set AI_DETECTION_REMOTE_URL to the private Render "
+                            "service URL without credentials or query parameters."
+                        ),
+                    )
+                )
+            if len(settings.AI_DETECTION_REMOTE_TOKEN) < 32:
+                findings.append(
+                    DeploymentFinding(
+                        code="atlas.E015",
+                        severity="error",
+                        message="The dedicated AI inference token is missing or too short.",
+                        hint=(
+                            "Set matching random AI_DETECTION_REMOTE_TOKEN and "
+                            "AI_INFERENCE_TOKEN values of at least 32 characters."
+                        ),
+                    )
+                )
+
         comparison_revision = settings.AI_DETECTION_COMPARISON_REVISION.strip().lower()
-        if ai_engine == "transformer" and comparison_revision in self.floating_revisions:
+        if (
+            ai_engine == "transformer"
+            and comparison_revision in self.floating_revisions
+        ):
             findings.append(
                 DeploymentFinding(
                     code="atlas.E004",

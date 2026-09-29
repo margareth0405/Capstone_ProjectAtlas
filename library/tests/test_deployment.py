@@ -49,9 +49,7 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         BUSINESS_ADDRESS="",
         RATE_LIMIT_ENABLED=False,
         STORAGES={
-            "default": {
-                "BACKEND": "django.core.files.storage.FileSystemStorage"
-            },
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
             "staticfiles": {
                 "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
             },
@@ -63,12 +61,9 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         codes = {finding.code for finding in findings}
 
         self.assertTrue(
-            {"atlas.E002", "atlas.E003", "atlas.E004", "atlas.E005"}
-            <= codes
+            {"atlas.E002", "atlas.E003", "atlas.E004", "atlas.E005"} <= codes
         )
-        self.assertTrue(
-            {"atlas.W001", "atlas.W003", "atlas.W004"} <= codes
-        )
+        self.assertTrue({"atlas.W001", "atlas.W003", "atlas.W004"} <= codes)
         self.assertTrue({"atlas.W002", "atlas.E013"} & codes)
 
     @override_settings(
@@ -78,6 +73,7 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         EMAIL_HOST_PASSWORD="test-production-secret",
         ACCOUNT_DEFAULT_HTTP_PROTOCOL="https",
         SITE_ID=1,
+        AI_DETECTION_ENGINE="transformer",
         AI_DETECTION_PRIMARY_REVISION="a1b2c3d4",
         AI_DETECTION_COMPARISON_REVISION="e5f6a7b8",
         ADMIN_URL_PATH="private-atlas-console",
@@ -103,9 +99,7 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
     @override_settings(
         DEBUG=False,
         STORAGES={
-            "default": {
-                "BACKEND": "django.core.files.storage.FileSystemStorage"
-            },
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
             "staticfiles": {
                 "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
             },
@@ -121,6 +115,32 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         self.assertIn("ephemeral", storage_finding.message)
 
     @override_settings(
+        AI_DETECTION_ENGINE="remote",
+        AI_DETECTION_PRIMARY_REVISION="pinned-revision",
+        AI_DETECTION_REMOTE_URL="",
+        AI_DETECTION_REMOTE_TOKEN="short",
+    )
+    def test_remote_ai_requires_private_url_and_strong_shared_token(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        codes = {finding.code for finding in findings}
+
+        self.assertIn("atlas.E014", codes)
+        self.assertIn("atlas.E015", codes)
+
+    @override_settings(
+        AI_DETECTION_ENGINE="remote",
+        AI_DETECTION_PRIMARY_REVISION="pinned-revision",
+        AI_DETECTION_REMOTE_URL="http://atlas-ai-inference:8000",
+        AI_DETECTION_REMOTE_TOKEN="a" * 48,
+    )
+    def test_valid_remote_ai_configuration_has_no_remote_findings(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        codes = {finding.code for finding in findings}
+
+        self.assertNotIn("atlas.E014", codes)
+        self.assertNotIn("atlas.E015", codes)
+
+    @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
         EMAIL_HOST="",
         EMAIL_HOST_USER="replace-with-the-smtp-user",
@@ -133,8 +153,7 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         codes = {finding.code for finding in findings}
 
         self.assertTrue(
-            {"atlas.E006", "atlas.E007", "atlas.E008", "atlas.E009"}
-            <= codes
+            {"atlas.E006", "atlas.E007", "atlas.E008", "atlas.E009"} <= codes
         )
 
     @override_settings(

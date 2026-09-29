@@ -48,23 +48,25 @@ Scanned image-only PDFs must go through OCR first.
 The AI Detection page and its Administrator Portal entry use the same white
 panels, maroon accents, controls, and responsive spacing as the rest of ATLAS.
 
-The default `transformer` engine uses
-`desklib/ai-text-detector-academic-v1.01`, a DeBERTa-v3-large binary classifier
-whose single output is P(AI). `ShantanuT01/vanguard-ai-text-detector` is kept as
-an explicit benchmark model and is not loaded during normal administrator
-analysis. The lighter `fast` engine remains available for small servers and
-performs a local heuristic review without downloading a model. PDF and Word
-extraction stops after the 20,000-character analysis limit instead of parsing
-the rest of a large document. The detector is wrapped by `AIDetectionService`
-so the staff view stays independent from model loading and inference details.
+The default `onnx` engine uses the pinned
+`bsgcasa/ai-text-detector-distilbert` classifier. It is already exported to ONNX
+and quantized to INT8, so production inference uses ONNX Runtime instead of
+PyTorch. Its label mapping is validated as `0=human` and `1=chatgpt` before the
+model is accepted. PDF and Word extraction stops after the 20,000-character
+analysis limit instead of parsing the rest of a large document.
+
+Long documents are divided on tokenizer boundaries so text beyond the model's
+256-token input limit is not silently discarded. ATLAS reports a token-weighted
+overall indicator together with the number of analyzed sections, sections above
+the strong-indicator threshold, and the highest and lowest section indicators.
+The lighter `fast` engine remains an explicit fallback option, but production is
+configured to fail clearly if the pinned ONNX files are missing.
 
 ATLAS stores the primary score, source label, detector identifier, pinned model
-revision, reviewer, and analysis date for reproducibility. Explicit command-line
-benchmarks also report the Vanguard result without changing routine administrator
-analysis. Submitted text and uploaded document contents are not retained in the
-analysis record. Detector results can include false positives and false
-negatives, cannot prove authorship, and must not be used as the sole basis for
-an academic decision.
+revision, reviewer, and analysis date for reproducibility. Submitted text and
+uploaded document contents are not retained in the analysis record. Detector
+results can include false positives and false negatives, cannot prove
+authorship, and must not be used as the sole basis for an academic decision.
 
 ## Interface behavior
 
@@ -152,8 +154,8 @@ deduplicated.
 - pypdf for PDF text extraction
 - python-docx for Word (.docx) text extraction
 - Pillow for cover-image validation
-- PyTorch for local CPU model inference
-- Hugging Face Transformers for replaceable local text detectors
+- ONNX Runtime for lightweight local CPU inference
+- Hugging Face Transformers for the local tokenizer only
 - HTML, project-owned CSS components, and presentation JavaScript
 
 ## Local setup on Windows PowerShell
@@ -164,6 +166,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 # Edit .env with your PostgreSQL and administrator-path settings.
+python manage.py download_ai_model
 python manage.py migrate
 python manage.py runserver
 ```
@@ -171,19 +174,13 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
-The default AI Detection engine downloads and caches the public Desklib
-DeBERTa model from Hugging Face on its first analysis. Runtime memory use is
-higher than the model files alone, so measure a complete analysis on the
-intended hosting plan before release. Use `AI_DETECTION_ENGINE=fast` only when
-an instance cannot host the transformer. Run
-`python manage.py check_ai --run-analysis` in the deployed service shell to
-download, cache, and verify the live primary model before accepting web
-requests. Normal administrator requests never start a multi-gigabyte model
-download; if the pinned revision is not cached, they complete with the safe
-fast fallback and explain how an operator can prepare the model. Run
-`python manage.py check_ai --run-analysis --benchmark` only when you explicitly
-want to compare the primary result with Vanguard; the models are released and
-loaded sequentially to reduce peak memory pressure.
+The model download command fetches only the pinned deployment files:
+`model_int8.onnx`, `tokenizer.json`, `tokenizer_config.json`, and
+`label_order.json`. Run it on the development computer, then include the
+resulting `models/ai_detector` directory in the deployed repository or build
+artifact. The web application never downloads, exports, or quantizes a model at
+startup. Run `python manage.py check_ai --run-analysis` locally before deployment
+to validate the exact files and complete a smoke inference.
 
 Registration and role-aware login are available at /register/ and /login/.
 django-allauth account management is mounted under /accounts/.
@@ -231,35 +228,33 @@ set DB_SSL_REQUIRE=True when TLS is required.
 AI Detection model selection is environment-based:
 
 ```dotenv
-AI_DETECTION_ENGINE=transformer
-AI_DETECTION_PRIMARY_MODEL=desklib/ai-text-detector-academic-v1.01
-AI_DETECTION_PRIMARY_REVISION=fe9b4da50ee2cca5c877d607640681609170e363
-AI_DETECTION_COMPARISON_MODEL=ShantanuT01/vanguard-ai-text-detector
-AI_DETECTION_COMPARISON_REVISION=823061be63b90f2b42f64ac1e1f82772e872533b
-AI_DETECTION_FALLBACK_TO_FAST=True
+AI_DETECTION_ENGINE=onnx
+AI_DETECTION_PRIMARY_MODEL=bsgcasa/ai-text-detector-distilbert
+AI_DETECTION_PRIMARY_REVISION=07a004b5e04fa4d145c73da42ecab754ab6730d0
+AI_DETECTION_MODEL_DIR=models/ai_detector
+AI_DETECTION_FALLBACK_TO_FAST=False
 AI_DETECTION_MAX_UPLOAD_MB=25
-AI_DETECTION_MIN_MEMORY_MB=3072
 HF_HUB_DISABLE_XET=1
 HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ```
 
-Set `AI_DETECTION_ENGINE=fast` on small Render instances that do not have enough
-memory for the configured transformer model. When
-`AI_DETECTION_FALLBACK_TO_FAST=True`, ATLAS attempts the transformer first and
-shows an explicit warning if it must use the lower-memory pattern review.
-Before loading Desklib, ATLAS checks a detectable container memory limit against
-`AI_DETECTION_MIN_MEMORY_MB`. This prevents a small Render instance from being
-terminated while loading the roughly 434-million-parameter model. Desklib uses
-one text section per inference batch to reduce peak memory.
-Vanguard is only invoked by the explicit `--benchmark` command. If it is
-unavailable, the command reports an incomplete benchmark without affecting the
-primary model used by the administrator page. Production readiness requires
-pinned revisions for both the live primary model and the optional benchmark.
-Use a Hugging Face commit hash instead of `main` for a release that must always
-load the same weights. The Hub settings use the standard resumable HTTP
-downloader on Windows and suppress the non-fatal symlink-cache warning;
-operators can explicitly set
-`HF_HUB_DISABLE_XET=0` after confirming Xet works on their network.
+The pinned revision prevents an unexpected upstream model change. Keep
+`AI_DETECTION_FALLBACK_TO_FAST=False` in production so a missing model is
+reported instead of silently replacing it with a different detector.
+
+### Render 512 MB setup
+
+Use one web worker so the process loads only one tokenizer and one memory-mapped
+ONNX session. The checked-in Procfile already uses this start command:
+
+```text
+gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --access-logfile -
+```
+
+Do not add a separate high-memory inference service for this configuration, and
+do not run Hugging Face download, ONNX export, or INT8 quantization commands in
+Render's start command. The repository or deployment artifact must already
+contain `models/ai_detector/model_int8.onnx` and its three tokenizer/label files.
 
 ## Private Cloudflare R2 storage
 
@@ -575,8 +570,8 @@ Use the project interpreter for every Django command:
 ```
 
 If PowerShell reports No module named django, allauth, docx, pypdf, psycopg,
-torch, transformers, whitenoise, or dotenv, the command is using the wrong interpreter or the
-requirements were not installed. Run the commands above, or use
+onnxruntime, transformers, whitenoise, or dotenv, the command is using the wrong
+interpreter or the requirements were not installed. Run the commands above, or use
 scripts\start_atlas.ps1, which selects .venv automatically. Do not install a
 package named docx; the correct dependency is python-docx.
 

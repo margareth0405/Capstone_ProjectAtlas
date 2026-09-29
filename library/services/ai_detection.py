@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import gc
+import hashlib
+import json
 import logging
 import math
 import os
 import re
 from collections import Counter
+from pathlib import Path
 from statistics import fmean
 from threading import RLock
+from urllib.parse import urlsplit
 
 from django.conf import settings
 
@@ -131,9 +135,7 @@ class FastWritingPatternDetector:
         # Each feature is bounded so one stylistic habit cannot dominate.
         mean_length = fmean(sentence_lengths) if sentence_lengths else len(words)
         if len(sentence_lengths) > 1 and mean_length:
-            variance = fmean(
-                (length - mean_length) ** 2 for length in sentence_lengths
-            )
+            variance = fmean((length - mean_length) ** 2 for length in sentence_lengths)
             coefficient_of_variation = math.sqrt(variance) / mean_length
         else:
             coefficient_of_variation = 0.55
@@ -171,9 +173,7 @@ class FastWritingPatternDetector:
             if (match := re.search(r"[A-Za-z]+", sentence))
         ]
         repeated_starts = sum(
-            count - 1
-            for count in Counter(sentence_starts).values()
-            if count > 1
+            count - 1 for count in Counter(sentence_starts).values() if count > 1
         )
         start_repetition = min(
             repeated_starts / max(len(sentence_starts) * 0.3, 1),
@@ -207,6 +207,234 @@ class FastWritingPatternDetector:
             "model_name": self.model_name,
             "model_version": self.model_version,
         }
+
+
+class OnnxDistilBertDetector:
+    """Run the pinned, INT8 DistilBERT detector without PyTorch."""
+
+    detector_name = "DistilBERT ONNX AI Text Detector"
+    default_model_name = "bsgcasa/ai-text-detector-distilbert"
+    model_filename = "model_int8.onnx"
+    model_sha256 = "28273c934ba800bb63346db125ecc0b7ed859e586ef9440b76585cc158c8a4d8"
+    label_filename = "label_order.json"
+    tokenizer_filenames = ("tokenizer.json", "tokenizer_config.json")
+    max_length = 256
+    batch_size = 4
+    strong_ai_threshold = 0.70
+    _resources = None
+    _resources_lock = RLock()
+    _inference_lock = RLock()
+
+    def __init__(self, model_dir, model_name=None, revision=None):
+        self.model_dir = Path(model_dir)
+        self.model_name = model_name or self.default_model_name
+        self.revision = (revision or "main").strip() or "main"
+
+    def analyze(self, text):
+        if not text or not text.strip():
+            raise AIDetectionError("Please provide text before starting the analysis.")
+
+        tokenizer, session, labels = self._get_resources()
+        chunks = self._split_text(tokenizer, text)
+        ai_scores = []
+        token_weights = []
+
+        try:
+            import numpy as np
+
+            with type(self)._inference_lock:
+                for index in range(0, len(chunks), self.batch_size):
+                    batch = chunks[index : index + self.batch_size]
+                    encoded = tokenizer(
+                        batch,
+                        return_tensors="np",
+                        padding="max_length",
+                        truncation=True,
+                        max_length=self.max_length,
+                    )
+                    inputs = {
+                        item.name: encoded[item.name].astype(np.int64, copy=False)
+                        for item in session.get_inputs()
+                        if item.name in encoded
+                    }
+                    if {"input_ids", "attention_mask"} - inputs.keys():
+                        raise AIDetectionError(
+                            "The local ONNX detector has unexpected model inputs."
+                        )
+                    logits = session.run([session.get_outputs()[0].name], inputs)[0]
+                    if logits.ndim != 2 or logits.shape[1] != 2:
+                        raise AIDetectionError(
+                            "The local ONNX detector returned an unexpected result."
+                        )
+                    normalized = logits - np.max(logits, axis=1, keepdims=True)
+                    exp_logits = np.exp(normalized)
+                    probabilities = exp_logits / exp_logits.sum(axis=1, keepdims=True)
+                    ai_scores.extend(float(value) for value in probabilities[:, 1])
+                    token_weights.extend(
+                        max(int(value) - 2, 1)
+                        for value in encoded["attention_mask"].sum(axis=1)
+                    )
+        except AIDetectionError:
+            raise
+        except Exception as exc:
+            raise AIDetectionError(
+                "The local ONNX detector could not complete the analysis."
+            ) from exc
+
+        if len(ai_scores) != len(chunks):
+            raise AIDetectionError(
+                "The local ONNX detector returned an incomplete result."
+            )
+
+        weighted_probability = sum(
+            score * weight
+            for score, weight in zip(ai_scores, token_weights, strict=True)
+        ) / sum(token_weights)
+        ai_probability = round(weighted_probability * 100, 2)
+        human_probability = round(100 - ai_probability, 2)
+        classification, tone = _classification(ai_probability)
+        highest_index, highest_score = max(
+            enumerate(ai_scores, start=1), key=lambda x: x[1]
+        )
+        lowest_index, lowest_score = min(
+            enumerate(ai_scores, start=1), key=lambda x: x[1]
+        )
+        strong_sections = sum(score >= self.strong_ai_threshold for score in ai_scores)
+        return {
+            "score": ai_probability,
+            "label": classification,
+            "tone": tone,
+            "ai_probability": ai_probability,
+            "human_probability": human_probability,
+            "confidence": round(max(ai_probability, human_probability), 2),
+            "chunks_analyzed": len(chunks),
+            "strong_ai_sections": strong_sections,
+            "highest_ai_section": highest_index,
+            "highest_ai_probability": round(highest_score * 100, 2),
+            "lowest_ai_section": lowest_index,
+            "lowest_ai_probability": round(lowest_score * 100, 2),
+            "aggregation_method": "Token-weighted section average",
+            "detector_name": self.detector_name,
+            "model_name": self.model_name,
+            "model_version": self.revision,
+            "label_mapping": f"0={labels['0']}, 1={labels['1']}",
+        }
+
+    def _get_resources(self):
+        resource_key = str(self.model_dir.resolve())
+        cached = type(self)._resources
+        if cached is not None and cached[0] == resource_key:
+            return cached[1]
+        with type(self)._resources_lock:
+            cached = type(self)._resources
+            if cached is None or cached[0] != resource_key:
+                type(self)._resources = (resource_key, self._load_resources())
+        return type(self)._resources[1]
+
+    def _load_resources(self):
+        required_files = (
+            self.model_filename,
+            self.label_filename,
+            *self.tokenizer_filenames,
+        )
+        missing = [
+            name for name in required_files if not (self.model_dir / name).is_file()
+        ]
+        if missing:
+            raise AIDetectionError(
+                "The local INT8 AI model is not installed. Run "
+                "'python manage.py download_ai_model' on the development computer, "
+                "then include the models/ai_detector files in the deployment."
+            )
+
+        try:
+            import onnxruntime as ort
+            from transformers import AutoTokenizer
+        except ImportError as exc:
+            raise AIDetectionError(
+                "Local AI Detection is unavailable. Install the project requirements."
+            ) from exc
+
+        try:
+            with (self.model_dir / self.label_filename).open(encoding="utf-8") as file:
+                labels = json.load(file)
+            if labels != {"0": "human", "1": "chatgpt"}:
+                raise ValueError("unexpected label mapping")
+
+            digest = hashlib.sha256()
+            with (self.model_dir / self.model_filename).open("rb") as model_file:
+                for block in iter(lambda: model_file.read(1024 * 1024), b""):
+                    digest.update(block)
+            if digest.hexdigest() != self.model_sha256:
+                raise ValueError("unexpected ONNX model checksum")
+
+            tokenizer = AutoTokenizer.from_pretrained(
+                str(self.model_dir),
+                local_files_only=True,
+            )
+            if not getattr(tokenizer, "is_fast", False):
+                raise ValueError("a fast tokenizer is required for lossless chunking")
+
+            options = ort.SessionOptions()
+            options.intra_op_num_threads = 1
+            options.inter_op_num_threads = 1
+            options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+            session = ort.InferenceSession(
+                str(self.model_dir / self.model_filename),
+                sess_options=options,
+                providers=["CPUExecutionProvider"],
+            )
+            input_names = {item.name for item in session.get_inputs()}
+            output_names = {item.name for item in session.get_outputs()}
+            if not {"input_ids", "attention_mask"}.issubset(input_names):
+                raise ValueError("unexpected model inputs")
+            if "logits" not in output_names:
+                raise ValueError("unexpected model output")
+        except Exception as exc:
+            raise AIDetectionError(
+                "ATLAS could not load the pinned DistilBERT INT8 model files. "
+                "Download a clean copy and try again."
+            ) from exc
+        return tokenizer, session, labels
+
+    @classmethod
+    def _split_text(cls, tokenizer, text):
+        encoded = tokenizer(
+            text,
+            add_special_tokens=False,
+            return_attention_mask=False,
+            return_offsets_mapping=True,
+            truncation=False,
+            verbose=False,
+        )
+        offsets = encoded.get("offset_mapping", [])
+        if not offsets:
+            raise AIDetectionError(
+                "ATLAS could not find enough readable text to analyze."
+            )
+
+        payload_size = cls.max_length - tokenizer.num_special_tokens_to_add(pair=False)
+        chunks = []
+        for index in range(0, len(offsets), payload_size):
+            group = offsets[index : index + payload_size]
+            chunk = text[group[0][0] : group[-1][1]].strip()
+            if chunk:
+                chunks.append(chunk)
+        if not chunks:
+            raise AIDetectionError(
+                "ATLAS could not find enough readable text to analyze."
+            )
+        return chunks
+
+    def prepare(self):
+        """Load and validate the tokenizer and ONNX session."""
+
+        self._get_resources()
+
+    @classmethod
+    def release(cls):
+        cls._resources = None
+        gc.collect()
 
 
 class HuggingFaceDetector:
@@ -306,6 +534,11 @@ class HuggingFaceDetector:
             if cached is None or cached[0] != pipeline_key:
                 type(self)._pipeline = (pipeline_key, self._load_pipeline())
         return type(self)._pipeline[1]
+
+    def prepare(self):
+        """Load and cache model resources before serving inference requests."""
+
+        self._get_pipeline()
 
     @classmethod
     def release(cls):
@@ -439,13 +672,14 @@ class DesklibAcademicDetector(SingleProbabilityDetector):
                     attention_mask=attention_mask,
                 )
                 last_hidden_state = outputs[0]
-                expanded_mask = attention_mask.unsqueeze(-1).expand(
-                    last_hidden_state.size()
-                ).float()
-                pooled_output = (
-                    torch.sum(last_hidden_state * expanded_mask, dim=1)
-                    / torch.clamp(expanded_mask.sum(dim=1), min=1e-9)
+                expanded_mask = (
+                    attention_mask.unsqueeze(-1)
+                    .expand(last_hidden_state.size())
+                    .float()
                 )
+                pooled_output = torch.sum(
+                    last_hidden_state * expanded_mask, dim=1
+                ) / torch.clamp(expanded_mask.sum(dim=1), min=1e-9)
                 return {"logits": self.classifier(pooled_output)}
 
         try:
@@ -487,25 +721,159 @@ class VanguardAIDetector(SingleProbabilityDetector):
     default_model_name = "ShantanuT01/vanguard-ai-text-detector"
 
 
+class RemoteDesklibDetector:
+    """Call the authenticated dedicated Desklib inference service."""
+
+    detector_name = "Desklib Academic AI Text Detector"
+
+    def __init__(self, base_url, token, model_name, revision, timeout=180):
+        parsed = urlsplit(base_url)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise AIDetectionError(
+                "AI_DETECTION_REMOTE_URL must be a valid HTTP or HTTPS service URL."
+            )
+        if len(token) < 32:
+            raise AIDetectionError(
+                "AI_DETECTION_REMOTE_TOKEN must contain at least 32 characters."
+            )
+        self.endpoint_url = base_url.rstrip("/") + "/v1/analyze"
+        self.token = token
+        self.model_name = model_name
+        self.revision = revision
+        self.timeout = timeout
+
+    def analyze(self, text):
+        if not text or not text.strip():
+            raise AIDetectionError("Please provide text before starting the analysis.")
+        try:
+            import httpx
+        except ImportError as exc:
+            raise AIDetectionError(
+                "The dedicated Desklib client dependency is unavailable."
+            ) from exc
+
+        try:
+            response = httpx.post(
+                self.endpoint_url,
+                json={"text": text},
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=self.timeout,
+            )
+        except httpx.HTTPError as exc:
+            raise AIDetectionError(
+                "The dedicated Desklib service is unavailable. Try again shortly."
+            ) from exc
+
+        if response.status_code != 200:
+            detail = ""
+            try:
+                detail = str(response.json().get("error", "")).strip()
+            except (TypeError, ValueError):
+                pass
+            if response.status_code == 503 and detail:
+                raise AIDetectionError(detail)
+            raise AIDetectionError(
+                "The dedicated Desklib service could not complete the analysis."
+            )
+        try:
+            result = response.json()["result"]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise AIDetectionError(
+                "The dedicated Desklib service returned an invalid response."
+            ) from exc
+
+        self._validate_result(result)
+        return result
+
+    def _validate_result(self, result):
+        if not isinstance(result, dict):
+            raise AIDetectionError(
+                "The dedicated Desklib service returned an invalid response."
+            )
+        if (
+            result.get("detector_name") != self.detector_name
+            or result.get("model_name") != self.model_name
+            or result.get("model_version") != self.revision
+        ):
+            raise AIDetectionError(
+                "The dedicated AI service did not use the pinned Desklib model."
+            )
+        required_numbers = (
+            "score",
+            "ai_probability",
+            "human_probability",
+            "confidence",
+            "chunks_analyzed",
+        )
+        if any(
+            isinstance(result.get(name), bool)
+            or not isinstance(result.get(name), (int, float))
+            for name in required_numbers
+        ):
+            raise AIDetectionError(
+                "The dedicated Desklib service returned an invalid response."
+            )
+        probability_fields = (
+            "score",
+            "ai_probability",
+            "human_probability",
+            "confidence",
+        )
+        if any(not 0 <= float(result[name]) <= 100 for name in probability_fields):
+            raise AIDetectionError(
+                "The dedicated Desklib service returned an invalid probability."
+            )
+        if (
+            not isinstance(result["chunks_analyzed"], int)
+            or result["chunks_analyzed"] < 1
+        ):
+            raise AIDetectionError(
+                "The dedicated Desklib service returned an invalid response."
+            )
+
+
 class AIDetectionService:
     """Run only the configured live detector for administrator requests."""
 
-    primary_detector_class = DesklibAcademicDetector
+    primary_detector_class = OnnxDistilBertDetector
+    transformer_detector_class = DesklibAcademicDetector
+    remote_detector_class = RemoteDesklibDetector
 
     def __init__(self, primary_detector=None, *, allow_model_download=False):
         if primary_detector is not None:
             self.primary_detector = primary_detector
         elif settings.AI_DETECTION_ENGINE == "fast":
             self.primary_detector = FastWritingPatternDetector()
-        elif settings.AI_DETECTION_ENGINE == "transformer":
+        elif settings.AI_DETECTION_ENGINE == "onnx":
             self.primary_detector = self.primary_detector_class(
+                model_dir=settings.AI_DETECTION_MODEL_DIR,
+                model_name=settings.AI_DETECTION_PRIMARY_MODEL,
+                revision=settings.AI_DETECTION_PRIMARY_REVISION,
+            )
+        elif settings.AI_DETECTION_ENGINE == "transformer":
+            self.primary_detector = self.transformer_detector_class(
                 model_name=settings.AI_DETECTION_PRIMARY_MODEL,
                 revision=settings.AI_DETECTION_PRIMARY_REVISION,
                 allow_download=allow_model_download,
             )
+        elif settings.AI_DETECTION_ENGINE == "remote":
+            self.primary_detector = self.remote_detector_class(
+                base_url=settings.AI_DETECTION_REMOTE_URL,
+                token=settings.AI_DETECTION_REMOTE_TOKEN,
+                model_name=settings.AI_DETECTION_PRIMARY_MODEL,
+                revision=settings.AI_DETECTION_PRIMARY_REVISION,
+                timeout=settings.AI_DETECTION_REMOTE_TIMEOUT,
+            )
         else:
             raise AIDetectionError(
-                "AI_DETECTION_ENGINE must be either 'fast' or 'transformer'."
+                "AI_DETECTION_ENGINE must be 'onnx', 'fast', 'transformer', or 'remote'."
             )
 
     def analyze(self, text):
@@ -513,18 +881,18 @@ class AIDetectionService:
             result = self.primary_detector.analyze(text)
         except AIDetectionError as error:
             if not (
-                settings.AI_DETECTION_ENGINE == "transformer"
+                settings.AI_DETECTION_ENGINE in {"onnx", "transformer"}
                 and settings.AI_DETECTION_FALLBACK_TO_FAST
             ):
                 raise
             logger.warning(
-                "The configured transformer detector failed; using fast review: %s",
+                "The configured AI detector failed; using fast review: %s",
                 error,
             )
             result = FastWritingPatternDetector().analyze(text)
             result["fallback_used"] = True
             result["fallback_reason"] = (
-                "The Desklib transformer was unavailable for this analysis. "
+                "The configured local AI model was unavailable for this analysis. "
                 f"{error}"
             )
         return result
@@ -546,10 +914,13 @@ class AIDetectionBenchmarkService:
             primary_detector=primary_detector,
             allow_model_download=allow_model_download,
         )
-        self.comparison_detector = comparison_detector or self.comparison_detector_class(
-            model_name=settings.AI_DETECTION_COMPARISON_MODEL,
-            revision=settings.AI_DETECTION_COMPARISON_REVISION,
-            allow_download=allow_model_download,
+        self.comparison_detector = (
+            comparison_detector
+            or self.comparison_detector_class(
+                model_name=settings.AI_DETECTION_COMPARISON_MODEL,
+                revision=settings.AI_DETECTION_COMPARISON_REVISION,
+                allow_download=allow_model_download,
+            )
         )
 
     @staticmethod
