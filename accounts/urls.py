@@ -10,9 +10,19 @@ urlpatterns = [
     path("guest/", views.GuestLoginView.as_view(), name="guest_login"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path(
+        "staff/account/",
+        views.StaffAccountEditView.as_view(),
+        name="staff_account_edit",
+    ),
+    path(
         "staff/users/add/",
         views.StaffUserCreateView.as_view(),
         name="staff_user_create",
+    ),
+    path(
+        "staff/users/<int:pk>/edit/",
+        views.StaffAccountEditView.as_view(),
+        name="staff_admin_edit",
     ),
     path(
         "staff/users/<int:pk>/delete/",

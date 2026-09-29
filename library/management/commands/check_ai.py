@@ -5,7 +5,11 @@ from time import monotonic
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from library.services.ai_detection import AIDetectionError, AIDetectionService
+from library.services.ai_detection import (
+    AIDetectionBenchmarkService,
+    AIDetectionError,
+    AIDetectionService,
+)
 
 
 class Command(BaseCommand):
@@ -17,6 +21,14 @@ class Command(BaseCommand):
             action="store_true",
             help="Load the configured detector and analyze a safe sample.",
         )
+        parser.add_argument(
+            "--benchmark",
+            action="store_true",
+            help=(
+                "Explicitly compare the primary Desklib model with Vanguard. "
+                "The models are loaded sequentially."
+            ),
+        )
 
     def handle(self, *args, **options):
         self.stdout.write(f"AI detection engine: {settings.AI_DETECTION_ENGINE}")
@@ -26,15 +38,17 @@ class Command(BaseCommand):
             f"@ {settings.AI_DETECTION_PRIMARY_REVISION}"
         )
         self.stdout.write(
-            "Comparison model: "
+            "Benchmark model: "
             f"{settings.AI_DETECTION_COMPARISON_MODEL} "
             f"@ {settings.AI_DETECTION_COMPARISON_REVISION} "
-            f"({'enabled' if settings.AI_DETECTION_ENABLE_COMPARISON else 'disabled'})"
+            "(explicit benchmark only)"
         )
         self.stdout.write(
             "Fast fallback enabled: "
             f"{'yes' if settings.AI_DETECTION_FALLBACK_TO_FAST else 'no'}"
         )
+        if options["benchmark"] and not options["run_analysis"]:
+            raise CommandError("--benchmark requires --run-analysis.")
         if not options["run_analysis"]:
             self.stdout.write(
                 self.style.WARNING(
@@ -52,7 +66,12 @@ class Command(BaseCommand):
         )
         started = monotonic()
         try:
-            result = AIDetectionService().analyze(sample)
+            service = (
+                AIDetectionBenchmarkService()
+                if options["benchmark"]
+                else AIDetectionService()
+            )
+            result = service.analyze(sample)
         except AIDetectionError as exc:
             raise CommandError(f"AI analysis check failed: {exc}") from exc
 
@@ -60,13 +79,11 @@ class Command(BaseCommand):
             "fallback_used"
         ):
             raise CommandError(
-                "AI analysis check failed: Gradient used the fast fallback."
+                "AI analysis check failed: Desklib used the fast fallback."
             )
-        if settings.AI_DETECTION_ENABLE_COMPARISON and not result.get(
-            "comparison_complete"
-        ):
+        if options["benchmark"] and not result.get("comparison_complete"):
             raise CommandError(
-                "AI analysis check failed: Vanguard did not complete the comparison."
+                "AI benchmark failed: Vanguard did not complete the comparison."
             )
 
         elapsed = monotonic() - started

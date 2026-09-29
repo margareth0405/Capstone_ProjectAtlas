@@ -61,7 +61,7 @@
           {% if detection_result.fallback_used %}
             <div class="ai-detection-notice" role="alert">
               <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-              <p><strong>Fallback detector used.</strong> Gradient AI Text Detector was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
+              <p><strong>Fallback detector used.</strong> Desklib Academic AI Text Detector was unavailable, so this report uses the faster pattern review. Check the server AI health before relying on transformer results.</p>
             </div>
           {% endif %}
           <div class="ai-detection-notice" role="note">
@@ -85,7 +85,7 @@
                 <strong>{{ detection_result.score_difference }} percentage-point difference</strong>
               </div>
               <div class="ai-model-comparison-grid">
-                {% include "library/admin/includes/ai_model_result.html" with result=detection_result.primary heading="Gradient result" %}
+                {% include "library/admin/includes/ai_model_result.html" with result=detection_result.primary heading="Desklib result" %}
                 {% include "library/admin/includes/ai_model_result.html" with result=detection_result.comparison heading="Vanguard result" %}
               </div>
             </section>

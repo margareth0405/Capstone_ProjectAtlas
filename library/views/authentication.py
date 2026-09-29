@@ -197,7 +197,10 @@ class GuestLoginView(View):
 
 class LogoutView(View):
     def post(self, request):
+        was_administrator = request.user.is_authenticated and request.user.is_staff
         auth_logout(request)
         request.session.pop("guest_mode", None)
         messages.info(request, "You have signed out of ATLAS.")
+        if was_administrator:
+            return redirect("admin:login")
         return redirect("library:landing")

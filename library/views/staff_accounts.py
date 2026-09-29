@@ -3,13 +3,14 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, update_session_auth_hash
+from django.core.exceptions import PermissionDenied
 from django.db import DatabaseError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 
-from library.forms import AdminCreatedUserForm
+from library.forms import AdminCreatedUserForm, StaffAccountUpdateForm
 from library.models import ActivityLog
 from library.services import PageContextBuilder
 from library.services.activity import ActivityRecorder
@@ -99,10 +100,10 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
                 request,
                 "You cannot delete the account you are currently using.",
             )
-        elif account.is_superuser:
+        elif account.is_staff or account.is_superuser:
             messages.error(
                 request,
-                "Superuser accounts must be managed in Django admin.",
+                "Administrator accounts cannot be deleted from the staff portal.",
             )
         else:
             email = account.email or account.username
@@ -130,3 +131,82 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
             else:
                 messages.info(request, f"Account deleted for {email}.")
         return redirect(self.users_url())
+
+
+class StaffAccountEditView(StaffRequiredMixin, View):
+    """Edit the current administrator or, for superusers, another admin."""
+
+    template_name = "library/admin/account_form.html"
+    form_class = StaffAccountUpdateForm
+    user_model = get_user_model()
+    activity_recorder_class = ActivityRecorder
+
+    def account_for(self, request, pk=None):
+        account = request.user if pk is None else get_object_or_404(self.user_model, pk=pk)
+        if not (account.is_staff or account.is_superuser):
+            raise PermissionDenied
+        if account != request.user and not request.user.is_superuser:
+            raise PermissionDenied
+        return account
+
+    def get(self, request, pk=None):
+        account = self.account_for(request, pk)
+        return self._render(
+            account,
+            self.form_class(actor=request.user, account=account),
+        )
+
+    def post(self, request, pk=None):
+        account = self.account_for(request, pk)
+        form = self.form_class(
+            request.POST,
+            actor=request.user,
+            account=account,
+        )
+        if not form.is_valid():
+            messages.error(request, "The administrator account was not updated.")
+            return self._render(account, form)
+
+        try:
+            with transaction.atomic():
+                updated_account = form.save()
+                self.activity_recorder_class.record(
+                    actor=request.user,
+                    action=ActivityLog.Action.UPDATE,
+                    object_type="administrator account",
+                    object_id=updated_account.pk,
+                    description=updated_account.get_username(),
+                )
+        except DatabaseError:
+            logger.exception("Administrator account update failed for %s", account.pk)
+            form.add_error(
+                None,
+                "ATLAS could not update the administrator account. No changes "
+                "were saved. Try again after the database is available.",
+            )
+            messages.error(request, "The administrator account was not updated.")
+            return self._render(account, form)
+
+        if updated_account == request.user and form.password_changed:
+            update_session_auth_hash(request, updated_account)
+        messages.success(request, "Administrator account settings updated.")
+        if updated_account == request.user:
+            return redirect("library:staff_account_edit")
+        return redirect(f'{reverse("library:staff_portal")}#users')
+
+    def _render(self, account, form):
+        editing_self = account == self.request.user
+        context = PageContextBuilder(self.request).build("users")
+        context.update(
+            {
+                "account": account,
+                "editing_self": editing_self,
+                "form": form,
+                "cancel_url": (
+                    reverse("library:staff_portal") + "#users"
+                    if not editing_self
+                    else reverse("library:staff_portal")
+                ),
+            }
+        )
+        return render(self.request, self.template_name, context)

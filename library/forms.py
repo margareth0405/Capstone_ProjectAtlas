@@ -405,6 +405,83 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
         self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
 
 
+class StaffAccountUpdateForm(StyledFormMixin, forms.Form):
+    """Let staff update a protected administrator account deliberately."""
+
+    username = forms.CharField(
+        max_length=User._meta.get_field("username").max_length,
+        validators=User._meta.get_field("username").validators,
+        help_text="Used with the administrator password on the private sign-in page.",
+        widget=forms.TextInput(attrs={"autocomplete": "username"}),
+    )
+    current_password = forms.CharField(
+        strip=False,
+        label="Your current administrator password",
+        help_text="Confirms that the administrator making this change is authorized.",
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+    new_password1 = forms.CharField(
+        required=False,
+        strip=False,
+        label="New password",
+        help_text="Leave both new-password fields blank to keep the current password.",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    new_password2 = forms.CharField(
+        required=False,
+        strip=False,
+        label="Confirm new password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def __init__(self, *args, actor, account, **kwargs):
+        self.actor = actor
+        self.account = account
+        self.password_changed = False
+        kwargs.setdefault("initial", {"username": account.get_username()})
+        super().__init__(*args, **kwargs)
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        duplicate = User.objects.filter(username__iexact=username).exclude(
+            pk=self.account.pk
+        )
+        if duplicate.exists():
+            raise ValidationError("An account with this username already exists.")
+        return username
+
+    def clean_current_password(self):
+        password = self.cleaned_data.get("current_password", "")
+        if not self.actor.check_password(password):
+            raise ValidationError("Your current administrator password is incorrect.")
+        return password
+
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get("new_password1", "")
+        password2 = cleaned.get("new_password2", "")
+        if password1 or password2:
+            if password1 != password2:
+                self.add_error("new_password2", "The new passwords do not match.")
+            elif password1:
+                try:
+                    password_validation.validate_password(password1, self.account)
+                except ValidationError as error:
+                    self.add_error("new_password1", error)
+        return cleaned
+
+    def save(self):
+        self.account.username = self.cleaned_data["username"]
+        update_fields = ["username"]
+        new_password = self.cleaned_data.get("new_password1")
+        if new_password:
+            self.account.set_password(new_password)
+            self.password_changed = True
+            update_fields.append("password")
+        self.account.save(update_fields=update_fields)
+        return self.account
+
+
 class AIDetectionForm(StyledFormMixin, forms.Form):
     """Accept one bounded text sample or supported in-memory document upload."""
 

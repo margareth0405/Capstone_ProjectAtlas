@@ -201,30 +201,16 @@ class DeploymentReadinessService:
             )
 
         comparison_revision = settings.AI_DETECTION_COMPARISON_REVISION.strip().lower()
-        if (
-            ai_engine == "transformer"
-            and settings.AI_DETECTION_ENABLE_COMPARISON
-            and comparison_revision in self.floating_revisions
-        ):
+        if ai_engine == "transformer" and comparison_revision in self.floating_revisions:
             findings.append(
                 DeploymentFinding(
                     code="atlas.E004",
                     severity="error",
-                    message="The Vanguard comparison uses a floating model revision.",
+                    message="The Vanguard benchmark uses a floating model revision.",
                     hint=(
                         "Set AI_DETECTION_COMPARISON_REVISION to a Hugging Face "
-                        "commit hash for reproducible comparisons."
+                        "commit hash for reproducible benchmarks."
                     ),
-                )
-            )
-
-        if ai_engine == "transformer" and not settings.AI_DETECTION_ENABLE_COMPARISON:
-            findings.append(
-                DeploymentFinding(
-                    code="atlas.E014",
-                    severity="error",
-                    message="The required dual-model AI comparison is disabled.",
-                    hint="Set AI_DETECTION_ENABLE_COMPARISON=True before deployment.",
                 )
             )
 

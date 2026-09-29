@@ -164,6 +164,7 @@
             <tbody>
               {% for account in users %}
                 {% url 'library:staff_user_delete' account.pk as user_delete_url %}
+                {% url 'library:staff_admin_edit' account.pk as admin_edit_url %}
                 <tr>
                   <td><strong>{{ account.get_full_name|default:account.username|default:'Unnamed user' }}</strong></td>
                   <td>{{ account.email }}</td>
@@ -174,11 +175,18 @@
                   <td>{{ account.last_login|date:'M j, Y, g:i a'|default:'Not yet' }}</td>
                   <td><span class="login-count-badge">{{ account.resource_view_total|default:0 }}</span></td>
                   <td class="resource-actions">
-                    {% if account.pk != request.user.pk and not account.is_superuser %}
+                    {% if account.pk == request.user.pk %}
+                      <a class="btn-edit" href="{% url 'library:staff_account_edit' %}"><i class="fas fa-user-pen" aria-hidden="true"></i> Edit my account</a>
+                    {% elif request.user.is_superuser and account.is_staff %}
+                      <a class="btn-edit" href="{{ admin_edit_url }}"><i class="fas fa-user-pen" aria-hidden="true"></i> Edit administrator</a>
+                    {% endif %}
+                    {% if not account.is_staff and not account.is_superuser %}
                       <form action="{{ user_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone.">
                         {% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-user-minus" aria-hidden="true"></i> Delete</button>
                       </form>
-                    {% else %}<span class="protected-account">Protected</span>{% endif %}
+                    {% elif account.pk != request.user.pk and not request.user.is_superuser %}
+                      <span class="protected-account">Protected</span>
+                    {% endif %}
                   </td>
                 </tr>
               {% empty %}

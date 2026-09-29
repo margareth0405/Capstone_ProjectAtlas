@@ -474,8 +474,22 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertIn("_auth_user_id", self.client.session)
 
         post_response = self.client.post(reverse("library:logout"))
-        self.assertEqual(post_response.status_code, 302)
+        self.assertRedirects(post_response, reverse("library:landing"))
         self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_administrator_logout_returns_to_administrator_login(self):
+        administrator = self.create_user(
+            email="logout-admin@example.com",
+            is_staff=True,
+        )
+        self.client.force_login(administrator)
+
+        response = self.client.post(reverse("library:logout"))
+
+        self.assertRedirects(response, reverse("admin:login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
 class WelcomeGreetingTests(LibraryTestCase):
     def test_greeting_prefers_non_email_username(self):
         user = self.create_user(email="reader@example.com")

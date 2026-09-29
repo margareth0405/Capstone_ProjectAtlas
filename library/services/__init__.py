@@ -3,10 +3,11 @@
 from .accounts import AccountEmailPolicy
 from .activity import ActivityRecorder
 from .ai_detection import (
+    AIDetectionBenchmarkService,
     AIDetectionError,
     AIDetectionService,
+    DesklibAcademicDetector,
     FastWritingPatternDetector,
-    GradientAIDetector,
     VanguardAIDetector,
 )
 from .catalog import CatalogQueryService
@@ -23,6 +24,7 @@ from .staff_portal import (
 from .usage import WebsiteUsageTracker
 
 __all__ = (
+    "AIDetectionBenchmarkService",
     "AIDetectionError",
     "AIDetectionService",
     "AccountEmailPolicy",
@@ -30,10 +32,10 @@ __all__ = (
     "CatalogQueryService",
     "ContactDeliveryError",
     "ContactEmailService",
+    "DesklibAcademicDetector",
     "DocumentExtractionError",
     "DocumentTextExtractor",
     "FastWritingPatternDetector",
-    "GradientAIDetector",
     "GreetingNameResolver",
     "PageContextBuilder",
     "RepositoryItemPersistenceService",

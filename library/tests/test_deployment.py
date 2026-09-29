@@ -44,7 +44,6 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
         AI_DETECTION_ENGINE="transformer",
         AI_DETECTION_PRIMARY_REVISION="main",
-        AI_DETECTION_ENABLE_COMPARISON=True,
         AI_DETECTION_COMPARISON_REVISION="main",
         ADMIN_URL_PATH="admin",
         BUSINESS_ADDRESS="",
@@ -80,7 +79,6 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         ACCOUNT_DEFAULT_HTTP_PROTOCOL="https",
         SITE_ID=1,
         AI_DETECTION_PRIMARY_REVISION="a1b2c3d4",
-        AI_DETECTION_ENABLE_COMPARISON=True,
         AI_DETECTION_COMPARISON_REVISION="e5f6a7b8",
         ADMIN_URL_PATH="private-atlas-console",
         BUSINESS_ADDRESS="Manila, Philippines",
@@ -101,19 +99,6 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         findings = DeploymentReadinessService().inspect_configuration()
 
         self.assertEqual(findings, [])
-
-    @override_settings(
-        AI_DETECTION_ENGINE="transformer",
-        AI_DETECTION_ENABLE_COMPARISON=False,
-        AI_DETECTION_PRIMARY_REVISION="a1b2c3d4",
-    )
-    def test_disabled_dual_model_comparison_is_a_deployment_error(self):
-        findings = DeploymentReadinessService().inspect_configuration()
-
-        comparison_finding = next(
-            finding for finding in findings if finding.code == "atlas.E014"
-        )
-        self.assertEqual(comparison_finding.severity, "error")
 
     @override_settings(
         DEBUG=False,

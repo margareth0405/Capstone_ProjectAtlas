@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import logging
 import math
 import re
@@ -254,6 +255,13 @@ class HuggingFaceDetector:
                 type(self)._pipeline = (pipeline_key, self._load_pipeline())
         return type(self)._pipeline[1]
 
+    @classmethod
+    def release(cls):
+        """Release cached model memory after a one-off benchmark."""
+
+        cls._pipeline = None
+        gc.collect()
+
     def _model_version(self, pipeline):
         model = getattr(pipeline, "model", None)
         config = getattr(model, "config", None)
@@ -289,11 +297,103 @@ class SingleProbabilityDetector(HuggingFaceDetector):
         return probability
 
 
-class GradientAIDetector(SingleProbabilityDetector):
-    """Gradient's DeBERTa-v3-large AI-text detector."""
+class _DesklibInferencePipeline:
+    """Small adapter matching the callable used by the shared detector."""
 
-    detector_name = "Gradient AI Text Detector"
-    default_model_name = "ShantanuT01/gradient-ai-text-detector"
+    def __init__(self, model, tokenizer, torch_module):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.torch = torch_module
+
+    def __call__(self, chunks, *, batch_size=4, **unused_options):
+        predictions = []
+        maximum_length = min(
+            int(getattr(self.model.config, "max_position_embeddings", 512)),
+            512,
+        )
+        for index in range(0, len(chunks), batch_size):
+            batch = chunks[index : index + batch_size]
+            encoded = self.tokenizer(
+                batch,
+                padding=True,
+                truncation=True,
+                max_length=maximum_length,
+                return_tensors="pt",
+            )
+            with self.torch.no_grad():
+                outputs = self.model(
+                    input_ids=encoded["input_ids"],
+                    attention_mask=encoded["attention_mask"],
+                )
+                probabilities = self.torch.sigmoid(outputs["logits"].view(-1))
+            predictions.extend(
+                {"label": "LABEL_0", "score": probability.item()}
+                for probability in probabilities
+            )
+        return predictions
+
+
+class DesklibAcademicDetector(SingleProbabilityDetector):
+    """Desklib's academic DeBERTa detector with its published custom head."""
+
+    detector_name = "Desklib Academic AI Text Detector"
+    default_model_name = "desklib/ai-text-detector-academic-v1.01"
+
+    def _load_pipeline(self):
+        try:
+            import torch
+            import torch.nn as nn
+            from transformers import AutoConfig, AutoModel, AutoTokenizer, PreTrainedModel
+        except ImportError as exc:
+            raise AIDetectionError(
+                "Local AI Detection is unavailable. Install the project requirements."
+            ) from exc
+
+        class DesklibAIDetectionModel(PreTrainedModel):
+            config_class = AutoConfig
+
+            def __init__(self, config):
+                super().__init__(config)
+                self.model = AutoModel.from_config(config)
+                self.classifier = nn.Linear(config.hidden_size, 1)
+                self.post_init()
+
+            def forward(self, input_ids, attention_mask=None):
+                outputs = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                )
+                last_hidden_state = outputs[0]
+                expanded_mask = attention_mask.unsqueeze(-1).expand(
+                    last_hidden_state.size()
+                ).float()
+                pooled_output = (
+                    torch.sum(last_hidden_state * expanded_mask, dim=1)
+                    / torch.clamp(expanded_mask.sum(dim=1), min=1e-9)
+                )
+                return {"logits": self.classifier(pooled_output)}
+
+        try:
+            config = AutoConfig.from_pretrained(
+                self.model_name,
+                revision=self.revision,
+            )
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.model_name,
+                revision=self.revision,
+            )
+            model = DesklibAIDetectionModel.from_pretrained(
+                self.model_name,
+                config=config,
+                revision=self.revision,
+            )
+            model.eval()
+        except Exception as exc:
+            raise AIDetectionError(
+                "ATLAS could not load the Desklib Academic AI Text Detector. "
+                "Check the internet connection for the first model download."
+            ) from exc
+        return _DesklibInferencePipeline(model, tokenizer, torch)
 
 
 class VanguardAIDetector(SingleProbabilityDetector):
@@ -304,12 +404,11 @@ class VanguardAIDetector(SingleProbabilityDetector):
 
 
 class AIDetectionService:
-    """Run Gradient and compare its result with Vanguard when configured."""
+    """Run only the configured live detector for administrator requests."""
 
-    primary_detector_class = GradientAIDetector
-    comparison_detector_class = VanguardAIDetector
+    primary_detector_class = DesklibAcademicDetector
 
-    def __init__(self, primary_detector=None, comparison_detector=None):
+    def __init__(self, primary_detector=None):
         if primary_detector is not None:
             self.primary_detector = primary_detector
         elif settings.AI_DETECTION_ENGINE == "fast":
@@ -323,18 +422,6 @@ class AIDetectionService:
             raise AIDetectionError(
                 "AI_DETECTION_ENGINE must be either 'fast' or 'transformer'."
             )
-        if comparison_detector is not None:
-            self.comparison_detector = comparison_detector
-        elif (
-            settings.AI_DETECTION_ENGINE == "transformer"
-            and settings.AI_DETECTION_ENABLE_COMPARISON
-        ):
-            self.comparison_detector = self.comparison_detector_class(
-                model_name=settings.AI_DETECTION_COMPARISON_MODEL,
-                revision=settings.AI_DETECTION_COMPARISON_REVISION,
-            )
-        else:
-            self.comparison_detector = None
 
     def analyze(self, text):
         try:
@@ -352,25 +439,55 @@ class AIDetectionService:
             result = FastWritingPatternDetector().analyze(text)
             result["fallback_used"] = True
             result["fallback_reason"] = (
-                "The Gradient transformer was unavailable for this analysis."
+                "The Desklib transformer was unavailable for this analysis."
             )
-            return result
+        return result
 
-        if self.comparison_detector is None:
-            return result
 
+class AIDetectionBenchmarkService:
+    """Compare Desklib with Vanguard only during an explicit benchmark."""
+
+    comparison_detector_class = VanguardAIDetector
+
+    def __init__(self, primary_detector=None, comparison_detector=None):
+        self.primary_service = AIDetectionService(primary_detector=primary_detector)
+        self.comparison_detector = comparison_detector or self.comparison_detector_class(
+            model_name=settings.AI_DETECTION_COMPARISON_MODEL,
+            revision=settings.AI_DETECTION_COMPARISON_REVISION,
+        )
+
+    @staticmethod
+    def _release(detector):
+        release = getattr(detector, "release", None)
+        if callable(release):
+            release()
+
+    def analyze(self, text):
+        primary = self.primary_service.analyze(text)
+        if primary.get("fallback_used"):
+            primary["comparison_complete"] = False
+            primary["comparison_error"] = (
+                "Vanguard was not started because Desklib used the fast fallback."
+            )
+            return primary
+
+        # Run the large models sequentially and release Desklib before loading
+        # Vanguard so a benchmark does not keep both models in memory.
+        self._release(self.primary_service.primary_detector)
         try:
             comparison = self.comparison_detector.analyze(text)
         except AIDetectionError as error:
-            logger.warning("The comparison detector failed: %s", error)
-            result["comparison_complete"] = False
-            result["comparison_error"] = (
-                "Vanguard could not complete this comparison. Treat the Gradient "
-                "result as a single-model screening result and check server AI health."
+            logger.warning("The benchmark detector failed: %s", error)
+            primary["comparison_complete"] = False
+            primary["comparison_error"] = (
+                "Vanguard could not complete this benchmark. Treat the Desklib "
+                "result as a single-model screening result."
             )
-            return result
+            return primary
+        finally:
+            self._release(self.comparison_detector)
 
-        primary = dict(result)
+        result = dict(primary)
         detectors_disagree = (primary["ai_probability"] > 50) != (
             comparison["ai_probability"] > 50
         )

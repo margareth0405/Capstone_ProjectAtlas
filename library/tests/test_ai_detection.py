@@ -9,10 +9,11 @@ from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 
 from library.services.ai_detection import (
+    AIDetectionBenchmarkService,
     AIDetectionError,
     AIDetectionService,
+    DesklibAcademicDetector,
     FastWritingPatternDetector,
-    GradientAIDetector,
     VanguardAIDetector,
 )
 from library.services.documents import DocumentTextExtractor
@@ -31,9 +32,9 @@ class FakePipeline:
         return self.predictions
 
 
-class GradientAIDetectorTests(SimpleTestCase):
+class DesklibAcademicDetectorTests(SimpleTestCase):
     def tearDown(self):
-        GradientAIDetector._pipeline = None
+        DesklibAcademicDetector._pipeline = None
 
     def test_long_text_is_chunked_and_probabilities_are_averaged(self):
         pipeline = FakePipeline(
@@ -42,7 +43,7 @@ class GradientAIDetectorTests(SimpleTestCase):
                 {"label": "LABEL_0", "score": 0.30},
             ]
         )
-        detector = GradientAIDetector()
+        detector = DesklibAcademicDetector()
 
         with patch.object(detector, "_get_pipeline", return_value=pipeline):
             result = detector.analyze("word " * 300)
@@ -51,16 +52,16 @@ class GradientAIDetectorTests(SimpleTestCase):
         self.assertEqual(result["ai_probability"], 55.0)
         self.assertEqual(result["human_probability"], 45.0)
         self.assertEqual(result["label"], "Mixed / uncertain")
-        self.assertEqual(result["detector_name"], "Gradient AI Text Detector")
+        self.assertEqual(result["detector_name"], "Desklib Academic AI Text Detector")
         self.assertEqual(
             result["model_name"],
-            "ShantanuT01/gradient-ai-text-detector",
+            "desklib/ai-text-detector-academic-v1.01",
         )
         self.assertEqual(result["model_version"], "detector-commit-123")
         self.assertEqual(pipeline.call_kwargs["function_to_apply"], "sigmoid")
 
     def test_low_ai_probability_reports_high_human_probability(self):
-        detector = GradientAIDetector()
+        detector = DesklibAcademicDetector()
         pipeline = FakePipeline([{"label": "LABEL_0", "score": 0.08}])
 
         with patch.object(detector, "_get_pipeline", return_value=pipeline):
@@ -71,7 +72,7 @@ class GradientAIDetectorTests(SimpleTestCase):
         self.assertEqual(result["label"], "Low AI-pattern score")
 
     def test_single_output_is_used_as_ai_probability_regardless_of_label_name(self):
-        detector = GradientAIDetector()
+        detector = DesklibAcademicDetector()
         pipeline = FakePipeline([{"label": "LABEL_0", "score": 0.92}])
 
         with patch.object(detector, "_get_pipeline", return_value=pipeline):
@@ -81,7 +82,7 @@ class GradientAIDetectorTests(SimpleTestCase):
         self.assertEqual(result["human_probability"], 8.0)
 
     def test_out_of_range_probability_raises_safe_error(self):
-        detector = GradientAIDetector()
+        detector = DesklibAcademicDetector()
         pipeline = FakePipeline([{"label": "LABEL_0", "score": 1.1}])
 
         with (
@@ -195,13 +196,13 @@ class AIDetectionServiceTests(SimpleTestCase):
 
         self.assertEqual(result["detector_name"], "Primary")
 
-    def test_gradient_and_vanguard_results_are_reported_separately(self):
-        result = AIDetectionService(
-            primary_detector=self.StubDetector("Gradient", 61.0),
+    def test_desklib_and_vanguard_benchmark_results_are_reported_separately(self):
+        result = AIDetectionBenchmarkService(
+            primary_detector=self.StubDetector("Desklib", 61.0),
             comparison_detector=self.StubDetector("Vanguard", 58.0),
         ).analyze("sample")
 
-        self.assertEqual(result["primary"]["detector_name"], "Gradient")
+        self.assertEqual(result["primary"]["detector_name"], "Desklib")
         self.assertEqual(result["primary"]["ai_probability"], 61.0)
         self.assertEqual(result["comparison"]["detector_name"], "Vanguard")
         self.assertEqual(result["comparison"]["ai_probability"], 58.0)
@@ -210,8 +211,8 @@ class AIDetectionServiceTests(SimpleTestCase):
         self.assertEqual(result["score_difference"], 3.0)
 
     def test_disagreement_is_marked_inconclusive(self):
-        result = AIDetectionService(
-            primary_detector=self.StubDetector("Gradient", 72.0),
+        result = AIDetectionBenchmarkService(
+            primary_detector=self.StubDetector("Desklib", 72.0),
             comparison_detector=self.StubDetector("Vanguard", 31.0),
         ).analyze("sample")
 
@@ -220,29 +221,22 @@ class AIDetectionServiceTests(SimpleTestCase):
         self.assertTrue(result["detectors_disagree"])
         self.assertEqual(result["score_difference"], 41.0)
 
-    def test_comparison_failure_is_reported_without_discarding_gradient(self):
-        result = AIDetectionService(
-            primary_detector=self.StubDetector("Gradient", 72.0),
+    def test_benchmark_failure_is_reported_without_discarding_desklib(self):
+        result = AIDetectionBenchmarkService(
+            primary_detector=self.StubDetector("Desklib", 72.0),
             comparison_detector=self.FailingDetector(),
         ).analyze("sample")
 
-        self.assertEqual(result["detector_name"], "Gradient")
+        self.assertEqual(result["detector_name"], "Desklib")
         self.assertFalse(result["comparison_complete"])
         self.assertIn("Vanguard could not complete", result["comparison_error"])
         self.assertNotIn("comparison", result)
 
     def test_fast_engine_does_not_construct_transformer_detector(self):
-        with (
-            patch.object(
-                AIDetectionService.primary_detector_class,
-                "__init__",
-                side_effect=AssertionError("transformer should not load"),
-            ),
-            patch.object(
-                AIDetectionService.comparison_detector_class,
-                "__init__",
-                side_effect=AssertionError("comparison should not load"),
-            ),
+        with patch.object(
+            AIDetectionService.primary_detector_class,
+            "__init__",
+            side_effect=AssertionError("transformer should not load"),
         ):
             result = AIDetectionService().analyze("Evidence and reasoning. " * 20)
 
@@ -250,27 +244,29 @@ class AIDetectionServiceTests(SimpleTestCase):
 
     @override_settings(
         AI_DETECTION_ENGINE="transformer",
-        AI_DETECTION_PRIMARY_MODEL="ShantanuT01/gradient-ai-text-detector",
-        AI_DETECTION_PRIMARY_REVISION="gradient-revision",
-        AI_DETECTION_ENABLE_COMPARISON=True,
+        AI_DETECTION_PRIMARY_MODEL="desklib/ai-text-detector-academic-v1.01",
+        AI_DETECTION_PRIMARY_REVISION="desklib-revision",
         AI_DETECTION_COMPARISON_MODEL="ShantanuT01/vanguard-ai-text-detector",
         AI_DETECTION_COMPARISON_REVISION="vanguard-revision",
     )
-    def test_transformer_engine_constructs_both_configured_models(self):
+    def test_transformer_engine_constructs_only_desklib_for_live_requests(self):
         service = AIDetectionService()
 
-        self.assertIsInstance(service.primary_detector, GradientAIDetector)
+        self.assertIsInstance(service.primary_detector, DesklibAcademicDetector)
         self.assertEqual(
             service.primary_detector.model_name,
-            "ShantanuT01/gradient-ai-text-detector",
+            "desklib/ai-text-detector-academic-v1.01",
         )
-        self.assertEqual(service.primary_detector.revision, "gradient-revision")
-        self.assertIsInstance(service.comparison_detector, VanguardAIDetector)
+        self.assertEqual(service.primary_detector.revision, "desklib-revision")
+        self.assertFalse(hasattr(service, "comparison_detector"))
+
+        benchmark = AIDetectionBenchmarkService(primary_detector=self.StubDetector("Desklib", 50))
+        self.assertIsInstance(benchmark.comparison_detector, VanguardAIDetector)
         self.assertEqual(
-            service.comparison_detector.model_name,
+            benchmark.comparison_detector.model_name,
             "ShantanuT01/vanguard-ai-text-detector",
         )
-        self.assertEqual(service.comparison_detector.revision, "vanguard-revision")
+        self.assertEqual(benchmark.comparison_detector.revision, "vanguard-revision")
 
     @override_settings(
         AI_DETECTION_ENGINE="transformer",
@@ -283,7 +279,7 @@ class AIDetectionServiceTests(SimpleTestCase):
 
         self.assertTrue(result["fallback_used"])
         self.assertEqual(result["detector_name"], "ATLAS Fast Pattern Review")
-        self.assertIn("Gradient transformer was unavailable", result["fallback_reason"])
+        self.assertIn("Desklib transformer was unavailable", result["fallback_reason"])
 
     @override_settings(
         AI_DETECTION_ENGINE="transformer",
@@ -298,42 +294,37 @@ class AIDetectionServiceTests(SimpleTestCase):
 
 @override_settings(
     AI_DETECTION_ENGINE="transformer",
-    AI_DETECTION_PRIMARY_MODEL="ShantanuT01/gradient-ai-text-detector",
-    AI_DETECTION_ENABLE_COMPARISON=True,
+    AI_DETECTION_PRIMARY_MODEL="desklib/ai-text-detector-academic-v1.01",
     AI_DETECTION_COMPARISON_MODEL="ShantanuT01/vanguard-ai-text-detector",
 )
 class CheckAICommandTests(SimpleTestCase):
     @patch("library.management.commands.check_ai.AIDetectionService")
-    def test_smoke_check_reports_both_model_versions(self, service_class):
+    def test_smoke_check_reports_only_live_model(self, service_class):
         service_class.return_value.analyze.return_value = {
-            "detector_name": "Gradient AI Text Detector",
-            "model_version": "gradient-revision",
-            "comparison_complete": True,
-            "comparison": {
-                "detector_name": "Vanguard AI Text Detector",
-                "model_version": "vanguard-revision",
-            },
+            "detector_name": "Desklib Academic AI Text Detector",
+            "model_version": "desklib-revision",
         }
         output = StringIO()
 
         call_command("check_ai", "--run-analysis", stdout=output)
 
         self.assertIn(
-            "Gradient AI Text Detector version gradient-revision",
+            "Desklib Academic AI Text Detector version desklib-revision",
             output.getvalue(),
         )
-        self.assertIn(
-            "Vanguard AI Text Detector version vanguard-revision",
-            output.getvalue(),
-        )
+        self.assertNotIn("Vanguard AI Text Detector version", output.getvalue())
 
-    @patch("library.management.commands.check_ai.AIDetectionService")
-    def test_smoke_check_fails_when_comparison_is_incomplete(self, service_class):
+    @patch("library.management.commands.check_ai.AIDetectionBenchmarkService")
+    def test_explicit_benchmark_fails_when_vanguard_is_incomplete(self, service_class):
         service_class.return_value.analyze.return_value = {
-            "detector_name": "Gradient AI Text Detector",
-            "model_version": "gradient-revision",
+            "detector_name": "Desklib Academic AI Text Detector",
+            "model_version": "desklib-revision",
             "comparison_complete": False,
         }
 
         with self.assertRaisesMessage(CommandError, "Vanguard did not complete"):
-            call_command("check_ai", "--run-analysis")
+            call_command("check_ai", "--run-analysis", "--benchmark")
+
+    def test_benchmark_requires_analysis_flag(self):
+        with self.assertRaisesMessage(CommandError, "requires --run-analysis"):
+            call_command("check_ai", "--benchmark")

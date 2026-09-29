@@ -447,15 +447,11 @@ PRIVACY_CONSENT_VERSION = os.getenv("PRIVACY_CONSENT_VERSION", "2026-09-20")
 AI_DETECTION_ENGINE = os.getenv("AI_DETECTION_ENGINE", "transformer").strip().lower()
 AI_DETECTION_PRIMARY_MODEL = os.getenv(
     "AI_DETECTION_PRIMARY_MODEL",
-    "ShantanuT01/gradient-ai-text-detector",
+    "desklib/ai-text-detector-academic-v1.01",
 )
 AI_DETECTION_PRIMARY_REVISION = os.getenv(
     "AI_DETECTION_PRIMARY_REVISION",
-    "c2e8b6df87f8a211cbffb713fa9873a0c3a9713f",
-)
-AI_DETECTION_ENABLE_COMPARISON = env_bool(
-    "AI_DETECTION_ENABLE_COMPARISON",
-    True,
+    "fe9b4da50ee2cca5c877d607640681609170e363",
 )
 AI_DETECTION_COMPARISON_MODEL = os.getenv(
     "AI_DETECTION_COMPARISON_MODEL",

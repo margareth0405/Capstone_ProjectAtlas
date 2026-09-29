@@ -1,6 +1,10 @@
 """Public import facade for administrator class-based views."""
 
-from .staff_accounts import StaffUserCreateView, StaffUserDeleteView
+from .staff_accounts import (
+    StaffAccountEditView,
+    StaffUserCreateView,
+    StaffUserDeleteView,
+)
 from .staff_ai import StaffAIDetectionView
 from .staff_crud import (
     StaffAnnouncementCreateView,
@@ -16,6 +20,7 @@ from .staff_crud import (
 from .staff_dashboard import StaffPortalView
 
 __all__ = (
+    "StaffAccountEditView",
     "StaffAIDetectionView",
     "StaffAnnouncementCreateView",
     "StaffAnnouncementDeleteView",

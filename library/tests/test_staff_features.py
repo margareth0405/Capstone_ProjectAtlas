@@ -20,7 +20,7 @@ from library.models import (
     WebsiteVisit,
 )
 from library.services.staff_portal import StaffUserDirectory
-from library.tests.base import LibraryTestCase
+from library.tests.base import TEST_PASSWORD, LibraryTestCase
 from library.views.staff_ai import StaffAIDetectionView
 
 
@@ -59,6 +59,68 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "legacy-without-profile@example.com")
         self.assertContains(response, "Student")
+
+    def test_staff_can_update_own_username_and_password_without_logout(self):
+        response = self.client.post(
+            reverse("library:staff_account_edit"),
+            {
+                "username": "updated-atlas-admin",
+                "current_password": TEST_PASSWORD,
+                "new_password1": "New-Atlas-Admin-2026!",
+                "new_password2": "New-Atlas-Admin-2026!",
+            },
+        )
+
+        self.assertRedirects(response, reverse("library:staff_account_edit"))
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.username, "updated-atlas-admin")
+        self.assertTrue(self.staff.check_password("New-Atlas-Admin-2026!"))
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                actor=self.staff,
+                action=ActivityLog.Action.UPDATE,
+                object_type="administrator account",
+            ).exists()
+        )
+
+    def test_staff_cannot_edit_another_administrator(self):
+        other_admin = self.create_user(
+            email="other-admin@example.com",
+            is_staff=True,
+        )
+
+        response = self.client.get(
+            reverse("library:staff_admin_edit", args=[other_admin.pk])
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_can_edit_another_administrator(self):
+        superuser = self.create_user(
+            email="root-admin@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        target = self.create_user(email="managed-admin@example.com", is_staff=True)
+        self.client.force_login(superuser)
+
+        response = self.client.post(
+            reverse("library:staff_admin_edit", args=[target.pk]),
+            {
+                "username": "managed-admin",
+                "current_password": TEST_PASSWORD,
+                "new_password1": "",
+                "new_password2": "",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            f'{reverse("library:staff_portal")}#users',
+        )
+        target.refresh_from_db()
+        self.assertEqual(target.username, "managed-admin")
 
     def test_user_directory_falls_back_when_optional_join_fails(self):
         fallback_accounts = [self.staff]
@@ -164,6 +226,13 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
         self.client.post(reverse("library:staff_user_delete", args=[superuser.pk]))
         self.assertTrue(type(superuser).objects.filter(pk=superuser.pk).exists())
+
+        other_admin = self.create_user(
+            email="protected-admin@example.com",
+            is_staff=True,
+        )
+        self.client.post(reverse("library:staff_user_delete", args=[other_admin.pk]))
+        self.assertTrue(type(other_admin).objects.filter(pk=other_admin.pk).exists())
 
     def test_account_delete_database_failure_rolls_back_without_500(self):
         reader = self.create_user(email="rollback-delete@example.com")
@@ -375,8 +444,8 @@ class AIDetectionServiceTests(LibraryTestCase):
                 "human_probability": 23.5,
                 "confidence": 76.5,
                 "chunks_analyzed": 2,
-                "detector_name": "Gradient AI Text Detector",
-                "model_name": "ShantanuT01/gradient-ai-text-detector",
+                "detector_name": "Desklib Academic AI Text Detector",
+                "model_name": "desklib/ai-text-detector-academic-v1.01",
                 "model_version": "test-commit-123",
             }
 
@@ -434,14 +503,14 @@ class AIDetectionServiceTests(LibraryTestCase):
         )
         self.assertContains(response, "AI-pattern score")
         self.assertContains(response, "Human-pattern score")
-        self.assertContains(response, "Gradient AI Text Detector")
+        self.assertContains(response, "Desklib Academic AI Text Detector")
         self.assertContains(response, "not proof")
         analysis = AIAnalysis.objects.get(reviewer=self.staff)
         self.assertEqual(analysis.source_name, "Pasted text")
         self.assertEqual(analysis.model_version, "test-commit-123")
         self.assertEqual(float(analysis.ai_probability), 76.5)
 
-    def test_staff_sees_gradient_and_vanguard_comparison(self):
+    def test_benchmark_result_can_render_desklib_and_vanguard_metadata(self):
         self.client.force_login(self.staff)
         sample = "Academic evidence should be interpreted in context. " * 5
 
@@ -483,7 +552,7 @@ class AIDetectionServiceTests(LibraryTestCase):
             response = self.client.post(self.url, {"text": sample})
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Gradient result")
+        self.assertContains(response, "Desklib result")
         self.assertContains(response, "Vanguard result")
         self.assertContains(response, "Models agree at the 50% threshold")
         self.assertContains(response, "4.5 percentage-point difference")

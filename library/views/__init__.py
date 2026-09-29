@@ -26,6 +26,7 @@ from .public import (
     UsageHeartbeatView,
 )
 from .staff import (
+    StaffAccountEditView,
     StaffAIDetectionView,
     StaffAnnouncementCreateView,
     StaffAnnouncementDeleteView,
@@ -59,6 +60,7 @@ __all__ = (
     "ResourceCoverView",
     "RobotsView",
     "SitemapView",
+    "StaffAccountEditView",
     "StaffAIDetectionView",
     "StaffAnnouncementCreateView",
     "StaffAnnouncementDeleteView",
