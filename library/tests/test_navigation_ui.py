@@ -208,7 +208,7 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, reverse("library:cookie_preferences"))
         self.assertContains(
             response,
-            f'href="{reverse("library:cookie_preferences")}" data-cookie-settings',
+            f'href="{reverse("library:cookie_preferences")}">Cookie preferences</a>',
         )
         self.assertContains(response, "data-cookie-current")
         self.assertContains(response, "data-cookie-close")
