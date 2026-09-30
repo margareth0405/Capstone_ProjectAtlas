@@ -14,15 +14,22 @@
       {% include "library/includes/form_errors.html" with form=form %}
       <div class="admin-form-grid">
         {% for field in form %}
-          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'cover_image' or field.name == 'resource_abstract' or field.name == 'file_type' %} admin-full-field{% endif %}">
+          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'cover_image' or field.name == 'resource_abstract' or field.name == 'file_type' or field.name == 'hard_copy_available' %} admin-full-field{% endif %}">
+            {% if field.name == 'hard_copy_available' %}
+              <div class="resource-availability-control">
+                {{ field }}
+                <label for="{{ field.id_for_label }}"><span>{{ field.label }}</span><small>Readers will see “Hard copy available” in the repository.</small></label>
+              </div>
+            {% else %}
             <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required or field.name == 'resource_abstract' %} <span aria-hidden="true">*</span>{% endif %}</label>
             {{ field }}
+            {% endif %}
             {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
             {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>
         {% endfor %}
       </div>
-      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. The date added to ATLAS is generated automatically.</span></div>
+      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. Hard-copy availability is shown to administrators, students, teachers, and guests. The date added to ATLAS is generated automatically.</span></div>
       <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save resource</button></div>
     </form>
   </div>

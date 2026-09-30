@@ -252,6 +252,26 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("atlas_reading_preferences", script)
         self.assertIn("prefers-contrast: more", script)
 
+    def test_confirmations_use_action_specific_dialog_and_cancel_loader_safely(self):
+        response = self.client.get(reverse("library:landing"))
+        self.assertContains(response, 'id="actionConfirmationDialog"')
+        self.assertContains(response, "data-confirm-accept")
+        self.assertContains(response, "data-confirm-cancel")
+
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "app.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("window.confirm(", script)
+        self.assertIn("if (event.defaultPrevented) return;", script)
+        self.assertIn('action === "Delete" ? "Delete " + subject : action', script)
+        self.assertIn('action === "Delete" ? "Keep " + subject : "Cancel"', script)
+
     def test_support_contact_presenter_normalizes_click_to_call_uri(self):
         context = SupportContactPresenter(
             email="library@example.edu",

@@ -57,6 +57,13 @@ class LibraryItem(models.Model):
     )
     file_size = models.CharField(max_length=32, blank=True)
     pages = models.PositiveIntegerField(default=0)
+    hard_copy_available = models.BooleanField(
+        default=False,
+        help_text=(
+            "Indicates whether readers can request a physical copy from the "
+            "library."
+        ),
+    )
     cover_image = models.ImageField(
         upload_to="library/covers/%Y/%m/",
         blank=True,

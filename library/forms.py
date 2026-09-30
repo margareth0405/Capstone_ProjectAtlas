@@ -234,6 +234,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             "resource_abstract",
             "file_type",
             "pages",
+            "hard_copy_available",
         )
         widgets = {
             "call_number": forms.TextInput(
@@ -268,16 +269,21 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             "cover_image": "Cover (optional)",
             "resource_abstract": "Resource abstract",
             "file_type": "Resource abstract format",
+            "hard_copy_available": "Hard copy is available",
         }
         help_texts = {
             "details": "Add a concise description or abstract for readers.",
             "cover_image": "Upload an optional JPG, PNG, or WebP cover image up to 5 MB.",
             "resource_abstract": "Upload the required PDF or Word (.docx) resource abstract, up to 10 MB.",
+            "hard_copy_available": (
+                "Turn this on when a physical copy can be requested from the library."
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["file_type"].widget.attrs["class"] = "resource-format-toggle"
+        self.fields["hard_copy_available"].widget.attrs["class"] = "form-check-input"
         self.fields["publication_day"].widget.attrs.update(
             {"placeholder": "Example: 15", "inputmode": "numeric"}
         )

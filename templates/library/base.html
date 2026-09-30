@@ -74,6 +74,20 @@
     </div>
     <noscript><style>.page-loader { display: none !important; }</style></noscript>
 
+    <dialog class="action-confirmation" id="actionConfirmationDialog" aria-labelledby="actionConfirmationTitle" aria-describedby="actionConfirmationMessage">
+      <div class="action-confirmation-card">
+        <span class="action-confirmation-icon" data-confirm-icon aria-hidden="true"><i class="fas fa-circle-question"></i></span>
+        <div class="action-confirmation-copy">
+          <h2 id="actionConfirmationTitle" data-confirm-title>Confirm action</h2>
+          <p id="actionConfirmationMessage" data-confirm-message></p>
+        </div>
+        <div class="action-confirmation-actions">
+          <button class="btn action-confirmation-cancel" type="button" data-confirm-cancel>Cancel</button>
+          <button class="btn action-confirmation-accept" type="button" data-confirm-accept>Continue</button>
+        </div>
+      </div>
+    </dialog>
+
     <div class="optimistic-status" id="optimisticStatus" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
     {% include "library/includes/messages.html" %}
@@ -127,7 +141,7 @@
       </form>
     </section>
 
-    <script src="{% static 'library/js/app.js' %}?v=20260930-cookie-preferences-page" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20260930-action-confirmations" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -377,6 +377,7 @@
     });
 
     document.addEventListener("submit", function (event) {
+      if (event.defaultPrevented) return;
       var form = event.target;
       if (form.matches("[data-async-upload], [data-optimistic-bookmark]")) return;
       showPageLoader();
@@ -827,12 +828,111 @@
   }
 
   function initializeConfirmations() {
+    var dialog = document.getElementById("actionConfirmationDialog");
+    if (!dialog) return;
+    var title = dialog.querySelector("[data-confirm-title]");
+    var message = dialog.querySelector("[data-confirm-message]");
+    var icon = dialog.querySelector("[data-confirm-icon] i");
+    var acceptButton = dialog.querySelector("[data-confirm-accept]");
+    var cancelButton = dialog.querySelector("[data-confirm-cancel]");
+    var pendingForm = null;
+    var pendingSubmitter = null;
+    var returnFocus = null;
+
+    function actionName(form) {
+      var prompt = (form.dataset.confirmForm || "").trim().toLowerCase();
+      if (prompt.indexOf("delete") === 0) return "Delete";
+      if (prompt.indexOf("publish") === 0) return "Publish";
+      if (prompt.indexOf("return") === 0 || prompt.indexOf("unpublish") === 0) {
+        return "Return to draft";
+      }
+      return "Continue";
+    }
+
+    function subjectName(form) {
+      var prompt = (form.dataset.confirmForm || "").toLowerCase();
+      var action = (form.action || "").toLowerCase();
+      if (prompt.indexOf("account") !== -1 || action.indexOf("/users/") !== -1) {
+        return "account";
+      }
+      if (action.indexOf("/announcements/") !== -1) return "announcement";
+      if (action.indexOf("/repository/") !== -1 || action.indexOf("/resources/") !== -1) {
+        return "resource";
+      }
+      return "item";
+    }
+
+    function closeDialog() {
+      hidePageLoader();
+      if (dialog.open && typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
+      document.body.classList.remove("confirmation-open");
+      if (returnFocus && typeof returnFocus.focus === "function") returnFocus.focus();
+      pendingForm = null;
+      pendingSubmitter = null;
+      returnFocus = null;
+    }
+
+    function openDialog(form, submitter) {
+      var action = form.dataset.confirmAction || actionName(form);
+      var subject = subjectName(form);
+      var isDanger = form.dataset.confirmVariant === "danger" || action === "Delete";
+      pendingForm = form;
+      pendingSubmitter = submitter || null;
+      returnFocus = submitter || document.activeElement;
+      title.textContent = form.dataset.confirmTitle || action + " " + subject + "?";
+      message.textContent = form.dataset.confirmForm || "Continue with this action?";
+      acceptButton.textContent = form.dataset.confirmAction || (
+        action === "Delete" ? "Delete " + subject : action
+      );
+      cancelButton.textContent = form.dataset.confirmCancel || (
+        action === "Delete" ? "Keep " + subject : "Cancel"
+      );
+      dialog.classList.toggle("is-danger", isDanger);
+      icon.className = isDanger ? "fas fa-triangle-exclamation" : "fas fa-circle-question";
+      document.body.classList.add("confirmation-open");
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+      cancelButton.focus();
+    }
+
     document.querySelectorAll("form[data-confirm-form]").forEach(function (form) {
       form.addEventListener("submit", function (event) {
-        if (!window.confirm(form.dataset.confirmForm || "Continue with this action?")) {
-          event.preventDefault();
+        if (form.dataset.confirmed === "true") {
+          delete form.dataset.confirmed;
+          return;
         }
+        event.preventDefault();
+        hidePageLoader();
+        openDialog(form, event.submitter);
       });
+    });
+
+    cancelButton.addEventListener("click", closeDialog);
+    dialog.addEventListener("cancel", function (event) {
+      event.preventDefault();
+      closeDialog();
+    });
+    dialog.addEventListener("click", function (event) {
+      if (event.target !== dialog) return;
+      var bounds = dialog.getBoundingClientRect();
+      var inside = event.clientX >= bounds.left && event.clientX <= bounds.right
+        && event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+      if (!inside) closeDialog();
+    });
+    acceptButton.addEventListener("click", function () {
+      if (!pendingForm) return;
+      var form = pendingForm;
+      var submitter = pendingSubmitter;
+      form.dataset.confirmed = "true";
+      if (dialog.open && typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
+      document.body.classList.remove("confirmation-open");
+      pendingForm = null;
+      pendingSubmitter = null;
+      returnFocus = null;
+      if (typeof form.requestSubmit === "function") form.requestSubmit(submitter || undefined);
+      else form.submit();
     });
   }
 

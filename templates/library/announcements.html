@@ -73,16 +73,16 @@
           <div class="announcement-actions">
             {% if request.user.is_staff %}
               {% if announcement.is_published %}
-                <form action="{{ unpublish_url }}" method="post" class="inline-action-form" data-confirm-form="Return ‘{{ announcement.title|escape }}’ to draft status?">
+                <form action="{{ unpublish_url }}" method="post" class="inline-action-form" data-confirm-form="Return ‘{{ announcement.title|escape }}’ to draft status?" data-confirm-title="Unpublish announcement?" data-confirm-action="Return to draft" data-confirm-cancel="Keep published">
                   {% csrf_token %}<button type="submit"><i class="fas fa-eye-slash" aria-hidden="true"></i> Unpublish</button>
                 </form>
               {% else %}
-                <form action="{{ publish_url }}" method="post" class="inline-action-form" data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?">
+                <form action="{{ publish_url }}" method="post" class="inline-action-form" data-confirm-form="Publish ‘{{ announcement.title|escape }}’ for students, teachers, and guests?" data-confirm-title="Publish announcement?" data-confirm-action="Publish announcement" data-confirm-cancel="Keep as draft">
                   {% csrf_token %}<button type="submit" class="btn-publish"><i class="fas fa-paper-plane" aria-hidden="true"></i> Publish</button>
                 </form>
               {% endif %}
               <a href="{{ edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
-              <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone.">
+              <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ announcement.title|escape }}’? This cannot be undone." data-confirm-title="Delete announcement?" data-confirm-action="Delete announcement" data-confirm-cancel="Keep announcement" data-confirm-variant="danger">
                 {% csrf_token %}<button type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button>
               </form>
             {% else %}

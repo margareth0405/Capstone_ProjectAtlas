@@ -74,6 +74,7 @@
                   <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display|default:item.collection }}</span>
                   <h3>{{ item.title }}</h3>
                   <div class="card-author">{{ item.author }}</div>
+                  <span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}"><i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i> {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}</span>
                   <time class="card-time" datetime="{{ item.created_at|date:'c' }}">
                     <i class="far fa-clock" aria-hidden="true"></i>
                     {{ item.created_at|timesince }}{% if item.created_at %} ago{% endif %}

@@ -34,6 +34,7 @@
       <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>
       <div><dt>Format</dt><dd>{{ item.get_file_type_display|default:item.file_type }}</dd></div>
       <div><dt>Pages</dt><dd>{{ item.pages|default:'—' }}</dd></div>
+      <div><dt>Physical access</dt><dd><span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}"><i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i> {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}</span></dd></div>
       <div><dt>Published</dt><dd>{{ item.publication_date_display }}</dd></div>
       <div><dt>Added to ATLAS</dt><dd>{{ item.created_at|date:'F j, Y' }}</dd></div>
     </dl>

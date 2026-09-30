@@ -177,6 +177,37 @@ class StaffCrudTests(LibraryTestCase):
         self.assertTrue(item.cover_image.name.endswith(".webp"))
         self.assertTrue(item.resource_abstract.name.endswith(".pdf"))
 
+    def test_administrator_can_set_and_edit_hard_copy_availability(self):
+        create_url = reverse("library:staff_item_create")
+        form_response = self.client.get(create_url)
+        self.assertContains(form_response, "Hard copy is available")
+        self.assertContains(form_response, "Readers will see")
+
+        create_response = self.client.post(
+            create_url,
+            self.item_payload(
+                call_number="HARD-COPY-001",
+                hard_copy_available="on",
+            ),
+        )
+
+        self.assertEqual(create_response.status_code, 302)
+        item = LibraryItem.objects.get(call_number="HARD-COPY-001")
+        self.assertTrue(item.hard_copy_available)
+
+        edit_response = self.client.post(
+            reverse("library:staff_item_edit", args=[item.pk]),
+            self.item_payload(
+                call_number=item.call_number,
+                title=item.title,
+                hard_copy_available="",
+            ),
+        )
+
+        self.assertEqual(edit_response.status_code, 302)
+        item.refresh_from_db()
+        self.assertFalse(item.hard_copy_available)
+
     def test_resource_abstract_is_required_for_new_resources(self):
         payload = self.item_payload(call_number="NO-ABSTRACT-001")
         payload.pop("resource_abstract")

@@ -42,6 +42,7 @@
               <h2 class="card-title">{{ item.title }}</h2>
               <p class="card-author">{{ item.author }}</p>
               <p class="card-copies"><i class="fas fa-file" aria-hidden="true"></i> {{ item.file_type|default:'PDF' }}</p>
+              <p><span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}"><i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i> {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}</span></p>
               <div class="card-actions">
                 <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-info-circle" aria-hidden="true"></i> View details</a>
                 {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}

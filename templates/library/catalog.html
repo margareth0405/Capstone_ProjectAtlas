@@ -96,6 +96,10 @@
               <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
               <span class="resource-format-badge"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}" aria-hidden="true"></i> {{ item.get_file_type_display|default:item.file_type }}</span>
             </div>
+            <span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}">
+              <i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i>
+              {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}
+            </span>
             {% if item.cover_image %}
               <a class="catalog-cover-link" href="{{ item_detail_url }}" aria-label="View details for {{ item.title }}">
                 <img class="catalog-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" width="320" height="416" loading="lazy" decoding="async">
@@ -124,7 +128,7 @@
                 </form>
               {% elif request.user.is_staff %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
-                <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone.">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
+                <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone." data-confirm-title="Delete resource?" data-confirm-action="Delete resource" data-confirm-cancel="Keep resource" data-confirm-variant="danger">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
               {% endif %}
             </div>
           </article>

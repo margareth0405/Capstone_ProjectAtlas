@@ -1627,6 +1627,40 @@ textarea {
     padding: 0.28rem 0.58rem;
 }
 
+.resource-availability-badge {
+    align-items: center;
+    align-self: flex-start;
+    background: #f5f1ef;
+    border: 1px solid #ddd4d0;
+    border-radius: 999px;
+    color: #675f5b;
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 750;
+    gap: 0.35rem;
+    line-height: 1.25;
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.62rem;
+}
+
+.resource-availability-badge.is-available {
+    background: #eaf6ed;
+    border-color: #b9d9c0;
+    color: #246237;
+}
+
+.resource-availability-badge.is-unavailable {
+    background: #f5f1ef;
+    border-color: #ddd4d0;
+    color: #675f5b;
+}
+
+.resource-metadata .resource-availability-badge,
+.staff-compact-table .resource-availability-badge,
+.favorite-card .resource-availability-badge {
+    margin-top: 0;
+}
+
 .catalog-card-copy {
     margin: 0.9rem 0;
 }
@@ -1805,6 +1839,97 @@ textarea {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
+}
+
+body.confirmation-open {
+  overflow: hidden;
+}
+
+.action-confirmation {
+  background: transparent;
+  border: 0;
+  color: #282326;
+  margin: auto;
+  max-width: min(92vw, 31rem);
+  padding: 0;
+  width: 100%;
+}
+
+.action-confirmation::backdrop {
+  background: rgba(30, 18, 21, 0.64);
+  backdrop-filter: blur(3px);
+}
+
+.action-confirmation-card {
+  align-items: start;
+  background: #fff;
+  border: 1px solid #eadfda;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(35, 13, 18, 0.3);
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 1.35rem;
+}
+
+.action-confirmation-icon {
+  align-items: center;
+  background: #f4e9ec;
+  border-radius: 50%;
+  color: var(--maroon-700);
+  display: inline-flex;
+  font-size: 1.15rem;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+.action-confirmation.is-danger .action-confirmation-icon {
+  background: #fdebec;
+  color: #a21e31;
+}
+
+.action-confirmation-copy h2 {
+  color: var(--maroon-900);
+  font-size: 1.15rem;
+  margin: 0 0 0.35rem;
+}
+
+.action-confirmation-copy p {
+  color: #685f5b;
+  margin: 0;
+}
+
+.action-confirmation-actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  gap: 0.65rem;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.action-confirmation-actions .btn {
+  border-radius: 999px;
+  font-weight: 750;
+  padding: 0.65rem 1rem;
+}
+
+.action-confirmation-cancel {
+  background: #fff;
+  border: 1px solid #cfc5c1;
+  color: #4f4845;
+}
+
+.action-confirmation-accept {
+  background: var(--maroon-700);
+  border: 1px solid var(--maroon-700);
+  color: #fff;
+}
+
+.action-confirmation.is-danger .action-confirmation-accept {
+  background: #a21e31;
+  border-color: #a21e31;
 }
 
 .page-loader-shell {

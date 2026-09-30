@@ -38,6 +38,7 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "details",
         "file_type",
         "pages",
+        "hard_copy_available",
         "published_on",
         "publication_day_known",
         "cover_image",
@@ -51,12 +52,19 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "author",
         "collection",
         "file_type",
+        "hard_copy_available",
         "published_on",
         "cover_image",
         "resource_abstract",
         "created_at",
     )
-    list_filter = ("collection", "file_type", "published_on", "created_at")
+    list_filter = (
+        "collection",
+        "file_type",
+        "hard_copy_available",
+        "published_on",
+        "created_at",
+    )
     search_fields = ("title", "author", "call_number", "details")
     autocomplete_fields = ("created_by",)
     readonly_fields = ("created_at", "updated_at")

@@ -44,6 +44,32 @@ class GuestPageTests(LibraryTestCase):
 
 
 class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
+    def test_hard_copy_availability_is_visible_to_guest_student_and_teacher(self):
+        item = self.create_item(hard_copy_available=True)
+
+        guest_catalog = self.client.get(reverse("library:catalog"))
+        guest_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(guest_catalog, "Hard copy available")
+        self.assertContains(guest_detail, "Hard copy available")
+
+        for role in (Profile.Role.STUDENT, Profile.Role.TEACHER):
+            with self.subTest(role=role):
+                self.client.force_login(
+                    self.create_user(
+                        email=f"availability-{role}@example.com", role=role
+                    )
+                )
+                response = self.client.get(reverse("library:catalog"))
+                self.assertContains(response, "Hard copy available")
+                self.client.logout()
+
+    def test_unavailable_hard_copy_is_labeled_clearly(self):
+        self.create_item(hard_copy_available=False)
+
+        response = self.client.get(reverse("library:catalog"))
+
+        self.assertContains(response, "Hard copy unavailable")
+
     def test_published_announcement_is_visible_to_guest_student_and_teacher(self):
         published = self.create_announcement(title="Role-visible announcement")
         draft = self.create_announcement(
