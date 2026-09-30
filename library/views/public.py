@@ -101,11 +101,21 @@ class PrivacyTermsView(TemplateView):
 
 
 class CookiePreferencesView(View):
-    """Persist a cookie choice when JavaScript is unavailable or stale."""
+    """Display and persist cookie choices with or without JavaScript."""
 
     allowed_choices = {"essential", "analytics"}
     cookie_name = "atlas_cookie_consent"
     cookie_max_age = 365 * 24 * 60 * 60
+
+    def get(self, request):
+        choice = request.COOKIES.get(self.cookie_name, "")
+        if choice not in self.allowed_choices:
+            choice = ""
+        return TemplateResponse(
+            request,
+            "library/cookie_preferences.html",
+            {"cookie_choice": choice},
+        )
 
     def post(self, request):
         choice = request.POST.get("choice", "")

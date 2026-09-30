@@ -315,7 +315,10 @@
         });
       });
       document.querySelectorAll("[data-cookie-settings]").forEach(function (button) {
-        button.addEventListener("click", function () { controller.open(button); });
+        button.addEventListener("click", function (event) {
+          event.preventDefault();
+          controller.open(button);
+        });
       });
       if (this.closeButton) {
         this.closeButton.addEventListener("click", function () { controller.close(); });

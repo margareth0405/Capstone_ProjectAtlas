@@ -1,0 +1,38 @@
+{% extends "library/base.html" %}
+
+{% block title %}Cookie Preferences | ATLAS{% endblock %}
+{% block meta_description %}Review and change the optional cookie preference used by the ATLAS Digital Repository.{% endblock %}
+
+{% block body %}
+  <main class="legal-page" id="mainContent" tabindex="-1">
+    <article class="legal-card" aria-labelledby="cookiePreferencesHeading">
+      <header class="legal-hero">
+        <span class="section-kicker">Privacy controls</span>
+        <h1 id="cookiePreferencesHeading">Cookie preferences</h1>
+        <p>Choose whether ATLAS may collect optional, first-party usage statistics.</p>
+      </header>
+
+      <section>
+        <h2>Your current choice</h2>
+        <p>
+          {% if cookie_choice == "analytics" %}
+            Analytics allowed.
+          {% elif cookie_choice == "essential" %}
+            Essential cookies only.
+          {% else %}
+            No optional cookie choice has been saved yet.
+          {% endif %}
+        </p>
+        <p>Essential security, sign-in, session, and CSRF cookies cannot be disabled because ATLAS needs them to provide its requested features.</p>
+
+        <form class="cookie-preference-page-actions" method="post" action="{% url 'library:cookie_preferences' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'library:cookie_preferences' %}">
+          <button class="btn btn-outline-secondary" type="submit" name="choice" value="essential">Use essential only</button>
+          <button class="btn btn-outline-secondary" type="submit" name="choice" value="analytics">Allow analytics</button>
+        </form>
+        <p><a href="{% url 'library:privacy_terms' %}#cookies">Read the complete cookie policy</a></p>
+      </section>
+    </article>
+  </main>
+{% endblock %}

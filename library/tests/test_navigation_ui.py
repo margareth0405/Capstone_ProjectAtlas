@@ -206,6 +206,10 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
             'class="btn btn-outline-secondary" type="submit" name="choice" value="analytics" data-cookie-choice="analytics"',
         )
         self.assertContains(response, reverse("library:cookie_preferences"))
+        self.assertContains(
+            response,
+            f'href="{reverse("library:cookie_preferences")}" data-cookie-settings',
+        )
         self.assertContains(response, "data-cookie-current")
         self.assertContains(response, "data-cookie-close")
 

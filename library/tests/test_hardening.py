@@ -41,6 +41,11 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
         self.assertIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
 
     def test_cookie_preference_can_be_changed_without_javascript(self):
+        preferences = self.client.get(reverse("library:cookie_preferences"))
+        self.assertEqual(preferences.status_code, 200)
+        self.assertContains(preferences, "Use essential only")
+        self.assertContains(preferences, "Allow analytics")
+
         response = self.client.post(
             reverse("library:cookie_preferences"),
             {"choice": "analytics", "next": reverse("library:privacy_terms")},
@@ -57,6 +62,9 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
             {"choice": "essential", "next": reverse("library:landing")},
         )
         self.assertEqual(response.cookies["atlas_cookie_consent"].value, "essential")
+
+        preferences = self.client.get(reverse("library:cookie_preferences"))
+        self.assertContains(preferences, "Essential cookies only.")
 
     def test_cookie_preference_rejects_invalid_choice_and_external_redirect(self):
         invalid = self.client.post(
