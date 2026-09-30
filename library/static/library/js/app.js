@@ -205,17 +205,20 @@
   function readCookie(name) {
     var prefix = name + "=";
     var cookies = document.cookie ? document.cookie.split(";") : [];
+    var value = "";
     for (var index = 0; index < cookies.length; index += 1) {
       var cookie = cookies[index].trim();
       if (cookie.indexOf(prefix) === 0) {
         try {
-          return decodeURIComponent(cookie.slice(prefix.length));
+          // Browsers may expose duplicate names for old path-scoped cookies.
+          // The root-scoped cookie is ordered last and is the current choice.
+          value = decodeURIComponent(cookie.slice(prefix.length));
         } catch (error) {
-          return "";
+          value = "";
         }
       }
     }
-    return "";
+    return value;
   }
 
   function cookieConsent() {
@@ -281,13 +284,13 @@
     }
 
     choose(value) {
-      if (value !== "essential" && value !== "analytics") return;
+      if (value !== "essential" && value !== "analytics") return false;
       if (!this.save(value)) {
         if (this.status) {
           this.status.textContent = "Your browser could not save this preference. Check that cookies are enabled and try again.";
         }
         announceOptimisticStatus("Cookie preference could not be saved.", true);
-        return;
+        return false;
       }
       this.sync();
       this.close();
@@ -295,6 +298,7 @@
       document.dispatchEvent(new CustomEvent("atlas:cookie-consent-changed", {
         detail: { choice: value },
       }));
+      return true;
     }
 
     initialize() {
@@ -303,8 +307,11 @@
       if (!this.choice()) this.open(null);
 
       this.choiceButtons.forEach(function (button) {
-        button.addEventListener("click", function () {
-          controller.choose(button.dataset.cookieChoice);
+        button.addEventListener("click", function (event) {
+          // Keep the form submission as a no-JavaScript/server fallback.
+          if (controller.choose(button.dataset.cookieChoice)) {
+            event.preventDefault();
+          }
         });
       });
       document.querySelectorAll("[data-cookie-settings]").forEach(function (button) {
@@ -1016,6 +1023,9 @@
   hidePageLoader();
 
   document.addEventListener("DOMContentLoaded", function () {
+    // Consent controls are privacy-critical and should initialize even if a
+    // later, unrelated enhancement encounters a page-specific error.
+    initializeCookieConsent();
     accessibilityPreferences.initializeControls();
     initializePageLoading();
     initializeMessages();
@@ -1026,7 +1036,6 @@
     initializeConfirmations();
     initializeCopyAndShare();
     initializeAutomaticFilters();
-    initializeCookieConsent();
     initializeUsageHeartbeat();
     initializeAsyncUploads();
     initializeOptimisticBookmarks();

@@ -18,6 +18,7 @@ from .catalog import (
 from .public import (
     AnnouncementsView,
     ContactView,
+    CookiePreferencesView,
     DashboardView,
     HealthCheckView,
     PrivacyTermsView,
@@ -46,6 +47,7 @@ __all__ = (
     "AnnouncementsView",
     "CatalogView",
     "ContactView",
+    "CookiePreferencesView",
     "DashboardView",
     "FavoriteToggleView",
     "FavoritesView",

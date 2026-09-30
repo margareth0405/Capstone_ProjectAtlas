@@ -199,12 +199,13 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
 
         self.assertContains(
             response,
-            'class="btn btn-outline-secondary" type="button" data-cookie-choice="essential"',
+            'class="btn btn-outline-secondary" type="submit" name="choice" value="essential" data-cookie-choice="essential"',
         )
         self.assertContains(
             response,
-            'class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics"',
+            'class="btn btn-outline-secondary" type="submit" name="choice" value="analytics" data-cookie-choice="analytics"',
         )
+        self.assertContains(response, reverse("library:cookie_preferences"))
         self.assertContains(response, "data-cookie-current")
         self.assertContains(response, "data-cookie-close")
 

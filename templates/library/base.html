@@ -3,6 +3,7 @@
 {% url 'library:login' as login_url %}
 {% url 'library:register' as register_url %}
 {% url 'library:privacy_terms' as privacy_terms_url %}
+{% url 'library:cookie_preferences' as cookie_preferences_url %}
 {% url 'library:catalog' as catalog_url %}
 {% url 'library:contact' as contact_url %}
 <!doctype html>
@@ -118,13 +119,15 @@
         <p class="cookie-consent-current" data-cookie-current role="status" aria-live="polite"></p>
         <a href="{{ privacy_terms_url }}#cookies">Read the cookie policy</a>
       </div>
-      <div class="cookie-consent-actions">
-        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="essential" aria-pressed="false">Essential only</button>
-        <button class="btn btn-outline-secondary" type="button" data-cookie-choice="analytics" aria-pressed="false">Allow analytics</button>
-      </div>
+      <form class="cookie-consent-actions" method="post" action="{{ cookie_preferences_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn btn-outline-secondary" type="submit" name="choice" value="essential" data-cookie-choice="essential" aria-pressed="false">Essential only</button>
+        <button class="btn btn-outline-secondary" type="submit" name="choice" value="analytics" data-cookie-choice="analytics" aria-pressed="false">Allow analytics</button>
+      </form>
     </section>
 
-    <script src="{% static 'library/js/app.js' %}?v=20260927-performance" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20260930-cookie-preferences" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

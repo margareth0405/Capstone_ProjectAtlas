@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -97,6 +98,39 @@ class PrivacyTermsView(TemplateView):
             }
         )
         return context
+
+
+class CookiePreferencesView(View):
+    """Persist a cookie choice when JavaScript is unavailable or stale."""
+
+    allowed_choices = {"essential", "analytics"}
+    cookie_name = "atlas_cookie_consent"
+    cookie_max_age = 365 * 24 * 60 * 60
+
+    def post(self, request):
+        choice = request.POST.get("choice", "")
+        if choice not in self.allowed_choices:
+            return HttpResponse(status=400)
+
+        next_url = request.POST.get("next", "")
+        if not url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = reverse("library:landing")
+
+        response = redirect(next_url)
+        response.set_cookie(
+            self.cookie_name,
+            choice,
+            max_age=self.cookie_max_age,
+            path="/",
+            secure=request.is_secure(),
+            httponly=False,
+            samesite="Lax",
+        )
+        return response
 
 
 class UsageHeartbeatView(View):

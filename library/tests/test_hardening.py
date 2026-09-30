@@ -40,6 +40,38 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
         self.client.cookies["atlas_cookie_consent"] = "essential"
         self.assertIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
 
+    def test_cookie_preference_can_be_changed_without_javascript(self):
+        response = self.client.post(
+            reverse("library:cookie_preferences"),
+            {"choice": "analytics", "next": reverse("library:privacy_terms")},
+        )
+
+        self.assertRedirects(response, reverse("library:privacy_terms"))
+        cookie = response.cookies["atlas_cookie_consent"]
+        self.assertEqual(cookie.value, "analytics")
+        self.assertEqual(cookie["path"], "/")
+        self.assertEqual(cookie["samesite"], "Lax")
+
+        response = self.client.post(
+            reverse("library:cookie_preferences"),
+            {"choice": "essential", "next": reverse("library:landing")},
+        )
+        self.assertEqual(response.cookies["atlas_cookie_consent"].value, "essential")
+
+    def test_cookie_preference_rejects_invalid_choice_and_external_redirect(self):
+        invalid = self.client.post(
+            reverse("library:cookie_preferences"),
+            {"choice": "advertising", "next": reverse("library:landing")},
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertNotIn("atlas_cookie_consent", invalid.cookies)
+
+        external = self.client.post(
+            reverse("library:cookie_preferences"),
+            {"choice": "essential", "next": "https://example.com/collect"},
+        )
+        self.assertRedirects(external, reverse("library:landing"))
+
     def test_robots_links_sitemap_without_disclosing_admin_path(self):
         response = self.client.get(reverse("library:robots_txt"))
 

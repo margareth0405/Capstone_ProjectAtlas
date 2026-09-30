@@ -15,6 +15,11 @@ urlpatterns = [
     path("sitemap.xml", views.SitemapView.as_view(), name="sitemap"),
     path("", views.LandingView.as_view(), name="landing"),
     path("privacy-and-terms/", views.PrivacyTermsView.as_view(), name="privacy_terms"),
+    path(
+        "cookie-preferences/",
+        views.CookiePreferencesView.as_view(),
+        name="cookie_preferences",
+    ),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
     path(
         "usage/heartbeat/",
