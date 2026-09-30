@@ -282,6 +282,77 @@ class ResourceViewDirectory:
         return events
 
 
+class ActivityLogDirectory:
+    """Filter administrator audit entries by change type and local dates."""
+
+    allowed_actions = {
+        ActivityLog.Action.CREATE,
+        ActivityLog.Action.UPDATE,
+        ActivityLog.Action.DELETE,
+    }
+    action_choices = (
+        (ActivityLog.Action.CREATE, ActivityLog.Action.CREATE.label),
+        (ActivityLog.Action.UPDATE, ActivityLog.Action.UPDATE.label),
+        (ActivityLog.Action.DELETE, ActivityLog.Action.DELETE.label),
+    )
+
+    def __init__(self, parameters):
+        self.parameters = parameters
+        self.start_value = parameters.get("audit_start_date", "").strip()
+        self.end_value = parameters.get("audit_end_date", "").strip()
+        self.start_date = self._parse_date(self.start_value)
+        self.end_date = self._parse_date(self.end_value)
+        self.date_error = self._date_error()
+
+    @property
+    def action(self):
+        requested = self.parameters.get("audit_action", "").strip()
+        return requested if requested in self.allowed_actions else ""
+
+    @property
+    def filters_active(self):
+        return bool(self.action or self.start_value or self.end_value)
+
+    @staticmethod
+    def _parse_date(value):
+        try:
+            return date.fromisoformat(value) if value else None
+        except ValueError:
+            return None
+
+    def _date_error(self):
+        if (self.start_value and not self.start_date) or (
+            self.end_value and not self.end_date
+        ):
+            return "Enter valid start and end dates for the audit trail."
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            return "The start date must be on or before the end date."
+        return ""
+
+    @staticmethod
+    def _day_start(value):
+        return timezone.make_aware(
+            datetime.combine(value, time.min),
+            timezone.get_current_timezone(),
+        )
+
+    def build(self):
+        entries = ActivityLog.objects.select_related("actor")
+        if self.date_error:
+            return entries.none()
+        if self.action:
+            entries = entries.filter(action=self.action)
+        if self.start_date:
+            entries = entries.filter(
+                occurred_at__gte=self._day_start(self.start_date)
+            )
+        if self.end_date:
+            entries = entries.filter(
+                occurred_at__lt=self._day_start(self.end_date + timedelta(days=1))
+            )
+        return entries
+
+
 class StaffPortalContextService:
     """Build the non-form context required by the administrator homepage."""
 
@@ -297,11 +368,17 @@ class StaffPortalContextService:
         self.directory = StaffUserDirectory(request.GET)
         self.analytics = UsageAnalytics(request.GET)
         self.resource_views = ResourceViewDirectory(request.GET)
+        self.activity = ActivityLogDirectory(request.GET)
 
     def build(self):
         users = self.directory.load()
         all_users = get_user_model().objects.select_related("profile")
         analytics_context = self._analytics_context()
+        activity_history = self._optional_database_value(
+            "activity history",
+            lambda: list(self.activity.build()[:60]),
+            [],
+        )
         return {
             "staff_stats": self._safe_staff_stats(all_users),
             "items": LibraryItem.objects.order_by("-created_at"),
@@ -321,11 +398,15 @@ class StaffPortalContextService:
                 lambda: list(self.resource_views.build()[:50]),
                 [],
             ),
-            "activity_history": self._optional_database_value(
-                "activity history",
-                lambda: list(ActivityLog.objects.select_related("actor")[:60]),
-                [],
-            ),
+            "activity_history": activity_history,
+            "audit_history_count": len(activity_history),
+            "audit_action_choices": self.activity.action_choices,
+            "selected_audit_action": self.activity.action,
+            "selected_audit_start_date": self.activity.start_value,
+            "selected_audit_end_date": self.activity.end_value,
+            "audit_filter_error": self.activity.date_error,
+            "audit_filters_active": self.activity.filters_active,
+            "audit_today": timezone.localdate().isoformat(),
             "visit_history": analytics_context["visit_history"],
             "role_usage": analytics_context["role_usage"],
             "usage_summary": analytics_context["usage_summary"],

@@ -61,7 +61,9 @@ class RegistrationTests(LibraryTestCase):
         "library.views.authentication.complete_signup",
         side_effect=smtplib.SMTPServerDisconnected("Connection unexpectedly closed"),
     )
-    def test_registration_handles_smtp_disconnect_without_leaving_account(self, _signup):
+    def test_registration_handles_smtp_disconnect_without_leaving_account(
+        self, _signup
+    ):
         response = self.client.post(
             reverse("library:register"), self.registration_payload()
         )
@@ -195,7 +197,10 @@ class RegistrationTests(LibraryTestCase):
 
     def test_registration_enforces_each_password_requirement(self):
         cases = (
-            ("Aa1!", "This password is too short. It must contain at least 6 characters."),
+            (
+                "Aa1!",
+                "This password is too short. It must contain at least 12 characters.",
+            ),
             ("Atlas!", "Your password must contain at least one number."),
             ("Atlas1", "Your password must contain at least one special character."),
         )
@@ -214,24 +219,22 @@ class RegistrationTests(LibraryTestCase):
 
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, expected_error)
-                self.assertFalse(
-                    get_user_model().objects.filter(email=email).exists()
-                )
+                self.assertFalse(get_user_model().objects.filter(email=email).exists())
 
-    def test_registration_accepts_six_character_password_at_boundary(self):
-        password = "Aa1!bc"
+    def test_registration_accepts_twelve_character_password_at_boundary(self):
+        password = "Aa1!bcdefghi"
 
         response = self.client.post(
             reverse("library:register"),
             self.registration_payload(
-                email="six-character@example.com",
+                email="twelve-character@example.com",
                 password1=password,
                 password2=password,
             ),
         )
 
         self.assertEqual(response.status_code, 302)
-        user = get_user_model().objects.get(email="six-character@example.com")
+        user = get_user_model().objects.get(email="twelve-character@example.com")
         self.assertTrue(user.check_password(password))
 
     def test_public_registration_cannot_create_an_administrator(self):
@@ -432,9 +435,7 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertTrue(reset_url.startswith("https://"))
 
     def test_allauth_password_reset_link_changes_password(self):
-        self.client.post(
-            reverse("account_reset_password"), {"email": self.user.email}
-        )
+        self.client.post(reverse("account_reset_password"), {"email": self.user.email})
         reset_url = next(
             line.strip()
             for line in mail.outbox[0].body.splitlines()
@@ -445,9 +446,7 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertEqual(token_response.status_code, 302)
         form_response = self.client.get(token_response.url)
         self.assertEqual(form_response.status_code, 200)
-        self.assertTemplateUsed(
-            form_response, "account/password_reset_from_key.html"
-        )
+        self.assertTemplateUsed(form_response, "account/password_reset_from_key.html")
 
         new_password = "New-Atlas-Pass-2026!"
         response = self.client.post(

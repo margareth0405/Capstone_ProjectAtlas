@@ -311,6 +311,86 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertContains(response, "Automated maintenance")
         self.assertContains(response, "System")
 
+    def test_audit_trail_filters_action_and_inclusive_date_range(self):
+        created_entry = ActivityLog.objects.create(
+            actor=self.staff,
+            action=ActivityLog.Action.CREATE,
+            object_type="repository resource",
+            description="Created outside selected action",
+        )
+        updated_entry = ActivityLog.objects.create(
+            actor=self.staff,
+            action=ActivityLog.Action.UPDATE,
+            object_type="repository resource",
+            description="Updated inside selected date",
+        )
+        deleted_entry = ActivityLog.objects.create(
+            actor=self.staff,
+            action=ActivityLog.Action.DELETE,
+            object_type="repository resource",
+            description="Deleted outside selected date",
+        )
+        ActivityLog.objects.filter(pk=created_entry.pk).update(
+            occurred_at=timezone.make_aware(datetime(2026, 9, 15, 9, 0))
+        )
+        ActivityLog.objects.filter(pk=updated_entry.pk).update(
+            occurred_at=timezone.make_aware(datetime(2026, 9, 15, 23, 59))
+        )
+        ActivityLog.objects.filter(pk=deleted_entry.pk).update(
+            occurred_at=timezone.make_aware(datetime(2026, 9, 16, 9, 0))
+        )
+
+        response = self.client.get(
+            reverse("library:staff_portal"),
+            {
+                "audit_action": ActivityLog.Action.UPDATE,
+                "audit_start_date": "2026-09-15",
+                "audit_end_date": "2026-09-15",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["activity_history"], [updated_entry])
+        self.assertEqual(response.context["selected_audit_action"], "update")
+        self.assertEqual(response.context["audit_history_count"], 1)
+        self.assertContains(response, "Updated inside selected date")
+        self.assertNotContains(response, "Created outside selected action")
+        self.assertNotContains(response, "Deleted outside selected date")
+
+    def test_audit_trail_rejects_reversed_date_range(self):
+        ActivityLog.objects.create(
+            actor=self.staff,
+            action=ActivityLog.Action.CREATE,
+            object_type="repository resource",
+            description="Hidden while the date range is invalid",
+        )
+
+        response = self.client.get(
+            reverse("library:staff_portal"),
+            {
+                "audit_start_date": "2026-09-20",
+                "audit_end_date": "2026-09-10",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["activity_history"], [])
+        self.assertContains(
+            response,
+            "The start date must be on or before the end date.",
+        )
+
+    def test_audit_filters_use_mobile_friendly_native_controls(self):
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertContains(response, 'class="audit-filter-form"')
+        self.assertContains(response, 'type="date" name="audit_start_date"')
+        self.assertContains(response, 'type="date" name="audit_end_date"')
+        self.assertContains(response, "Apply filters")
+        self.assertContains(response, "Created")
+        self.assertContains(response, "Updated")
+        self.assertContains(response, "Deleted")
+
     def test_staff_can_delete_reader_account_and_action_is_logged(self):
         reader = self.create_user(email="delete-reader@example.com")
 

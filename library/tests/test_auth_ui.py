@@ -102,7 +102,8 @@ class ReaderAuthPresentationTests(LibraryTestCase):
     def test_registration_shows_live_password_checklist_and_strength(self):
         response = self.client.get(reverse("library:register"))
 
-        self.assertContains(response, 'minlength="6"', count=2)
+        self.assertContains(response, 'minlength="12"', count=2)
+        self.assertContains(response, "At least 12 characters")
         self.assertContains(response, 'data-password-rule="length"')
         self.assertContains(response, 'data-password-rule="number"')
         self.assertContains(response, 'data-password-rule="special"')

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.csp import CSP
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -96,6 +97,8 @@ if DEBUG:
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
+    "library.middleware.RequestBodySizeLimitMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "django.middleware.http.ConditionalGetMiddleware",
@@ -155,7 +158,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 12},
     },
     {"NAME": "library.validators.PasswordCharacterValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
@@ -365,6 +368,30 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 CSRF_FAILURE_VIEW = "library.views.errors.csrf_failure"
+
+# Defense in depth for rendered content. Application scripts and styles are
+# served locally; Font Awesome webfonts are the only required CDN resource.
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "base-uri": [CSP.SELF],
+    "connect-src": [CSP.SELF, "https://cdnjs.cloudflare.com"],
+    "font-src": [CSP.SELF, "https://cdnjs.cloudflare.com", "data:"],
+    "form-action": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+    "img-src": [CSP.SELF, "data:"],
+    "object-src": [CSP.NONE],
+    "script-src": [CSP.SELF],
+    # Existing responsive charts and the no-JavaScript loader use bounded,
+    # server-generated inline styles; scripts never receive unsafe-inline.
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+}
+
+# Reject unexpectedly large request bodies before Django parses an upload.
+# Individual forms enforce stricter 5/10/25 MB file limits.
+MAX_REQUEST_BODY_SIZE = env_positive_int("MAX_REQUEST_BODY_SIZE_MB", 30) * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
+DATA_UPLOAD_MAX_NUMBER_FILES = 2
 
 # Fixed-window limits protect expensive and abuse-sensitive endpoints. Normal
 # browsing has no global IP limit because many school users can share one NAT

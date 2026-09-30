@@ -90,12 +90,13 @@ The top-level Display menu provides persistent Large text and High contrast
 options on every page. It is keyboard accessible and keeps these controls out
 of the footer so they remain easy to find on desktop and mobile layouts.
 
-Registration enforces a password of at least six characters containing at
+Registration enforces a password of at least twelve characters containing at
 least one number and one special character. A live checklist confirms each
 requirement, verifies that both password fields match, and displays a strength
 indicator without sending or storing the typed password. Login shows only the
-six-character minimum and returns a clear, account-safe incorrect-credentials
-message.
+legacy six-character minimum so existing accounts remain usable, and returns a
+clear, account-safe incorrect-credentials message. New and reset passwords use
+the stronger twelve-character policy.
 
 The administrator account table displays each account's creation date and can
 sort newest-to-oldest or oldest-to-newest. Administrators can create student or
@@ -245,10 +246,11 @@ reported instead of silently replacing it with a different detector.
 ### Render 512 MB setup
 
 Use one web worker so the process loads only one tokenizer and one memory-mapped
-ONNX session. The checked-in Procfile already uses this start command:
+ONNX session. Eight threads provide request concurrency for the tested 30-50
+user workload without duplicating that model. The checked-in Procfile uses:
 
 ```text
-gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --access-logfile -
+gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads ${GUNICORN_THREADS:-8} --timeout ${GUNICORN_TIMEOUT:-300} --access-logfile -
 ```
 
 Do not add a separate high-memory inference service for this configuration, and
@@ -546,8 +548,10 @@ installations.
 Staged public and authenticated k6 scenarios, safe test-account creation, and
 the 10/25/50/100/150-user workflow are documented in
 [`load_tests/README.md`](load_tests/README.md). Start with the local smoke
-profile and review all errors before increasing concurrency. Remote targets
-require an explicit authorization opt-in.
+profile and review all errors before increasing concurrency. The 50-user
+`busy` profile is the release gate: both public and authenticated runs require
+zero 429 and 5xx responses, less than 1% failed requests, and p95 below two
+seconds. Remote targets require an explicit authorization opt-in.
 
 ## Important commands
 
@@ -560,6 +564,19 @@ python manage.py check_storage
 python manage.py test
 python manage.py collectstatic --noinput
 ```
+
+Audit the pinned Python dependencies before every release and whenever
+`requirements.txt` changes:
+
+```powershell
+python -m pip install -r requirements-audit.txt
+python -m pip_audit -r requirements.txt --progress-spinner off
+```
+
+The scheduled GitHub security workflow runs the same vulnerability audit every
+week and for dependency changes. A clean result applies to the advisory data at
+scan time, so future findings still require updating and retesting the affected
+package.
 
 Focused announcement, catalog, resource, and administrator tests:
 
@@ -591,6 +608,10 @@ responses, and automatic WebP optimization for new cover uploads. Essential
 session and CSRF cookies remain available when a visitor declines optional
 analytics.
 
+The enforced authentication, authorization, CSRF, validation, upload, XSS,
+dependency, production, sensitive-data, and rate-limit controls are summarized
+in [`SECURITY.md`](SECURITY.md).
+
 The policy page also publishes service/operator contact details, a third-party
 dependency inventory, data-minimization practices, minor/guardian consent,
 accessibility features, open-source and uploaded-image licensing rules, email
@@ -617,9 +638,11 @@ example Redis); otherwise each instance maintains a separate counter. Set
 proxy that replaces `X-Forwarded-For`.
 
 Linux deployment platforms can start ATLAS with the included `Procfile`. It
-uses one Gunicorn worker with four threads so the lazily loaded detector weights
-are held once per application instance instead of being duplicated across
-multiple worker processes. Before starting a new release, run:
+uses one Gunicorn worker with eight configurable threads so the lazily loaded
+detector weights are held once per application instance instead of being
+duplicated across multiple worker processes. The PostgreSQL plan must allow at
+least eight web connections plus administrative and deployment connections.
+Before starting a new release, run:
 
 ```powershell
 python manage.py migrate
@@ -657,7 +680,7 @@ configure:
 
 ```text
 Build Command: bash build.sh
-Start Command: gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --access-logfile -
+Start Command: gunicorn atlas.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads ${GUNICORN_THREADS:-8} --timeout ${GUNICORN_TIMEOUT:-300} --access-logfile -
 Health Check Path: /health/
 ```
 
@@ -691,7 +714,7 @@ resource it reports as missing.
 On Windows Server, use the installed Waitress server instead:
 
 ```powershell
-waitress-serve --listen=0.0.0.0:8000 atlas.wsgi:application
+waitress-serve --threads=8 --listen=0.0.0.0:8000 atlas.wsgi:application
 ```
 
 The AI model cache must be stored on persistent disk in production. On Render,

@@ -1,5 +1,8 @@
 """Security, privacy, performance, and public-error regression coverage."""
 
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
+
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -33,12 +36,18 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
         def opening_tag(response):
             content = response.content.decode()
             marker = content.index('id="cookieConsent"')
-            return content[content.rfind("<section", 0, marker):content.index(">", marker)]
+            return content[
+                content.rfind("<section", 0, marker) : content.index(">", marker)
+            ]
 
-        self.assertNotIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
+        self.assertNotIn(
+            "hidden", opening_tag(self.client.get(reverse("library:landing")))
+        )
 
         self.client.cookies["atlas_cookie_consent"] = "essential"
-        self.assertIn("hidden", opening_tag(self.client.get(reverse("library:landing"))))
+        self.assertIn(
+            "hidden", opening_tag(self.client.get(reverse("library:landing")))
+        )
 
     def test_cookie_preference_can_be_changed_without_javascript(self):
         preferences = self.client.get(reverse("library:cookie_preferences"))
@@ -199,12 +208,24 @@ class AbuseProtectionTests(LibraryTestCase):
                 "privacy_consent": "on",
             }
 
-        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 429)
-        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 429)
+        self.assertEqual(
+            self.client.post(url, payload("one@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("two@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("one@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("two@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("one@example.com")).status_code, 429
+        )
+        self.assertEqual(
+            self.client.post(url, payload("two@example.com")).status_code, 429
+        )
 
     @override_settings(RATE_LIMIT_LOGIN_REQUESTS=1)
     def test_successful_login_does_not_consume_failed_attempt_allowance(self):
@@ -235,6 +256,18 @@ class AbuseProtectionTests(LibraryTestCase):
         for _ in range(8):
             self.assertEqual(self.client.get(url).status_code, 200)
 
+    @override_settings(RATE_LIMIT_SEARCH_REQUESTS=600)
+    def test_fifty_readers_on_one_school_ip_can_search_without_429(self):
+        url = reverse("library:catalog")
+
+        for reader_number in range(50):
+            response = self.client.get(
+                url,
+                {"q": f"reader-{reader_number}"},
+                REMOTE_ADDR="192.0.2.10",
+            )
+            self.assertEqual(response.status_code, 200)
+
     def test_catalog_search_has_a_separate_generous_limit(self):
         url = reverse("library:catalog")
 
@@ -260,9 +293,15 @@ class AbuseProtectionTests(LibraryTestCase):
                 "privacy_consent": "on",
             }
 
-        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("two@example.com")).status_code, 200)
-        self.assertEqual(self.client.post(url, payload("one@example.com")).status_code, 429)
+        self.assertEqual(
+            self.client.post(url, payload("one@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("two@example.com")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(url, payload("one@example.com")).status_code, 429
+        )
 
     def test_registration_honeypot_rejects_bot_submission(self):
         payload = {
@@ -285,9 +324,7 @@ class AbuseProtectionTests(LibraryTestCase):
             "name": "Link Spammer",
             "email": "spam@example.com",
             "subject": "Links",
-            "message": " ".join(
-                f"https://spam{index}.invalid" for index in range(4)
-            ),
+            "message": " ".join(f"https://spam{index}.invalid" for index in range(4)),
         }
 
         response = self.client.post(reverse("library:contact"), payload)
@@ -346,6 +383,27 @@ class AnalyticsConsentTests(LibraryTestCase):
 class SecurityRegressionTests(LibraryTestCase):
     """Exercise the attack cases included in the technical questionnaire."""
 
+    def test_pages_send_an_enforced_content_security_policy(self):
+        response = self.client.get(reverse("library:landing"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("default-src 'self'", response["Content-Security-Policy"])
+        self.assertIn("script-src 'self'", response["Content-Security-Policy"])
+        self.assertIn("object-src 'none'", response["Content-Security-Policy"])
+
+    @override_settings(MAX_REQUEST_BODY_SIZE=16)
+    def test_oversized_request_is_rejected_before_view_processing(self):
+        response = self.client.generic(
+            "POST",
+            reverse("library:guest_login"),
+            data=b"x" * 17,
+            content_type="application/octet-stream",
+        )
+
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertContains(response, "request is too large", status_code=413)
+
     def test_sql_injection_text_is_treated_as_a_literal_search(self):
         self.create_item(title="Visible research title")
 
@@ -398,6 +456,25 @@ class SecurityRegressionTests(LibraryTestCase):
         self.assertIn("not a valid PDF", library_form.errors["resource_abstract"][0])
         self.assertFalse(ai_form.is_valid())
         self.assertIn("not a valid PDF", ai_form.errors["document"][0])
+
+    def test_docx_archive_bomb_is_rejected_before_document_parsing(self):
+        stream = BytesIO()
+        with ZipFile(stream, "w", compression=ZIP_DEFLATED) as archive:
+            archive.writestr("[Content_Types].xml", "<Types />")
+            archive.writestr("word/document.xml", b"0" * (2 * 1024 * 1024))
+        upload = SimpleUploadedFile(
+            "compressed.docx",
+            stream.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            ),
+        )
+
+        form = AIDetectionForm(files={"document": upload})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("unsafe compressed content", form.errors["document"][0])
 
     def test_ai_form_rejects_excessively_long_text(self):
         form = AIDetectionForm(data={"text": "a" * 20001})
@@ -458,8 +535,6 @@ class SecurityRegressionTests(LibraryTestCase):
         csrf_client = self.client_class(enforce_csrf_checks=True)
         csrf_client.force_login(user)
 
-        response = csrf_client.post(
-            reverse("library:favorite_toggle", args=(item.pk,))
-        )
+        response = csrf_client.post(reverse("library:favorite_toggle", args=(item.pk,)))
 
         self.assertEqual(response.status_code, 403)

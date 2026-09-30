@@ -1,0 +1,57 @@
+name: Security audit
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+          cache: pip
+      - name: Install audit tool
+        run: python -m pip install -r requirements-audit.txt
+      - name: Audit pinned dependencies
+        run: python -m pip_audit -r requirements.txt --progress-spinner off
+
+  security-regression:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-only-security-key-with-more-than-fifty-random-looking-characters-2026
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: testserver,localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost
+      DJANGO_ADMIN_PATH: ci-private-admin
+      DATABASE_URL: sqlite:///security-ci.sqlite3
+      DB_SSL_REQUIRE: "False"
+      R2_STORAGE_ENABLED: "False"
+      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+      SITE_ID: "1"
+      AI_DETECTION_ENGINE: fast
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+          cache: pip
+      - name: Install application dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Run security regression suite
+        run: >-
+          python manage.py test
+          library.tests.test_auth_views
+          library.tests.test_hardening
+          library.tests.test_deployment
+          library.tests.test_staff_views.StaffAuthorizationTests

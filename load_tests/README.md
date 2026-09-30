@@ -47,6 +47,13 @@ The authenticated test assigns one numbered account to each virtual user. It
 refuses to run when the selected profile is larger than `TEST_USER_COUNT`, unless
 `ALLOW_SHARED_ACCOUNTS=true` is deliberately supplied.
 
+The `busy` profile is the release gate for ATLAS's 30-50 concurrent-user target.
+Run both public and authenticated variants against staging before release. Both
+must finish with zero 429 responses, zero 5xx responses, a failed-request rate
+below 1%, and p95 response time below two seconds. A passing local run confirms
+application behavior; a staging run is still required to verify the actual web,
+database, network, and object-storage plans.
+
 ## Optional resource-reader coverage
 
 Repository listing, search, resource detail, dashboard, bookmarks, and

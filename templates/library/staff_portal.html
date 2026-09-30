@@ -324,6 +324,29 @@
 
       <section class="staff-panel" id="history" aria-labelledby="historyHeading">
         <div class="staff-panel-heading"><div><span class="section-kicker">Audit trail</span><h2 id="historyHeading">Activity history</h2></div></div>
+        <form class="audit-filter-form" method="get" action="{{ staff_portal_url }}#history" aria-describedby="auditFilterSummary">
+          <div class="form-group">
+            <label for="auditAction">Action</label>
+            <select class="form-select" id="auditAction" name="audit_action">
+              <option value="">All changes</option>
+              {% for value, label in audit_action_choices %}<option value="{{ value }}" {% if selected_audit_action == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="auditStartDate">From date</label>
+            <input class="form-control" id="auditStartDate" type="date" name="audit_start_date" value="{{ selected_audit_start_date }}" max="{{ audit_today }}">
+          </div>
+          <div class="form-group">
+            <label for="auditEndDate">To date</label>
+            <input class="form-control" id="auditEndDate" type="date" name="audit_end_date" value="{{ selected_audit_end_date }}" max="{{ audit_today }}">
+          </div>
+          <div class="audit-filter-actions">
+            {% if audit_filters_active %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#history"><i class="fas fa-rotate-left" aria-hidden="true"></i> Clear</a>{% endif %}
+            <button class="btn-create-admin" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Apply filters</button>
+          </div>
+        </form>
+        {% if audit_filter_error %}<p class="audit-filter-error" role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i> {{ audit_filter_error }}</p>{% endif %}
+        <p class="audit-filter-summary" id="auditFilterSummary" role="status">Showing {{ audit_history_count }} audit entr{{ audit_history_count|pluralize:'y,ies' }}{% if audit_filters_active %} matching the selected filters{% endif %}.</p>
         <div class="activity-history-list">
           {% for entry in activity_history %}
             <article>
@@ -348,7 +371,7 @@
                 </small>
               </div>
             </article>
-          {% empty %}<p class="staff-empty-copy">No tracked changes yet.</p>{% endfor %}
+          {% empty %}<p class="staff-empty-copy">{% if audit_filters_active %}No audit entries match these filters.{% else %}No tracked changes yet.{% endif %}</p>{% endfor %}
         </div>
       </section>
     </div>

@@ -29,7 +29,11 @@ class StyledFormMixin:
 
     def _style_fields(self):
         for field in self.fields.values():
-            css_class = "form-select" if isinstance(field.widget, forms.Select) else "form-control"
+            css_class = (
+                "form-select"
+                if isinstance(field.widget, forms.Select)
+                else "form-control"
+            )
             field.widget.attrs["class"] = " ".join(
                 value for value in (field.widget.attrs.get("class"), css_class) if value
             )
@@ -61,8 +65,8 @@ class BaseAccountCreationForm(StyledFormMixin, UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["password1"].widget.attrs.update({"minlength": "6"})
-        self.fields["password2"].widget.attrs.update({"minlength": "6"})
+        self.fields["password1"].widget.attrs.update({"minlength": "12"})
+        self.fields["password2"].widget.attrs.update({"minlength": "12"})
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -253,7 +257,11 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
                 }
             ),
             "pages": forms.NumberInput(
-                attrs={"placeholder": "Example: 120", "min": "0", "inputmode": "numeric"}
+                attrs={
+                    "placeholder": "Example: 120",
+                    "min": "0",
+                    "inputmode": "numeric",
+                }
             ),
             "file_type": forms.RadioSelect,
             "cover_image": forms.ClearableFileInput(
@@ -291,7 +299,9 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             self.instance.pk and self.instance.resource_abstract
         )
         if self.instance.pk and self.instance.published_on and not self.is_bound:
-            self.fields["publication_month"].initial = self.instance.published_on.strftime("%Y-%m")
+            self.fields[
+                "publication_month"
+            ].initial = self.instance.published_on.strftime("%Y-%m")
             if self.instance.publication_day_known:
                 self.fields["publication_day"].initial = self.instance.published_on.day
 
@@ -304,7 +314,9 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             try:
                 cleaned["resolved_publication_date"] = date(year, month, day_value or 1)
             except ValueError:
-                self.add_error("publication_day", "Enter a valid day for the selected month.")
+                self.add_error(
+                    "publication_day", "Enter a valid day for the selected month."
+                )
 
         upload = cleaned.get("resource_abstract") or self.instance.resource_abstract
         file_type = cleaned.get("file_type")
@@ -333,13 +345,13 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             cover.seek(0)
             with Image.open(cover) as source:
                 if source.width * source.height > self.maximum_cover_pixels:
-                    raise ValidationError(
-                        "The cover image dimensions are too large."
-                    )
+                    raise ValidationError("The cover image dimensions are too large.")
                 image = ImageOps.exif_transpose(source)
                 image.thumbnail(self.maximum_cover_dimensions, Image.Resampling.LANCZOS)
                 if image.mode not in {"RGB", "RGBA"}:
-                    image = image.convert("RGBA" if "transparency" in image.info else "RGB")
+                    image = image.convert(
+                        "RGBA" if "transparency" in image.info else "RGB"
+                    )
                 output = BytesIO()
                 image.save(output, format="WEBP", quality=82, method=6)
         except ValidationError:
@@ -350,7 +362,9 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             UnidentifiedImageError,
             ValueError,
         ) as exc:
-            raise ValidationError("Upload a valid JPG, PNG, or WebP cover image.") from exc
+            raise ValidationError(
+                "Upload a valid JPG, PNG, or WebP cover image."
+            ) from exc
         optimized = ContentFile(
             output.getvalue(),
             name=f"{Path(cover.name).stem}.webp",
@@ -361,10 +375,15 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
     def clean_resource_abstract(self):
         resource_abstract = self.cleaned_data.get("resource_abstract")
         if resource_abstract is False:
-            raise ValidationError("Resource abstract cannot be removed without a replacement.")
+            raise ValidationError(
+                "Resource abstract cannot be removed without a replacement."
+            )
         if not resource_abstract:
             return resource_abstract
-        if Path(resource_abstract.name).suffix.lower() not in self.supported_document_extensions:
+        if (
+            Path(resource_abstract.name).suffix.lower()
+            not in self.supported_document_extensions
+        ):
             raise ValidationError("Upload a PDF or Word (.docx) Resource abstract.")
         if resource_abstract.size > self.maximum_document_size:
             raise ValidationError("The Resource abstract must be 10 MB or smaller.")
@@ -382,6 +401,7 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
 
 class AnnouncementForm(StyledFormMixin, forms.ModelForm):
     """Edit announcement content; publication is a separate staff action."""
@@ -409,7 +429,9 @@ class AnnouncementForm(StyledFormMixin, forms.ModelForm):
 class AdminCreatedUserForm(BaseAccountCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
+        self.fields[
+            "password1"
+        ].help_text = password_validation.password_validators_help_text_html()
 
 
 class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
@@ -459,15 +481,17 @@ class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
     def __init__(self, *args, actor, **kwargs):
         self.actor = actor
         super().__init__(*args, **kwargs)
-        self.fields["username"].help_text = (
+        self.fields[
+            "username"
+        ].help_text = (
             "Used with the administrator password on the private sign-in page."
         )
         self.fields["username"].widget.attrs.update({"autocomplete": "username"})
         self.fields["password1"].widget.attrs.update({"autocomplete": "new-password"})
         self.fields["password2"].widget.attrs.update({"autocomplete": "new-password"})
-        self.fields["password1"].help_text = (
-            password_validation.password_validators_help_text_html()
-        )
+        self.fields[
+            "password1"
+        ].help_text = password_validation.password_validators_help_text_html()
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -603,7 +627,9 @@ class AIDetectionForm(StyledFormMixin, forms.Form):
         label="Upload a document",
         help_text="Accepted formats: PDF and Word (.docx).",
         widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+            attrs={
+                "accept": ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
         ),
     )
 

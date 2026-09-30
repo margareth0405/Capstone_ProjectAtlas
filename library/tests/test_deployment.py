@@ -40,6 +40,9 @@ class HealthCheckTests(SimpleTestCase):
 
 class DeploymentReadinessServiceTests(SimpleTestCase):
     @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["repository.example.edu"],
+        CSRF_TRUSTED_ORIGINS=["https://repository.example.edu"],
         ACCOUNT_EMAIL_VERIFICATION="mandatory",
         EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
         AI_DETECTION_ENGINE="transformer",
@@ -63,10 +66,14 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         self.assertTrue(
             {"atlas.E002", "atlas.E003", "atlas.E004", "atlas.E005"} <= codes
         )
-        self.assertTrue({"atlas.W001", "atlas.W003", "atlas.W004"} <= codes)
+        self.assertTrue({"atlas.W001", "atlas.W003"} <= codes)
+        self.assertIn("atlas.E019", codes)
         self.assertTrue({"atlas.W002", "atlas.E013"} & codes)
 
     @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["repository.example.edu"],
+        CSRF_TRUSTED_ORIGINS=["https://repository.example.edu"],
         ACCOUNT_EMAIL_VERIFICATION="mandatory",
         EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
         EMAIL_HOST_USER="atlas@example.edu",
@@ -166,3 +173,21 @@ class DeploymentReadinessServiceTests(SimpleTestCase):
         codes = {finding.code for finding in findings}
 
         self.assertTrue({"atlas.E010", "atlas.E011"} <= codes)
+
+    @override_settings(
+        ALLOWED_HOSTS=["*"],
+        DEBUG=False,
+        CSRF_TRUSTED_ORIGINS=["http://repository.example.edu"],
+        RATE_LIMIT_ENABLED=True,
+        RATE_LIMIT_LOGIN_REQUESTS=0,
+    )
+    def test_unsafe_host_csrf_and_rate_limit_settings_are_blocking(self):
+        findings = DeploymentReadinessService().inspect_configuration()
+        findings_by_code = {finding.code: finding for finding in findings}
+
+        self.assertTrue(
+            {"atlas.E017", "atlas.E018", "atlas.E020"} <= findings_by_code.keys()
+        )
+        self.assertEqual(findings_by_code["atlas.E017"].severity, "error")
+        self.assertEqual(findings_by_code["atlas.E018"].severity, "error")
+        self.assertEqual(findings_by_code["atlas.E020"].severity, "error")

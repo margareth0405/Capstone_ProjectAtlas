@@ -344,14 +344,80 @@ class DeploymentReadinessService:
                 )
             )
 
+        if "*" in settings.ALLOWED_HOSTS:
+            findings.append(
+                DeploymentFinding(
+                    code="atlas.E017",
+                    severity="error",
+                    message="ALLOWED_HOSTS trusts every Host header.",
+                    hint=(
+                        "Set DJANGO_ALLOWED_HOSTS to the exact production hostname(s); "
+                        "do not use '*'."
+                    ),
+                )
+            )
+
+        if not settings.DEBUG:
+            insecure_origins = [
+                origin
+                for origin in settings.CSRF_TRUSTED_ORIGINS
+                if not origin.startswith("https://")
+            ]
+            if insecure_origins:
+                findings.append(
+                    DeploymentFinding(
+                        code="atlas.E018",
+                        severity="error",
+                        message="A production CSRF trusted origin does not use HTTPS.",
+                        hint=(
+                            "Use only https:// origins in DJANGO_CSRF_TRUSTED_ORIGINS."
+                        ),
+                    )
+                )
+
         if not settings.RATE_LIMIT_ENABLED:
             findings.append(
                 DeploymentFinding(
-                    code="atlas.W004",
+                    code="atlas.E019",
+                    severity="error",
                     message="Application rate limiting is disabled.",
                     hint="Set RATE_LIMIT_ENABLED=True for a public deployment.",
                 )
             )
+        else:
+            rate_settings = (
+                "RATE_LIMIT_SEARCH_REQUESTS",
+                "RATE_LIMIT_SEARCH_WINDOW",
+                "RATE_LIMIT_LOGIN_REQUESTS",
+                "RATE_LIMIT_LOGIN_WINDOW",
+                "RATE_LIMIT_REGISTER_REQUESTS",
+                "RATE_LIMIT_REGISTER_WINDOW",
+                "RATE_LIMIT_CONTACT_REQUESTS",
+                "RATE_LIMIT_CONTACT_WINDOW",
+                "RATE_LIMIT_EMAIL_REQUESTS",
+                "RATE_LIMIT_EMAIL_WINDOW",
+                "RATE_LIMIT_UPLOAD_REQUESTS",
+                "RATE_LIMIT_UPLOAD_WINDOW",
+                "RATE_LIMIT_AI_REQUESTS",
+                "RATE_LIMIT_AI_WINDOW",
+                "RATE_LIMIT_STAFF_REQUESTS",
+                "RATE_LIMIT_STAFF_WINDOW",
+            )
+            invalid_rate_settings = [
+                name for name in rate_settings if getattr(settings, name) <= 0
+            ]
+            if invalid_rate_settings:
+                findings.append(
+                    DeploymentFinding(
+                        code="atlas.E020",
+                        severity="error",
+                        message="One or more rate-limit values disable protection.",
+                        hint=(
+                            "Set every rate-limit request and window value to a "
+                            "positive integer: " + ", ".join(invalid_rate_settings)
+                        ),
+                    )
+                )
         return findings
 
     def pending_migrations(self):

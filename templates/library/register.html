@@ -81,7 +81,7 @@
                 name="password1"
                 id="id_password1"
                 class="form-control{% if form.password1.errors %} is-invalid{% endif %}"
-                minlength="6"
+                minlength="12"
                 autocomplete="new-password"
                 aria-describedby="passwordRequirements{% if form.password1.errors %} password1Errors{% endif %}"
                 required
@@ -100,7 +100,7 @@
               name="password2"
               id="id_password2"
               class="form-control{% if form.password2.errors %} is-invalid{% endif %}"
-              minlength="6"
+              minlength="12"
               autocomplete="new-password"
               aria-describedby="passwordConfirmationHelp{% if form.password2.errors %} password2Errors{% endif %}"
               required
@@ -117,7 +117,7 @@
         <div class="password-guidance" id="passwordRequirements" data-password-guidance aria-live="polite">
           <p class="password-guidance-title">Your password must include:</p>
           <ul class="password-checklist" aria-label="Password requirements">
-            <li data-password-rule="length"><i class="fas fa-circle" aria-hidden="true"></i><span>At least 6 characters</span></li>
+            <li data-password-rule="length"><i class="fas fa-circle" aria-hidden="true"></i><span>At least 12 characters</span></li>
             <li data-password-rule="number"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one number</span></li>
             <li data-password-rule="special"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one special character, such as !, @, #, or $</span></li>
             <li data-password-rule="match"><i class="fas fa-circle" aria-hidden="true"></i><span>Both password fields match</span></li>

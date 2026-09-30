@@ -125,7 +125,7 @@
       var password = this.password ? this.password.value : "";
       var confirmation = this.confirmation ? this.confirmation.value : "";
       return {
-        length: password.length >= 6,
+        length: password.length >= 12,
         number: /\d/.test(password),
         special: /[^\w\s]/.test(password),
         match: password.length > 0 && confirmation.length > 0 && password === confirmation,
@@ -159,7 +159,7 @@
         return { score: Math.max(1, metCount), label: "Weak", level: "weak" };
       }
       var hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
-      if (password.length >= 10 && hasMixedCase) {
+      if (password.length >= 14 && hasMixedCase) {
         return { score: 4, label: "Strong", level: "strong" };
       }
       return { score: 3, label: "Fair", level: "fair" };

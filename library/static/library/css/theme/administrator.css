@@ -719,7 +719,73 @@
 .activity-history-list {
     display: grid;
     max-height: 31rem;
+    overscroll-behavior: contain;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.audit-filter-form {
+    background: #fcfaf9;
+    border: 1px solid #e7dfdb;
+    border-radius: 14px;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+}
+
+.audit-filter-form .form-group {
+    margin: 0;
+    min-width: 0;
+}
+
+.audit-filter-form label {
+    color: #5f5753;
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+
+.audit-filter-form :is(input, select) {
+    width: 100%;
+}
+
+.audit-filter-actions {
+    align-items: center;
+    display: flex;
+    gap: 0.6rem;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+}
+
+.audit-filter-actions .btn,
+.audit-filter-actions .btn-create-admin {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.4rem;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.audit-filter-summary,
+.audit-filter-error {
+    border-radius: 10px;
+    font-size: 0.76rem;
+    margin: 0 0 0.6rem;
+    padding: 0.55rem 0.7rem;
+}
+
+.audit-filter-summary {
+    background: #f5f1ef;
+    color: #655d59;
+}
+
+.audit-filter-error {
+    background: #fff0f1;
+    border: 1px solid #efc1c6;
+    color: #8d2333;
 }
 
 .activity-history-list article {
@@ -825,6 +891,31 @@
     .staff-filter-bar > *,
     .analytics-date-form > * {
         width: 100%;
+    }
+
+    .audit-filter-form {
+        grid-template-columns: 1fr;
+        padding: 0.75rem;
+    }
+
+    .audit-filter-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+        grid-column: auto;
+    }
+
+    .audit-filter-actions .btn,
+    .audit-filter-actions .btn-create-admin {
+        width: 100%;
+    }
+
+    .activity-history-list {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .activity-history-list article {
+        flex-direction: column;
     }
 }
 /* AI Detection administrator service */

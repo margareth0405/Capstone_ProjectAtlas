@@ -7,11 +7,39 @@ from typing import ClassVar
 from django.conf import settings
 from django.core.cache import cache
 from django.core.signing import salted_hmac
+from django.http import HttpResponse
 from django.shortcuts import render
 
 from library.services.usage import WebsiteUsageTracker
 
 logger = logging.getLogger(__name__)
+
+
+class RequestBodySizeLimitMiddleware:
+    """Reject oversized state-changing requests before parsing uploaded data."""
+
+    body_methods: ClassVar[set[str]] = {"POST", "PUT", "PATCH"}
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.method in self.body_methods:
+            raw_length = request.META.get("CONTENT_LENGTH", "").strip()
+            try:
+                content_length = int(raw_length) if raw_length else 0
+            except (TypeError, ValueError):
+                content_length = 0
+            if content_length > settings.MAX_REQUEST_BODY_SIZE:
+                response = HttpResponse(
+                    "This request is too large. Choose a smaller file and try again.",
+                    status=413,
+                    content_type="text/plain; charset=utf-8",
+                )
+                response["Cache-Control"] = "no-store"
+                response["X-Content-Type-Options"] = "nosniff"
+                return response
+        return self.get_response(request)
 
 
 class RateLimitMiddleware:
@@ -172,10 +200,10 @@ class RateLimitMiddleware:
             value = f"user:{user.pk}"
         elif strategy == "account":
             account = (
-                request.POST.get("email")
-                or request.POST.get("username")
-                or ""
-            ).strip().casefold()
+                (request.POST.get("email") or request.POST.get("username") or "")
+                .strip()
+                .casefold()
+            )
             value = (
                 f"account:{account}"
                 if account
