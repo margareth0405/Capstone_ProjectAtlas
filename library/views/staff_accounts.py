@@ -10,12 +10,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 
-from library.forms import AdminCreatedUserForm, StaffAccountUpdateForm
+from library.forms import (
+    AdminCreatedUserForm,
+    StaffAccountUpdateForm,
+    SuperuserCreatedAdminForm,
+)
 from library.models import ActivityLog
 from library.services import PageContextBuilder
 from library.services.activity import ActivityRecorder
 
-from .mixins import StaffRequiredMixin
+from .mixins import StaffRequiredMixin, SuperuserRequiredMixin
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +74,55 @@ class StaffUserCreateView(StaffRequiredMixin, View):
                 "submit_label": "Create account",
             }
         )
+        return render(self.request, self.template_name, context)
+
+
+class SuperuserAdminCreateView(SuperuserRequiredMixin, View):
+    """Allow only a superuser to create a regular administrator account."""
+
+    template_name = "library/admin/administrator_form.html"
+    form_class = SuperuserCreatedAdminForm
+    activity_recorder_class = ActivityRecorder
+
+    def get(self, request):
+        return self._render(self.form_class(actor=request.user))
+
+    def post(self, request):
+        form = self.form_class(request.POST, actor=request.user)
+        try:
+            if form.is_valid():
+                with transaction.atomic():
+                    administrator = form.save()
+                    self.activity_recorder_class.record(
+                        actor=request.user,
+                        action=ActivityLog.Action.CREATE,
+                        object_type="administrator account",
+                        object_id=administrator.pk,
+                        description=administrator.email,
+                    )
+                messages.success(
+                    request,
+                    f"Administrator account created for {administrator.email}.",
+                )
+                return redirect(f'{reverse("library:staff_portal")}#users')
+        except DatabaseError:
+            logger.exception("Administrator account creation failed and was rolled back")
+            form.add_error(
+                None,
+                "ATLAS could not create the administrator account. No account "
+                "was added. Try again after the database is available.",
+            )
+            messages.error(request, "The administrator account could not be created.")
+            return self._render(form)
+        messages.error(
+            request,
+            "The administrator account was not created. Review the highlighted fields.",
+        )
+        return self._render(form)
+
+    def _render(self, form):
+        context = PageContextBuilder(self.request).build("users")
+        context.update({"form": form})
         return render(self.request, self.template_name, context)
 
 

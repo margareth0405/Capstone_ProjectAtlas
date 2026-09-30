@@ -9,6 +9,7 @@
   {% url 'library:staff_item_create' as staff_item_create_url %}
   {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
   {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:superuser_admin_create' as superuser_admin_create_url %}
   {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
   {% url 'library:catalog' as catalog_url %}
   {% url 'library:announcements' as announcements_url %}
@@ -117,7 +118,12 @@
     <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
       <div class="user-monitoring-header">
         <div><span class="section-kicker">Accounts</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2></div>
-        <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a>
+        <div class="resource-actions">
+          <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create reader account</a>
+          {% if request.user.is_superuser %}
+            <a class="btn-register-admin" href="{{ superuser_admin_create_url }}"><i class="fas fa-user-shield" aria-hidden="true"></i> Create administrator</a>
+          {% endif %}
+        </div>
       </div>
 
       <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>

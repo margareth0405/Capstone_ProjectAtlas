@@ -17,7 +17,16 @@
         {% for field in form %}
           <div class="form-group field-{{ field.name }}{% if field.name == 'current_password' %} admin-full-field{% endif %}">
             <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
-            {{ field }}
+            {% if field.field.widget.input_type == 'password' %}
+              <div class="password-field">
+                {{ field }}
+                <button class="password-toggle" type="button" data-password-toggle="{{ field.id_for_label }}" aria-label="Show {{ field.label|lower }}">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                </button>
+              </div>
+            {% else %}
+              {{ field }}
+            {% endif %}
             {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
             {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
           </div>

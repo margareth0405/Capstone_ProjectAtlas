@@ -775,6 +775,31 @@
   }
 
   function initializePasswordToggles() {
+    var passwordIndex = 0;
+    document.querySelectorAll('input[type="password"]').forEach(function (input) {
+      if (!input.id) {
+        passwordIndex += 1;
+        input.id = "atlas-password-" + passwordIndex;
+      }
+      if (document.querySelector('[data-password-toggle="' + input.id + '"]')) return;
+
+      var wrapper = input.parentElement;
+      if (!wrapper || !wrapper.classList.contains("password-field")) {
+        wrapper = document.createElement("div");
+        wrapper.className = "password-field";
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+      }
+
+      var button = document.createElement("button");
+      button.className = "password-toggle";
+      button.type = "button";
+      button.dataset.passwordToggle = input.id;
+      button.setAttribute("aria-label", "Show password");
+      button.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i>';
+      wrapper.appendChild(button);
+    });
+
     document.querySelectorAll("[data-password-toggle]").forEach(function (button) {
       button.addEventListener("click", function () {
         var input = document.getElementById(button.dataset.passwordToggle);

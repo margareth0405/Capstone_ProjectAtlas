@@ -3,6 +3,7 @@ from datetime import date
 from io import BytesIO
 from pathlib import Path
 
+from allauth.account.models import EmailAddress
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, password_validation
@@ -403,6 +404,96 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
+
+
+class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
+    """Create a non-superuser administrator after re-authenticating the owner."""
+
+    full_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={"placeholder": "Example: Maria Santos", "autocomplete": "name"}
+        ),
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "placeholder": "Example: administrator@example.com",
+                "autocomplete": "email",
+            }
+        )
+    )
+    current_password = forms.CharField(
+        strip=False,
+        label="Your main administrator password",
+        help_text="Confirms that you are authorized to create another administrator.",
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = (
+            "full_name",
+            "email",
+            "username",
+            "password1",
+            "password2",
+            "current_password",
+        )
+
+    field_order = (
+        "full_name",
+        "email",
+        "username",
+        "password1",
+        "password2",
+        "current_password",
+    )
+
+    def __init__(self, *args, actor, **kwargs):
+        self.actor = actor
+        super().__init__(*args, **kwargs)
+        self.fields["username"].help_text = (
+            "Used with the administrator password on the private sign-in page."
+        )
+        self.fields["username"].widget.attrs.update({"autocomplete": "username"})
+        self.fields["password1"].widget.attrs.update({"autocomplete": "new-password"})
+        self.fields["password2"].widget.attrs.update({"autocomplete": "new-password"})
+        self.fields["password1"].help_text = (
+            password_validation.password_validators_help_text_html()
+        )
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if (
+            User.objects.filter(email__iexact=email).exists()
+            or EmailAddress.objects.filter(email__iexact=email).exists()
+        ):
+            raise ValidationError("An account with this email already exists.")
+        return email
+
+    def clean_current_password(self):
+        password = self.cleaned_data.get("current_password", "")
+        if not self.actor.check_password(password):
+            raise ValidationError("Your main administrator password is incorrect.")
+        return password
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        full_name = " ".join(self.cleaned_data["full_name"].split())
+        user.first_name, _, user.last_name = full_name.partition(" ")
+        user.email = self.cleaned_data["email"]
+        user.is_active = True
+        user.is_staff = True
+        user.is_superuser = False
+        if commit:
+            user.save()
+            EmailAddress.objects.update_or_create(
+                user=user,
+                email=user.email,
+                defaults={"verified": True, "primary": True},
+            )
+        return user
 
 
 class StaffAccountUpdateForm(StyledFormMixin, forms.Form):

@@ -4,6 +4,7 @@ from .staff_accounts import (
     StaffAccountEditView,
     StaffUserCreateView,
     StaffUserDeleteView,
+    SuperuserAdminCreateView,
 )
 from .staff_ai import StaffAIDetectionView
 from .staff_crud import (
@@ -20,8 +21,8 @@ from .staff_crud import (
 from .staff_dashboard import StaffPortalView
 
 __all__ = (
-    "StaffAccountEditView",
     "StaffAIDetectionView",
+    "StaffAccountEditView",
     "StaffAnnouncementCreateView",
     "StaffAnnouncementDeleteView",
     "StaffAnnouncementEditView",
@@ -34,4 +35,5 @@ __all__ = (
     "StaffPortalView",
     "StaffUserCreateView",
     "StaffUserDeleteView",
+    "SuperuserAdminCreateView",
 )

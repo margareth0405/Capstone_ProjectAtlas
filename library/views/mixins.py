@@ -27,3 +27,18 @@ class StaffRequiredMixin:
         if not (request.user.is_active and request.user.is_staff):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
+
+
+class SuperuserRequiredMixin:
+    """Restrict especially sensitive staff actions to the root administrator."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), reverse("admin:login"))
+        if not (
+            request.user.is_active
+            and request.user.is_staff
+            and request.user.is_superuser
+        ):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)

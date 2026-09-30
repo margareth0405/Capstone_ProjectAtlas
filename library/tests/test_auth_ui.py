@@ -125,6 +125,42 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertIn('special: /[^\\w\\s]/.test(password)', script)
         self.assertIn('this.updateRule("match"', script)
 
+    def test_every_password_input_can_receive_a_visibility_toggle(self):
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "app.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('querySelectorAll(\'input[type="password"]\')', script)
+        self.assertIn('input.type = show ? "text" : "password"', script)
+        self.assertIn('show ? "Hide password" : "Show password"', script)
+
+        template_expectations = {
+            "templates/account/password_reset_from_key.html": (
+                "id_password1",
+                "id_password2",
+            ),
+            "templates/account/password_change.html": ("data-password-toggle",),
+            "templates/account/password_set.html": ("data-password-toggle",),
+            "templates/library/admin/user_form.html": ("data-password-toggle",),
+            "templates/library/admin/account_form.html": ("data-password-toggle",),
+            "templates/library/admin/administrator_form.html": (
+                "data-password-toggle",
+            ),
+        }
+        for relative_path, expected_markers in template_expectations.items():
+            with self.subTest(template=relative_path):
+                template = (Path(settings.BASE_DIR) / relative_path).read_text(
+                    encoding="utf-8"
+                )
+                self.assertIn("password-field", template)
+                for marker in expected_markers:
+                    self.assertIn(marker, template)
+
     def test_invalid_teacher_login_post_preserves_hidden_role(self):
         response = self.client.post(
             reverse("library:login"),

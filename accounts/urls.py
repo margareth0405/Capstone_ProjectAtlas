@@ -20,6 +20,11 @@ urlpatterns = [
         name="staff_user_create",
     ),
     path(
+        "staff/administrators/add/",
+        views.SuperuserAdminCreateView.as_view(),
+        name="superuser_admin_create",
+    ),
+    path(
         "staff/users/<int:pk>/edit/",
         views.StaffAccountEditView.as_view(),
         name="staff_admin_edit",

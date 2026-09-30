@@ -39,6 +39,7 @@ from .staff import (
     StaffPortalView,
     StaffUserCreateView,
     StaffUserDeleteView,
+    SuperuserAdminCreateView,
 )
 
 __all__ = (
@@ -60,8 +61,8 @@ __all__ = (
     "ResourceCoverView",
     "RobotsView",
     "SitemapView",
-    "StaffAccountEditView",
     "StaffAIDetectionView",
+    "StaffAccountEditView",
     "StaffAnnouncementCreateView",
     "StaffAnnouncementDeleteView",
     "StaffAnnouncementEditView",
@@ -73,5 +74,6 @@ __all__ = (
     "StaffPortalView",
     "StaffUserCreateView",
     "StaffUserDeleteView",
+    "SuperuserAdminCreateView",
     "UsageHeartbeatView",
 )

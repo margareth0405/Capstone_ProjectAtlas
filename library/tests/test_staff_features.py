@@ -4,6 +4,7 @@ from datetime import datetime, time, timedelta
 from io import BytesIO
 from unittest.mock import patch
 
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
@@ -121,6 +122,126 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
         target.refresh_from_db()
         self.assertEqual(target.username, "managed-admin")
+
+    def test_only_superuser_can_open_administrator_creation(self):
+        url = reverse("library:superuser_admin_create")
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 403)
+        portal = self.client.get(reverse("library:staff_portal"))
+        self.assertNotContains(portal, url)
+
+        superuser = self.create_user(
+            email="root-create-admin@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Create an administrator account")
+        self.assertContains(response, 'data-password-toggle="id_password1"')
+        self.assertContains(response, 'data-password-toggle="id_password2"')
+        self.assertContains(response, 'data-password-toggle="id_current_password"')
+        self.assertContains(self.client.get(reverse("library:staff_portal")), url)
+
+    def test_superuser_can_create_regular_administrator(self):
+        superuser = self.create_user(
+            email="root-owner@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        response = self.client.post(
+            reverse("library:superuser_admin_create"),
+            {
+                "full_name": "Second Administrator",
+                "email": "second-admin@example.com",
+                "username": "second-admin",
+                "password1": "Quartz-Library-2026!",
+                "password2": "Quartz-Library-2026!",
+                "current_password": TEST_PASSWORD,
+                # Unexpected privilege fields must never create another superuser.
+                "is_staff": "on",
+                "is_superuser": "on",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            f'{reverse("library:staff_portal")}#users',
+        )
+        administrator = get_user_model().objects.get(
+            email="second-admin@example.com"
+        )
+        self.assertTrue(administrator.is_active)
+        self.assertTrue(administrator.is_staff)
+        self.assertFalse(administrator.is_superuser)
+        self.assertTrue(administrator.check_password("Quartz-Library-2026!"))
+        self.assertFalse(Profile.objects.filter(user=administrator).exists())
+        self.assertTrue(
+            EmailAddress.objects.filter(
+                user=administrator,
+                email=administrator.email,
+                verified=True,
+                primary=True,
+            ).exists()
+        )
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                actor=superuser,
+                action=ActivityLog.Action.CREATE,
+                object_type="administrator account",
+                object_id=str(administrator.pk),
+            ).exists()
+        )
+
+        self.client.logout()
+        self.assertTrue(
+            self.client.login(
+                username="second-admin",
+                password="Quartz-Library-2026!",
+            )
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:staff_portal")).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:superuser_admin_create")).status_code,
+            403,
+        )
+
+    def test_administrator_creation_requires_superuser_password(self):
+        superuser = self.create_user(
+            email="root-password-check@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        response = self.client.post(
+            reverse("library:superuser_admin_create"),
+            {
+                "full_name": "Blocked Administrator",
+                "email": "blocked-admin@example.com",
+                "username": "blocked-admin",
+                "password1": "Blocked-Admin-2026!",
+                "password2": "Blocked-Admin-2026!",
+                "current_password": "incorrect-password",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "main administrator password is incorrect")
+        self.assertFalse(
+            get_user_model()
+            .objects.filter(email="blocked-admin@example.com")
+            .exists()
+        )
 
     def test_user_directory_falls_back_when_optional_join_fails(self):
         fallback_accounts = [self.staff]

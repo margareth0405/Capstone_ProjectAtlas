@@ -1,26 +1,25 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
-{% block title %}Administrator Account | ATLAS{% endblock %}
-{% block meta_description %}Update protected ATLAS administrator credentials.{% endblock %}
-{% block breadcrumb %}Administrator Account{% endblock %}
+{% block title %}Create Administrator | ATLAS{% endblock %}
+{% block meta_description %}Create a protected ATLAS administrator account.{% endblock %}
+{% block breadcrumb %}Create Administrator{% endblock %}
 
 {% block dashboard_content %}
+  {% url 'library:staff_portal' as staff_portal_url %}
   <div class="admin-form-page">
     <header class="django-page-header">
       <div>
-        <span class="section-kicker">Protected account settings</span>
-        <h1>{% if editing_self %}Edit my administrator account{% else %}Edit administrator account{% endif %}</h1>
+        <span class="section-kicker">Main administrator only</span>
+        <h1>Create an administrator account</h1>
       </div>
     </header>
 
     <div class="usage-count-note" role="note">
       <i class="fas fa-shield-halved" aria-hidden="true"></i>
-      {% if editing_self %}
-        Enter your current administrator password to authorize any change.
-      {% else %}
-        You are editing <strong>{{ account.get_username }}</strong>. Only a superuser can edit another administrator.
-      {% endif %}
+      The new administrator can access the staff portal but cannot create other
+      administrators or receive main-administrator privileges. Confirm this action
+      with your current password.
     </div>
 
     <form method="post" class="admin-object-form" novalidate>
@@ -28,7 +27,7 @@
       {% include "library/includes/form_errors.html" with form=form %}
       <div class="admin-form-grid">
         {% for field in form %}
-          <div class="form-group{% if 'password' in field.name %} admin-full-field{% endif %}">
+          <div class="form-group field-{{ field.name }}{% if field.field.widget.input_type == 'password' %} admin-full-field{% endif %}">
             <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
             {% if field.field.widget.input_type == 'password' %}
               <div class="password-field">
@@ -41,13 +40,13 @@
               {{ field }}
             {% endif %}
             {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
-            {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
           </div>
         {% endfor %}
       </div>
       <div class="admin-form-actions">
-        <a class="btn btn-outline-secondary" href="{{ cancel_url }}">Cancel</a>
-        <button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save account settings</button>
+        <a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#users">Cancel</a>
+        <button class="btn-create-admin" type="submit"><i class="fas fa-user-shield" aria-hidden="true"></i> Create administrator</button>
       </div>
     </form>
   </div>
