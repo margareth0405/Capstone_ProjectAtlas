@@ -541,6 +541,14 @@ age/guardian consent and privacy-request classification. Do not manually add
 or rename these columns; Django migrations handle both new and existing
 installations.
 
+## Load testing
+
+Staged public and authenticated k6 scenarios, safe test-account creation, and
+the 10/25/50/100/150-user workflow are documented in
+[`load_tests/README.md`](load_tests/README.md). Start with the local smoke
+profile and review all errors before increasing concurrency. Remote targets
+require an explicit authorization opt-in.
+
 ## Important commands
 
 ```powershell

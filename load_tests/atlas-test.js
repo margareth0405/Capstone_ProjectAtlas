@@ -8,11 +8,18 @@ const serverErrors = new Counter("server_errors");
 
 export const options = {
   stages: [
-    { duration: "10s", target: 1 },
-    { duration: "20s", target: 10 },
-    { duration: "30s", target: 32 },
-    { duration: "30s", target: 32 },
-    { duration: "10s", target: 0 },
+    { duration: "30s", target: 10 },
+    { duration: "30s", target: 25 },
+    { duration: "1m", target: 50 },
+    { duration: "1m", target: 75 },
+    { duration: "1m", target: 100 },
+
+    // Keep 100 students active
+    { duration: "2m", target: 100 },
+
+    // Gradually finish the test
+    { duration: "30s", target: 50 },
+    { duration: "30s", target: 0 },
   ],
 
   thresholds: {
