@@ -281,6 +281,12 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("html.atlas-dark", dark_styles)
         self.assertIn("color-scheme: dark;", dark_styles)
         self.assertIn("html.atlas-dark.atlas-high-contrast", dark_styles)
+        self.assertIn("html.atlas-dark .topbar .user-greeting", dark_styles)
+        self.assertIn("html.atlas-dark .user-activity-table thead th", dark_styles)
+        self.assertIn("html.atlas-dark .ai-score.high", dark_styles)
+        self.assertIn("html.atlas-dark .resource-availability-badge.is-available", dark_styles)
+        self.assertIn("--atlas-dark-text: #f4edef;", dark_styles)
+        self.assertIn("--atlas-dark-muted: #cdbfc3;", dark_styles)
         self.assertIn("@media (max-width: 600px)", responsive_styles)
         self.assertIn("font-size: 16px;", responsive_styles)
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important;", responsive_styles)
@@ -346,4 +352,19 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
             ("625956", "ffffff"),
         ):
             with self.subTest(foreground=foreground, background=background):
+                self.assertGreaterEqual(contrast(foreground, background), 4.5)
+
+        for foreground, background in (
+            ("f4edef", "141012"),
+            ("cdbfc3", "141012"),
+            ("cdbfc3", "211a1d"),
+            ("f0b7c2", "211a1d"),
+            ("a9f3c2", "183426"),
+            ("f4dfb0", "352b18"),
+            ("ffdce2", "3a2025"),
+            ("b9ddff", "1c2c40"),
+        ):
+            with self.subTest(
+                theme="dark", foreground=foreground, background=background
+            ):
                 self.assertGreaterEqual(contrast(foreground, background), 4.5)

@@ -1,6 +1,25 @@
 /* Persistent dark reading theme. Loaded after role themes so every portal uses it. */
 html.atlas-dark {
   color-scheme: dark;
+  --atlas-dark-bg: #141012;
+  --atlas-dark-surface: #211a1d;
+  --atlas-dark-raised: #2a2225;
+  --atlas-dark-border: #57464c;
+  --atlas-dark-text: #f4edef;
+  --atlas-dark-muted: #cdbfc3;
+  --atlas-dark-accent: #f0b7c2;
+  --atlas-dark-success-bg: #183426;
+  --atlas-dark-success-border: #376a4b;
+  --atlas-dark-success-text: #a9f3c2;
+  --atlas-dark-warning-bg: #352b18;
+  --atlas-dark-warning-border: #8d7136;
+  --atlas-dark-warning-text: #f4dfb0;
+  --atlas-dark-danger-bg: #3a2025;
+  --atlas-dark-danger-border: #8c4a58;
+  --atlas-dark-danger-text: #ffdce2;
+  --atlas-dark-info-bg: #1c2c40;
+  --atlas-dark-info-border: #3f668b;
+  --atlas-dark-info-text: #b9ddff;
 }
 
 html.atlas-dark body,
@@ -244,6 +263,381 @@ html.atlas-dark .page-loader {
   background: #141012;
 }
 
+/*
+ * Component contrast pass
+ *
+ * These explicit selectors intentionally match the specificity of the role and
+ * page styles. This prevents light-only backgrounds and dark text from leaking
+ * into the shared dark theme.
+ */
+html.atlas-dark ::selection {
+  background: #9f4359;
+  color: #fff;
+}
+
+html.atlas-dark :focus-visible {
+  outline-color: #f0b7c2;
+}
+
+html.atlas-dark .topbar .search-box,
+html.atlas-dark .topbar .user-greeting,
+html.atlas-dark .login-container {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .topbar .search-box input,
+html.atlas-dark .topbar .search-box i,
+html.atlas-dark .topbar .user-greeting,
+html.atlas-dark .topbar .user-greeting i {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .topbar .search-box:focus-within {
+  border-color: #dc8fa0;
+  box-shadow: 0 0 0 3px rgba(220, 143, 160, 0.2);
+}
+
+html.atlas-dark .breadcrumb-item,
+html.atlas-dark .breadcrumb-item.active,
+html.atlas-dark .staff-record-list small,
+html.atlas-dark .staff-empty-copy,
+html.atlas-dark .resource-byline {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .administrator-upload-section,
+html.atlas-dark .user-monitoring,
+html.atlas-dark .user-stat-card,
+html.atlas-dark .staff-ai-entry,
+html.atlas-dark .announcement-filters,
+html.atlas-dark .resource-metadata,
+html.atlas-dark .resource-reader-content,
+html.atlas-dark .catalog-announcement-grid a,
+html.atlas-dark .catalog-card-dates div,
+html.atlas-dark .login-container .login-card,
+html.atlas-dark .reader-favorites-section,
+html.atlas-dark .favorite-card,
+html.atlas-dark .guest-restricted {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+  box-shadow: none;
+}
+
+html.atlas-dark .user-stat-icon,
+html.atlas-dark .staff-service-icon,
+html.atlas-dark .catalog-cover-placeholder,
+html.atlas-dark .ai-upload-field,
+html.atlas-dark .file-drop-target,
+html.atlas-dark .file-selection-status,
+html.atlas-dark .upload-progress-panel,
+html.atlas-dark .reader-privacy-note,
+html.atlas-dark .role-selection-note,
+html.atlas-dark .demo-hint,
+html.atlas-dark .password-guidance,
+html.atlas-dark .resource-form-note {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .user-stat-card strong,
+html.atlas-dark .user-stat-card > span:last-child,
+html.atlas-dark .administrator-upload-section h5,
+html.atlas-dark .resource-detail-header h1,
+html.atlas-dark .catalog-announcement-grid a,
+html.atlas-dark .catalog-card-dates strong,
+html.atlas-dark .login-card .role-label,
+html.atlas-dark .guest-restricted h2,
+html.atlas-dark .guest-restricted h3 {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .user-stat-card > span:last-child,
+html.atlas-dark .catalog-card-dates span,
+html.atlas-dark .role-btn .role-label small,
+html.atlas-dark .guest-restricted p {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .btn-refresh-users,
+html.atlas-dark .btn-close-admin-registration,
+html.atlas-dark .announcement-actions button,
+html.atlas-dark .announcement-actions a,
+html.atlas-dark .btn-details,
+html.atlas-dark .toggle-btn,
+html.atlas-dark .register-option-buttons button {
+  background: transparent;
+  border-color: #8d747c;
+  color: #f8e9ec;
+}
+
+html.atlas-dark .btn-refresh-users:hover,
+html.atlas-dark .btn-close-admin-registration:hover,
+html.atlas-dark .announcement-actions button:hover,
+html.atlas-dark .announcement-actions a:hover,
+html.atlas-dark .btn-details:hover,
+html.atlas-dark .toggle-btn:hover,
+html.atlas-dark .register-option-buttons button:hover {
+  background: #3a2d31;
+  border-color: #f0b7c2;
+  color: #fff;
+}
+
+html.atlas-dark .role-btn,
+html.atlas-dark a.role-btn,
+html.atlas-dark .auth-role-switch a {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .role-btn:hover,
+html.atlas-dark a.role-btn:hover,
+html.atlas-dark .auth-role-switch a:hover,
+html.atlas-dark .auth-role-switch a.active {
+  background: #3a2d31;
+  border-color: #dc8fa0;
+  color: #fff;
+}
+
+html.atlas-dark .role-btn i,
+html.atlas-dark .brand-icon,
+html.atlas-dark .ai-field-icon,
+html.atlas-dark .upload-progress-icon {
+  color: var(--atlas-dark-accent);
+}
+
+html.atlas-dark .reader-role-toggle,
+html.atlas-dark .administrator-account,
+html.atlas-dark .reader-account {
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .user-activity-table thead th,
+html.atlas-dark .staff-compact-table thead th,
+html.atlas-dark .library-table thead th,
+html.atlas-dark .legal-audit-table thead th {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .user-activity-table tbody td,
+html.atlas-dark .staff-compact-table tbody td,
+html.atlas-dark .library-table tbody td,
+html.atlas-dark .legal-audit-table tbody td,
+html.atlas-dark .staff-record-list article {
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .user-activity-table tbody tr:nth-child(even),
+html.atlas-dark .staff-compact-table tbody tr:nth-child(even),
+html.atlas-dark .library-table tbody tr:nth-child(even) {
+  background: #251e21;
+}
+
+html.atlas-dark .user-role-badge.student,
+html.atlas-dark .activity-action.update {
+  background: var(--atlas-dark-info-bg);
+  border-color: var(--atlas-dark-info-border);
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .user-role-badge.teacher,
+html.atlas-dark .user-role-badge.administrator {
+  background: #30243e;
+  border-color: #6d4c8c;
+  color: #e3c7ff;
+}
+
+html.atlas-dark .user-role-badge.guest,
+html.atlas-dark .login-count-badge,
+html.atlas-dark .ai-service-formats span,
+html.atlas-dark .ai-supported-inputs strong,
+html.atlas-dark .resource-format-badge,
+html.atlas-dark .announcement-category {
+  background: #332b2e;
+  border-color: #6c5a60;
+  color: #eadde1;
+}
+
+html.atlas-dark .activity-action.create,
+html.atlas-dark .resource-availability-badge.is-available,
+html.atlas-dark .announcement-status.published,
+html.atlas-dark .ai-score.low,
+html.atlas-dark .ai-comparison-summary.agree {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .activity-action.delete,
+html.atlas-dark .resource-availability-badge.is-unavailable,
+html.atlas-dark .ai-score.high,
+html.atlas-dark .form-control.is-invalid,
+html.atlas-dark .form-select.is-invalid,
+html.atlas-dark .upload-progress-panel.has-error {
+  background: var(--atlas-dark-danger-bg);
+  border-color: var(--atlas-dark-danger-border);
+  color: var(--atlas-dark-danger-text);
+}
+
+html.atlas-dark .activity-action.download,
+html.atlas-dark .announcement-status.draft,
+html.atlas-dark .ai-score.mixed,
+html.atlas-dark .ai-comparison-summary.mixed,
+html.atlas-dark .audit-filter-error {
+  background: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-border);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .ai-score strong,
+html.atlas-dark .ai-score span,
+html.atlas-dark .ai-comparison-summary strong,
+html.atlas-dark .resource-availability-badge,
+html.atlas-dark .announcement-status,
+html.atlas-dark .activity-action,
+html.atlas-dark .user-role-badge {
+  color: inherit;
+}
+
+html.atlas-dark .ai-metrics div,
+html.atlas-dark .ai-model-metrics div,
+html.atlas-dark .ai-comparison-summary,
+html.atlas-dark .ai-model-result,
+html.atlas-dark .ai-empty-result {
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark .ai-metrics dt,
+html.atlas-dark .ai-model-metrics dt,
+html.atlas-dark .ai-empty-result,
+html.atlas-dark .ai-supported-inputs,
+html.atlas-dark .file-selection-status {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .ai-metrics dd,
+html.atlas-dark .ai-model-metrics dd {
+  color: var(--atlas-dark-text);
+  overflow-wrap: anywhere;
+}
+
+html.atlas-dark .resource-format-toggle label {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .resource-format-toggle label:has(input:checked) {
+  background: #522431;
+  border-color: #dc8fa0;
+  color: #fff;
+}
+
+html.atlas-dark .resource-availability-control,
+html.atlas-dark .resource-availability-control label {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .resource-availability-control:has(input:checked) {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+}
+
+html.atlas-dark .resource-availability-control label span {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .resource-availability-control label small,
+html.atlas-dark .upload-progress-heading [data-upload-detail] {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .upload-progress-heading strong,
+html.atlas-dark .upload-progress-percent {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark input[type="checkbox"],
+html.atlas-dark input[type="radio"] {
+  accent-color: #d98295;
+}
+
+html.atlas-dark .catalog-cover-link,
+html.atlas-dark .favorite-cover-link {
+  background: #181315;
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark .catalog-cover-placeholder,
+html.atlas-dark .catalog-cover-placeholder i {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .reader-privacy-note,
+html.atlas-dark .guest-banner,
+html.atlas-dark .guest-view-only,
+html.atlas-dark .reader-view-only {
+  background: var(--atlas-dark-info-bg);
+  border-color: var(--atlas-dark-info-border);
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .legal-review-note,
+html.atlas-dark .ai-detection-notice,
+html.atlas-dark .demo-hint {
+  background: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-border);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .action-confirmation-icon {
+  background: var(--atlas-dark-info-bg);
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .action-confirmation.is-danger .action-confirmation-icon {
+  background: var(--atlas-dark-danger-bg);
+  color: var(--atlas-dark-danger-text);
+}
+
+html.atlas-dark .skeleton-block {
+  background: #30262a;
+}
+
+html.atlas-dark .skeleton-block::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.09),
+    transparent
+  );
+}
+
+html.atlas-dark .invalid-feedback,
+html.atlas-dark .password-requirement.is-missing {
+  color: #ffb8c3;
+}
+
+html.atlas-dark .valid-feedback,
+html.atlas-dark .password-requirement.is-met {
+  color: #a9f3c2;
+}
+
+html.atlas-dark .form-control.is-valid,
+html.atlas-dark .form-select.is-valid {
+  background-color: #15271e;
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-text);
+}
+
 /* High contrast remains meaningful when it is combined with dark mode. */
 html.atlas-dark.atlas-high-contrast :where(
   body,
@@ -271,4 +665,22 @@ html.atlas-dark.atlas-high-contrast :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt
 
 html.atlas-dark.atlas-high-contrast a:not(.btn) {
   color: #ffe08a;
+}
+
+html.atlas-dark.atlas-high-contrast :where(
+  input,
+  select,
+  textarea,
+  .form-control,
+  .form-select,
+  .user-stat-card,
+  .user-table-card,
+  .ai-model-result,
+  .resource-reader-content,
+  .role-btn,
+  .file-drop-target
+) {
+  background: #000;
+  border-color: #fff;
+  color: #fff;
 }
