@@ -91,6 +91,7 @@
 .fa-share-alt::before { content: "\f1e0"; }
 .fa-shield-halved::before { content: "\f3ed"; }
 .fa-sign-out-alt::before { content: "\f2f5"; }
+.fa-sun::before { content: "\f185"; }
 .fa-text-height::before { content: "\f034"; }
 .fa-times::before,
 .fa-xmark::before { content: "\f00d"; }
@@ -2418,7 +2419,7 @@ main p a,
   padding: 1rem;
   position: absolute;
   right: 0;
-  width: min(310px, calc(100vw - 2rem));
+  width: min(350px, calc(100vw - 2rem));
 }
 
 .atlas-dashboard .accessibility-panel {
@@ -2447,6 +2448,32 @@ main p a,
   display: grid;
   gap: 0.5rem;
   grid-template-columns: 1fr;
+}
+
+.accessibility-theme-setting {
+  border-bottom: 1px solid #ddd2cd;
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.65rem;
+}
+
+.accessibility-option-label {
+  color: #5f5754;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.accessibility-theme-options {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.accessibility-theme-options button {
+  justify-content: center;
+  padding-inline: 0.55rem;
 }
 
 .accessibility-options button {

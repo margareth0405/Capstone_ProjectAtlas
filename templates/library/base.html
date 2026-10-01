@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}">
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20260920-password-feedback">
-    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20260927-performance">
+    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261001-display-panel">
     {% block role_css %}{% endblock %}
     <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261001-dark-mode">
     <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261001-mobile-layout">
@@ -49,14 +49,22 @@
         <h2 id="accessibilityHeading">Display settings</h2>
         <p>Choose the reading style that is most comfortable for you.</p>
         <div class="accessibility-options" role="group" aria-label="Reading preferences">
+          <div class="accessibility-theme-setting">
+            <span class="accessibility-option-label" id="colorThemeLabel">Color theme</span>
+            <div class="accessibility-theme-options" role="group" aria-labelledby="colorThemeLabel">
+              <button type="button" data-theme-choice="light" aria-pressed="true">
+                <i class="fas fa-sun" aria-hidden="true"></i> Light mode
+              </button>
+              <button type="button" data-theme-choice="dark" aria-pressed="false">
+                <i class="fas fa-moon" aria-hidden="true"></i> Dark mode
+              </button>
+            </div>
+          </div>
           <button type="button" data-text-size-toggle aria-pressed="false">
             <i class="fas fa-text-height" aria-hidden="true"></i> Large text
           </button>
           <button type="button" data-contrast-toggle aria-pressed="false">
             <i class="fas fa-circle-half-stroke" aria-hidden="true"></i> High contrast
-          </button>
-          <button type="button" data-dark-mode-toggle aria-pressed="false">
-            <i class="fas fa-moon" aria-hidden="true"></i> Dark mode
           </button>
         </div>
       </section>
@@ -146,7 +154,7 @@
       </form>
     </section>
 
-    <script src="{% static 'library/js/app.js' %}?v=20260930-action-confirmations" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20261001-display-themes" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

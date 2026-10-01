@@ -134,6 +134,14 @@ html.atlas-dark :where(
   color: #cdbfc3;
 }
 
+html.atlas-dark .accessibility-option-label {
+  color: #cdbfc3;
+}
+
+html.atlas-dark .accessibility-theme-setting {
+  border-color: #57464c;
+}
+
 html.atlas-dark :where(
   a:not(.btn):not(.btn-details):not(.btn-edit):not(.sidebar-brand),
   .breadcrumb-item a,

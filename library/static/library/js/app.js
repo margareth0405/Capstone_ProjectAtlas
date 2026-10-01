@@ -62,8 +62,10 @@
       document.querySelectorAll("[data-contrast-toggle]").forEach((button) => {
         button.setAttribute("aria-pressed", String(this.state.highContrast));
       });
-      document.querySelectorAll("[data-dark-mode-toggle]").forEach((button) => {
-        button.setAttribute("aria-pressed", String(this.state.darkMode));
+      document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+        var selectedTheme = this.state.darkMode ? "dark" : "light";
+        var isSelected = button.dataset.themeChoice === selectedTheme;
+        button.setAttribute("aria-pressed", String(isSelected));
       });
     }
 
@@ -121,11 +123,15 @@
           ));
         });
       });
-      document.querySelectorAll("[data-dark-mode-toggle]").forEach((button) => {
+      document.querySelectorAll("[data-theme-choice]").forEach((button) => {
         button.addEventListener("click", () => {
-          this.toggle("darkMode", (enabled) => (
-            enabled ? "Dark mode is on." : "Light mode is on."
-          ));
+          this.state.darkMode = button.dataset.themeChoice === "dark";
+          this.save();
+          this.apply();
+          announceOptimisticStatus(
+            this.state.darkMode ? "Dark mode is on." : "Light mode is on.",
+            false
+          );
         });
       });
     }

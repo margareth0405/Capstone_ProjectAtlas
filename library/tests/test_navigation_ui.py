@@ -237,7 +237,9 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Reading preferences"')
         self.assertContains(response, 'data-text-size-toggle aria-pressed="false"')
         self.assertContains(response, 'data-contrast-toggle aria-pressed="false"')
-        self.assertContains(response, 'data-dark-mode-toggle aria-pressed="false"')
+        self.assertContains(response, 'data-theme-choice="light" aria-pressed="true"')
+        self.assertContains(response, 'data-theme-choice="dark" aria-pressed="false"')
+        self.assertContains(response, "Light mode")
         self.assertContains(response, "Dark mode")
         self.assertContains(response, "library/css/theme/dark.css")
         self.assertContains(response, "library/css/theme/responsive.css")
@@ -258,7 +260,8 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("prefers-contrast: more", script)
         self.assertIn("prefers-color-scheme: dark", script)
         self.assertIn('classList.toggle("atlas-dark"', script)
-        self.assertIn("data-dark-mode-toggle", script)
+        self.assertIn("data-theme-choice", script)
+        self.assertIn('button.dataset.themeChoice === "dark"', script)
 
     def test_dark_mode_and_phone_layout_have_shared_theme_contracts(self):
         theme_root = (
