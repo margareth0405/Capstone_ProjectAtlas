@@ -12,7 +12,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#4a111c">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
     <meta
       name="description"
       content="{% block meta_description %}Explore academic resources, protected reading, announcements, and repository support through the ATLAS Digital Repository.{% endblock %}"
@@ -27,6 +27,8 @@
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20260920-password-feedback">
     <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20260927-performance">
     {% block role_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261001-dark-mode">
+    <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261001-mobile-layout">
     {% block extra_head %}{% endblock %}
   </head>
   <body class="{% block body_class %}atlas-page{% endblock %}">
@@ -52,6 +54,9 @@
           </button>
           <button type="button" data-contrast-toggle aria-pressed="false">
             <i class="fas fa-circle-half-stroke" aria-hidden="true"></i> High contrast
+          </button>
+          <button type="button" data-dark-mode-toggle aria-pressed="false">
+            <i class="fas fa-moon" aria-hidden="true"></i> Dark mode
           </button>
         </div>
       </section>

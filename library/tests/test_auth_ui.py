@@ -112,6 +112,12 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Password strength"')
         self.assertNotContains(response, "Example format: 12+ characters")
 
+    def test_login_clearly_explains_legacy_and_new_password_rules(self):
+        response = self.client.get(reverse("library:login"))
+
+        self.assertContains(response, "Previously created passwords still work")
+        self.assertContains(response, "at least 12 characters")
+
     def test_password_feedback_uses_an_encapsulated_controller(self):
         script = (
             Path(settings.BASE_DIR)

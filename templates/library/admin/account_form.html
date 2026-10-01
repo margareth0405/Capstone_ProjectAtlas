@@ -17,9 +17,11 @@
     <div class="usage-count-note" role="note">
       <i class="fas fa-shield-halved" aria-hidden="true"></i>
       {% if editing_self %}
-        Enter your current administrator password to authorize any change.
+        Enter your current administrator password to authorize any change. Leave
+        the new-password fields blank to keep it, or use at least 12 characters,
+        one number, and one special character for a replacement.
       {% else %}
-        You are editing <strong>{{ account.get_username }}</strong>. Only a superuser can edit another administrator.
+        You are editing <strong>{{ account.get_username }}</strong>. Only a superuser can edit another administrator. Leave the new-password fields blank to keep the current password, or use at least 12 characters, one number, and one special character for a replacement.
       {% endif %}
     </div>
 

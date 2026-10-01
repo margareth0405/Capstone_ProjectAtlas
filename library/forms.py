@@ -152,7 +152,10 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
         strip=False,
         min_length=6,
         error_messages={
-            "min_length": "Your password must be at least 6 characters long.",
+            "min_length": (
+                "Previously created passwords must contain at least 6 "
+                "characters to sign in."
+            ),
         },
         widget=forms.PasswordInput(
             attrs={
@@ -489,6 +492,8 @@ class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
         self.fields["username"].widget.attrs.update({"autocomplete": "username"})
         self.fields["password1"].widget.attrs.update({"autocomplete": "new-password"})
         self.fields["password2"].widget.attrs.update({"autocomplete": "new-password"})
+        self.fields["password1"].widget.attrs["minlength"] = "12"
+        self.fields["password2"].widget.attrs["minlength"] = "12"
         self.fields[
             "password1"
         ].help_text = password_validation.password_validators_help_text_html()
@@ -561,6 +566,8 @@ class StaffAccountUpdateForm(StyledFormMixin, forms.Form):
         self.password_changed = False
         kwargs.setdefault("initial", {"username": account.get_username()})
         super().__init__(*args, **kwargs)
+        self.fields["new_password1"].widget.attrs["minlength"] = "12"
+        self.fields["new_password2"].widget.attrs["minlength"] = "12"
 
     def clean_username(self):
         username = self.cleaned_data["username"].strip()

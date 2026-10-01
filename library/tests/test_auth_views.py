@@ -284,6 +284,31 @@ class LoginAndSessionTests(LibraryTestCase):
         self.user.profile.refresh_from_db()
         self.assertIsNone(self.user.profile.privacy_consent_accepted_at)
 
+    def test_existing_six_character_password_remains_usable(self):
+        legacy_user = self.create_user(
+            email="legacy-password@example.com",
+            password="Aa1!bc",
+        )
+        EmailAddress.objects.create(
+            user=legacy_user,
+            email=legacy_user.email,
+            primary=True,
+            verified=True,
+        )
+
+        response = self.client.post(
+            reverse("library:login"),
+            {
+                "email": legacy_user.email,
+                "password": "Aa1!bc",
+                "role": Profile.Role.STUDENT,
+                "privacy_consent": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), legacy_user.pk)
+
     def test_successful_login_uses_django_session_and_records_current_consent(self):
         response = self.client.post(
             reverse("library:login"),
@@ -360,7 +385,7 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            "Your password must be at least 6 characters long.",
+            "Previously created passwords must contain at least 6 characters",
         )
         self.assertNotIn("_auth_user_id", self.client.session)
 

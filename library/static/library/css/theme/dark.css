@@ -1,0 +1,266 @@
+/* Persistent dark reading theme. Loaded after role themes so every portal uses it. */
+html.atlas-dark {
+  color-scheme: dark;
+}
+
+html.atlas-dark body,
+html.atlas-dark .main-content,
+html.atlas-dark .django-view,
+html.atlas-dark .library-view,
+html.atlas-dark .atlas-auth-page,
+html.atlas-dark .atlas-legal-page,
+html.atlas-dark .atlas-error-page {
+  background: #141012;
+  color: #f4edef;
+}
+
+html.atlas-dark .sidebar {
+  background: #210a10;
+  border-color: #56313a;
+}
+
+html.atlas-dark :where(
+  .topbar,
+  .hero,
+  .site-footer,
+  .site-legal-links,
+  .accessibility-panel,
+  .cookie-consent,
+  .action-confirmation-card,
+  .login-card,
+  .legal-hero,
+  .legal-copy,
+  .legal-toc,
+  .error-card,
+  .recent-item-card,
+  .library-updates-section,
+  .analytics-card,
+  .library-filters,
+  .table-responsive,
+  .favorite-card,
+  .announcement-card,
+  .announcement-item,
+  .featured-announcement,
+  .contact-card,
+  .contact-method-card,
+  .contact-form-card,
+  .resource-detail-card,
+  .resource-reader-card,
+  .catalog-resource-card,
+  .catalog-announcement-strip,
+  .staff-panel,
+  .admin-registration-panel,
+  .user-table-card,
+  .staff-analytics,
+  .usage-history-panel,
+  .ai-model-result
+) {
+  background: #211a1d;
+  border-color: #4d3c42;
+  box-shadow: none;
+  color: #f4edef;
+}
+
+html.atlas-dark :where(
+  .library-update-item,
+  .business-details > div,
+  .usage-overview,
+  .usage-summary-grid article,
+  .usage-percentage-note,
+  .usage-empty-note,
+  .usage-count-note,
+  .staff-filter-bar,
+  .audit-filter-form,
+  .ai-metrics div,
+  .ai-model-metrics div,
+  .ai-empty-result,
+  .resource-format-toggle label,
+  .password-guidance,
+  .guest-banner,
+  .guest-view-only,
+  .reader-view-only,
+  .reader-favorites-section
+) {
+  background: #2a2225;
+  border-color: #57464c;
+  color: #eee5e8;
+}
+
+html.atlas-dark :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  dt,
+  legend,
+  .card-title,
+  .catalog-card-title,
+  .resource-title,
+  .accessibility-panel h2,
+  .cookie-consent h2,
+  .legal-hero h1,
+  .legal-copy h2,
+  .footer-brand,
+  .usage-summary-grid strong,
+  .usage-history-heading h3,
+  .ai-metrics dd,
+  .ai-model-metrics dd
+) {
+  color: #ffe8ed;
+}
+
+html.atlas-dark :where(
+  p,
+  li,
+  dd,
+  label,
+  small,
+  time,
+  .form-helper,
+  .card-author,
+  .catalog-card-author,
+  .catalog-card-abstract,
+  .announcement-meta,
+  .resource-metadata dt,
+  .accessibility-panel p,
+  .cookie-consent p,
+  .usage-chart-legend li div > span,
+  .usage-history-heading span,
+  .ai-metrics dt,
+  .ai-model-metrics dt
+) {
+  color: #cdbfc3;
+}
+
+html.atlas-dark :where(
+  a:not(.btn):not(.btn-details):not(.btn-edit):not(.sidebar-brand),
+  .breadcrumb-item a,
+  .footer-navigation a,
+  .footer-contact a
+) {
+  color: #f0b7c2;
+}
+
+html.atlas-dark :where(input, select, textarea, .form-control, .form-select) {
+  background-color: #181315;
+  border-color: #6b565d;
+  color: #fff7f8;
+}
+
+html.atlas-dark :where(input, textarea)::placeholder {
+  color: #a9969c;
+  opacity: 1;
+}
+
+html.atlas-dark :where(input, select, textarea):focus {
+  background-color: #1d1719;
+  border-color: #dc8fa0;
+  box-shadow: 0 0 0 3px rgba(220, 143, 160, 0.2);
+  color: #fff;
+}
+
+html.atlas-dark :where(.accessibility-trigger, .accessibility-options button) {
+  background: #211a1d;
+  border-color: #7b626a;
+  color: #ffe8ed;
+}
+
+html.atlas-dark :where(
+  .accessibility-trigger:hover,
+  .accessibility-trigger[aria-expanded="true"],
+  .accessibility-options button:hover,
+  .accessibility-options button[aria-pressed="true"]
+) {
+  background: #f0b7c2;
+  border-color: #f0b7c2;
+  color: #271016;
+}
+
+html.atlas-dark :where(table, .library-table, .staff-compact-table, .user-activity-table) {
+  background: #211a1d;
+  color: #f4edef;
+}
+
+html.atlas-dark :where(
+  .library-table tbody td,
+  .staff-compact-table td,
+  .staff-compact-table th,
+  .user-activity-table td,
+  .user-activity-table th,
+  .legal-audit-table td,
+  .legal-audit-table th
+) {
+  border-color: #4d3c42;
+  color: #eee5e8;
+}
+
+html.atlas-dark :where(
+  .library-table tbody tr:hover,
+  .staff-compact-table tbody tr:hover,
+  .user-activity-table tbody tr:hover
+) {
+  background: #30262a;
+}
+
+html.atlas-dark .usage-pie-chart::after {
+  background: #211a1d;
+}
+
+html.atlas-dark :where(.btn-outline-secondary, .action-confirmation-cancel) {
+  background: transparent;
+  border-color: #bda9af;
+  color: #f0e5e8;
+}
+
+html.atlas-dark :where(.btn-outline-secondary, .action-confirmation-cancel):hover {
+  background: #f0e5e8;
+  color: #241b1e;
+}
+
+html.atlas-dark .form-alert {
+  background: #3a2025;
+  border-color: #a95868;
+  color: #ffdce2;
+}
+
+html.atlas-dark .legal-review-note,
+html.atlas-dark .ai-detection-notice {
+  background: #352b18;
+  border-color: #c99b44;
+  color: #f4dfb0;
+}
+
+html.atlas-dark .page-loader {
+  background: #141012;
+}
+
+/* High contrast remains meaningful when it is combined with dark mode. */
+html.atlas-dark.atlas-high-contrast :where(
+  body,
+  .main-content,
+  .django-view,
+  .topbar,
+  .site-footer,
+  .accessibility-panel,
+  .staff-panel,
+  .login-card,
+  .legal-copy,
+  .catalog-resource-card,
+  .favorite-card,
+  .resource-detail-card,
+  .announcement-item
+) {
+  background: #000;
+  border-color: #fff;
+  color: #fff;
+}
+
+html.atlas-dark.atlas-high-contrast :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt, small, label) {
+  color: #fff;
+}
+
+html.atlas-dark.atlas-high-contrast a:not(.btn) {
+  color: #ffe08a;
+}

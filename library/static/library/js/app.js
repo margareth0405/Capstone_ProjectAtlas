@@ -16,6 +16,9 @@
         highContrast: Boolean(
           window.matchMedia && window.matchMedia("(prefers-contrast: more)").matches
         ),
+        darkMode: Boolean(
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ),
       };
       try {
         var saved = JSON.parse(window.localStorage.getItem(this.storageKey));
@@ -23,6 +26,9 @@
         return {
           largeText: Boolean(saved.largeText),
           highContrast: Boolean(saved.highContrast),
+          darkMode: typeof saved.darkMode === "boolean"
+            ? saved.darkMode
+            : fallback.darkMode,
         };
       } catch (error) {
         return fallback;
@@ -40,6 +46,12 @@
     apply() {
       this.root.classList.toggle("atlas-large-text", this.state.largeText);
       this.root.classList.toggle("atlas-high-contrast", this.state.highContrast);
+      this.root.classList.toggle("atlas-dark", this.state.darkMode);
+      this.root.style.colorScheme = this.state.darkMode ? "dark" : "light";
+      var themeColor = document.querySelector('meta[name="theme-color"]');
+      if (themeColor) {
+        themeColor.setAttribute("content", this.state.darkMode ? "#171214" : "#4a111c");
+      }
       this.syncButtons();
     }
 
@@ -49,6 +61,9 @@
       });
       document.querySelectorAll("[data-contrast-toggle]").forEach((button) => {
         button.setAttribute("aria-pressed", String(this.state.highContrast));
+      });
+      document.querySelectorAll("[data-dark-mode-toggle]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(this.state.darkMode));
       });
     }
 
@@ -103,6 +118,13 @@
         button.addEventListener("click", () => {
           this.toggle("highContrast", (enabled) => (
             enabled ? "High contrast is on." : "Standard contrast is on."
+          ));
+        });
+      });
+      document.querySelectorAll("[data-dark-mode-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          this.toggle("darkMode", (enabled) => (
+            enabled ? "Dark mode is on." : "Light mode is on."
           ));
         });
       });

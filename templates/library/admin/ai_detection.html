@@ -111,8 +111,8 @@
                   <div><dt>Lowest indicator</dt><dd>Section {{ detection_result.lowest_ai_section }} — {{ detection_result.lowest_ai_probability }}%</dd></div>
                   <div><dt>Aggregation</dt><dd>{{ detection_result.aggregation_method }}</dd></div>
                 {% endif %}
-                <div><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
-                <div><dt>Model version</dt><dd>{{ detection_result.model_version }}</dd></div>
+                <div class="ai-metric-detector"><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
+                <div class="ai-metric-version"><dt>Model version</dt><dd title="{{ detection_result.model_version }}">{{ detection_result.model_version }}</dd></div>
               </dl>
             </div>
           {% endif %}

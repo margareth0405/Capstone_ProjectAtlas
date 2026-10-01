@@ -135,7 +135,8 @@ class FormFeedbackTests(LibraryTestCase):
         contact = self.client.get(reverse("library:contact"))
 
         self.assertContains(login, 'placeholder="Example: student@example.com"')
-        self.assertContains(login, "Passwords contain at least 6 characters.")
+        self.assertContains(login, "Previously created passwords still work")
+        self.assertContains(login, "at least 12 characters")
         self.assertNotContains(login, 'placeholder="Example: your account password"')
         self.assertContains(
             teacher_login,
@@ -236,6 +237,10 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Reading preferences"')
         self.assertContains(response, 'data-text-size-toggle aria-pressed="false"')
         self.assertContains(response, 'data-contrast-toggle aria-pressed="false"')
+        self.assertContains(response, 'data-dark-mode-toggle aria-pressed="false"')
+        self.assertContains(response, "Dark mode")
+        self.assertContains(response, "library/css/theme/dark.css")
+        self.assertContains(response, "library/css/theme/responsive.css")
         self.assertNotContains(response, 'class="reading-preferences"')
 
     def test_accessibility_preferences_use_an_encapsulated_controller(self):
@@ -251,6 +256,32 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("class AccessibilityPreferences", script)
         self.assertIn("atlas_reading_preferences", script)
         self.assertIn("prefers-contrast: more", script)
+        self.assertIn("prefers-color-scheme: dark", script)
+        self.assertIn('classList.toggle("atlas-dark"', script)
+        self.assertIn("data-dark-mode-toggle", script)
+
+    def test_dark_mode_and_phone_layout_have_shared_theme_contracts(self):
+        theme_root = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "css"
+            / "theme"
+        )
+        dark_styles = (theme_root / "dark.css").read_text(encoding="utf-8")
+        responsive_styles = (theme_root / "responsive.css").read_text(
+            encoding="utf-8"
+        )
+        reader_styles = (theme_root / "reader.css").read_text(encoding="utf-8")
+
+        self.assertIn("html.atlas-dark", dark_styles)
+        self.assertIn("color-scheme: dark;", dark_styles)
+        self.assertIn("html.atlas-dark.atlas-high-contrast", dark_styles)
+        self.assertIn("@media (max-width: 600px)", responsive_styles)
+        self.assertIn("font-size: 16px;", responsive_styles)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important;", responsive_styles)
+        self.assertIn("grid-template-columns: 1fr !important;", reader_styles)
 
     def test_confirmations_use_action_specific_dialog_and_cancel_loader_safely(self):
         response = self.client.get(reverse("library:landing"))

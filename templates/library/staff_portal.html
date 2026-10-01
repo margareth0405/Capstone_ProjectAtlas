@@ -221,16 +221,32 @@
         <article><i class="fas fa-user-group" aria-hidden="true"></i><div><strong>{{ usage_summary.visitors }}</strong><span>Visitors</span></div></article>
       </div>
 
+      {% if has_usage_activity %}
+        <p class="usage-percentage-note" role="status">
+          <i class="fas fa-circle-info" aria-hidden="true"></i>
+          Percentages show each account type's share of {{ usage_percentage_basis|lower }}. Fresh visits use session share until active time is recorded.
+        </p>
+      {% else %}
+        <div class="usage-empty-note" role="status">
+          <i class="fas fa-chart-pie" aria-hidden="true"></i>
+          <div>
+            <strong>No consented usage activity recorded for this date.</strong>
+            <span>Percentages appear after a signed-in user or guest chooses “Allow analytics” and visits the repository.</span>
+          </div>
+          <a class="btn btn-outline-secondary" href="{% url 'library:cookie_preferences' %}">Review analytics preference</a>
+        </div>
+      {% endif %}
+
       <div class="usage-content-grid">
       <div class="usage-overview">
-        <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage time by account type for {{ analytics_date }}">
-          <span>Active time<br>by role</span>
+        <div class="usage-pie-chart" style="background: {{ usage_chart_gradient }};" role="img" aria-label="Website usage percentage by account type, based on {{ usage_percentage_basis|lower }}, for {{ analytics_date }}">
+          <span>{{ usage_percentage_basis }}<br>by role</span>
         </div>
         <ul class="usage-chart-legend">
           {% for usage in role_usage %}
             <li>
               <span class="usage-swatch" style="background: {{ usage.color }};"></span>
-              <div><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}%</span></div>
+              <div><strong>{{ usage.label }}</strong><span>{{ usage.minutes }} min · {{ usage.sessions }} session{{ usage.sessions|pluralize }} · {{ usage.percent }}% {{ usage_percentage_basis|lower }}</span></div>
             </li>
           {% endfor %}
         </ul>

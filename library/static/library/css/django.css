@@ -79,6 +79,7 @@
 .fa-key::before { content: "\f084"; }
 .fa-list::before { content: "\f03a"; }
 .fa-lock::before { content: "\f023"; }
+.fa-moon::before { content: "\f186"; }
 .fa-magnifying-glass-chart::before { content: "\e522"; }
 .fa-paper-plane::before { content: "\f1d8"; }
 .fa-pen::before { content: "\f304"; }

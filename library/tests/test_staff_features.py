@@ -2,9 +2,11 @@
 
 from datetime import datetime, time, timedelta
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
@@ -330,14 +332,15 @@ class StaffManagementFeatureTests(LibraryTestCase):
             object_type="repository resource",
             description="Deleted outside selected date",
         )
+        current_timezone = timezone.get_current_timezone()
         ActivityLog.objects.filter(pk=created_entry.pk).update(
-            occurred_at=timezone.make_aware(datetime(2026, 9, 15, 9, 0))
+            occurred_at=datetime(2026, 9, 15, 9, 0, tzinfo=current_timezone)
         )
         ActivityLog.objects.filter(pk=updated_entry.pk).update(
-            occurred_at=timezone.make_aware(datetime(2026, 9, 15, 23, 59))
+            occurred_at=datetime(2026, 9, 15, 23, 59, tzinfo=current_timezone)
         )
         ActivityLog.objects.filter(pk=deleted_entry.pk).update(
-            occurred_at=timezone.make_aware(datetime(2026, 9, 16, 9, 0))
+            occurred_at=datetime(2026, 9, 16, 9, 0, tzinfo=current_timezone)
         )
 
         response = self.client.get(
@@ -469,7 +472,10 @@ class StaffManagementFeatureTests(LibraryTestCase):
             row for row in response.context["role_usage"] if row["role"] == "teacher"
         )
         self.assertEqual(teacher_usage["minutes"], 5.0)
+        self.assertEqual(teacher_usage["percent"], 100.0)
+        self.assertEqual(response.context["usage_percentage_basis"], "Active time")
         self.assertContains(response, "Website usage")
+        self.assertContains(response, "100.0% active time")
         self.assertContains(response, "teacher-session", count=0)
 
 
@@ -571,6 +577,38 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
 
         self.assertEqual(response.context["usage_summary"]["sessions"], 4)
         self.assertEqual(response.context["usage_summary"]["visitors"], 2)
+
+    def test_new_visits_use_session_share_until_active_time_is_recorded(self):
+        WebsiteVisit.objects.create(
+            session_key="student-fresh-one",
+            user=None,
+            role=WebsiteVisit.Role.STUDENT,
+        )
+        WebsiteVisit.objects.create(
+            session_key="student-fresh-two",
+            user=None,
+            role=WebsiteVisit.Role.STUDENT,
+        )
+        WebsiteVisit.objects.create(
+            session_key="teacher-fresh",
+            user=None,
+            role=WebsiteVisit.Role.TEACHER,
+        )
+
+        response = self.client.get(reverse("library:staff_portal"))
+        role_usage = {row["role"]: row for row in response.context["role_usage"]}
+
+        self.assertEqual(response.context["usage_percentage_basis"], "Sessions")
+        self.assertEqual(role_usage[WebsiteVisit.Role.STUDENT]["percent"], 66.7)
+        self.assertEqual(role_usage[WebsiteVisit.Role.TEACHER]["percent"], 33.3)
+        self.assertContains(response, "66.7% sessions")
+
+    def test_empty_usage_dashboard_explains_analytics_consent(self):
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertFalse(response.context["has_usage_activity"])
+        self.assertContains(response, "No consented usage activity recorded")
+        self.assertContains(response, "Review analytics preference")
 
     def test_visit_history_search_and_account_type_filter(self):
         teacher = self.create_user(
@@ -682,6 +720,25 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(portal_response, 'class="staff-panel staff-ai-entry"')
         self.assertNotContains(portal_response, 'class="staff-service-card"')
 
+    def test_ai_result_styles_keep_scores_inside_cards_on_narrow_screens(self):
+        stylesheet = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "css"
+            / "theme"
+            / "administrator.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("font-size: clamp(1.65rem, 7vw, 2.2rem);", stylesheet)
+        self.assertIn("font-variant-numeric: tabular-nums;", stylesheet)
+        self.assertIn("overflow-wrap: anywhere;", stylesheet)
+        self.assertIn(".ai-metrics .ai-metric-version", stylesheet)
+        self.assertIn("grid-column: span 3;", stylesheet)
+        self.assertIn("word-break: break-all;", stylesheet)
+        self.assertIn("@media (max-width: 520px)", stylesheet)
+
     def test_staff_can_analyze_pasted_text(self):
         self.client.force_login(self.staff)
         sample = (
@@ -707,6 +764,8 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(response, "AI-pattern score")
         self.assertContains(response, "Human-pattern score")
         self.assertContains(response, "Desklib Academic AI Text Detector")
+        self.assertContains(response, 'class="ai-metric-version"')
+        self.assertContains(response, 'title="test-commit-123"')
         self.assertContains(response, "not proof")
         analysis = AIAnalysis.objects.get(reviewer=self.staff)
         self.assertEqual(analysis.source_name, "Pasted text")

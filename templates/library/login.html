@@ -78,7 +78,7 @@
               <i class="fas fa-eye" aria-hidden="true"></i>
             </button>
           </div>
-          <small class="form-helper" id="loginPasswordHelp">Passwords contain at least 6 characters.</small>
+          <small class="form-helper" id="loginPasswordHelp">Use your current password. Previously created passwords still work; every new, reset, or changed password must contain at least 12 characters.</small>
           {% if form.password.errors %}
             <div class="invalid-feedback d-block" id="passwordErrors">
               {% for error in form.password.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}

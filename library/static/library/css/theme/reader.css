@@ -266,7 +266,7 @@
 
 @media (max-width: 480px) {
   .favorites-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     gap: 0.8rem !important;
   }
 

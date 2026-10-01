@@ -194,22 +194,41 @@ class UsageAnalytics:
             )
         }
         total_seconds = sum(value["seconds"] for value in totals.values())
+        total_sessions = sum(value["sessions"] for value in totals.values())
         return [
-            self._role_row(role, label, totals, total_seconds)
+            self._role_row(role, label, totals, total_seconds, total_sessions)
             for role, label in WebsiteVisit.Role.choices
         ]
 
-    def _role_row(self, role, label, totals, total_seconds):
+    def _role_row(
+        self,
+        role,
+        label,
+        totals,
+        total_seconds,
+        total_sessions=0,
+    ):
         seconds = totals.get(role, {}).get("seconds", 0)
+        sessions = totals.get(role, {}).get("sessions", 0)
+        if total_seconds:
+            percent = round(seconds * 100 / total_seconds, 1)
+            percentage_basis = "Active time"
+        elif total_sessions:
+            # New visits have no elapsed seconds until their first heartbeat.
+            # Session share keeps the chart useful during that initial period.
+            percent = round(sessions * 100 / total_sessions, 1)
+            percentage_basis = "Sessions"
+        else:
+            percent = 0
+            percentage_basis = "Active time"
         return {
             "role": role,
             "label": label,
             "seconds": seconds,
             "minutes": round(seconds / 60, 1),
-            "sessions": totals.get(role, {}).get("sessions", 0),
-            "percent": round(seconds * 100 / total_seconds, 1)
-            if total_seconds
-            else 0,
+            "sessions": sessions,
+            "percent": percent,
+            "percentage_basis": percentage_basis,
             "color": self.role_colors[role],
         }
 
@@ -410,6 +429,10 @@ class StaffPortalContextService:
             "visit_history": analytics_context["visit_history"],
             "role_usage": analytics_context["role_usage"],
             "usage_summary": analytics_context["usage_summary"],
+            "has_usage_activity": analytics_context["usage_summary"]["sessions"] > 0,
+            "usage_percentage_basis": analytics_context["role_usage"][0][
+                "percentage_basis"
+            ],
             "usage_chart_gradient": self.analytics.chart_gradient(
                 analytics_context["role_usage"]
             ),
