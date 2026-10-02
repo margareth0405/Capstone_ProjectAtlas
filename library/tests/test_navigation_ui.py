@@ -228,6 +228,8 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn('aria-pressed', script)
         self.assertIn("stopUsageHeartbeat", script)
         self.assertIn("atlas:cookie-consent-changed", script)
+        self.assertIn('shell.dataset.usageAuthenticated === "true"', script)
+        self.assertIn('!signedIn && cookieConsent() !== "analytics"', script)
 
     def test_reading_preferences_are_available_on_every_page(self):
         response = self.client.get(reverse("library:landing"))

@@ -1060,12 +1060,16 @@
   }
 
   function initializeUsageHeartbeat() {
-    if (cookieConsent() !== "analytics") {
+    var shell = document.querySelector("[data-usage-heartbeat-url]");
+    if (!shell) {
       stopUsageHeartbeat();
       return;
     }
-    var shell = document.querySelector("[data-usage-heartbeat-url]");
-    if (!shell) return;
+    var signedIn = shell.dataset.usageAuthenticated === "true";
+    if (!signedIn && cookieConsent() !== "analytics") {
+      stopUsageHeartbeat();
+      return;
+    }
     if (usageHeartbeatState || shell.dataset.usageHeartbeatStarted === "true") return;
 
     var url = shell.dataset.usageHeartbeatUrl;
@@ -1105,7 +1109,7 @@
     }
 
     function ping(eventName) {
-      if (cookieConsent() !== "analytics") {
+      if (!signedIn && cookieConsent() !== "analytics") {
         stopUsageHeartbeat();
         return;
       }

@@ -154,7 +154,13 @@ class UsageHeartbeatView(View):
         ):
             return HttpResponse(status=403)
 
-        if request.COOKIES.get("atlas_cookie_consent") != "analytics":
+        # Signed-in usage is an essential institutional activity record used
+        # for role-based repository reporting. Anonymous guest activity stays
+        # optional and is saved only after explicit analytics consent.
+        if (
+            not request.user.is_authenticated
+            and request.COOKIES.get("atlas_cookie_consent") != "analytics"
+        ):
             return HttpResponse(status=204)
 
         event = request.POST.get("event", "")

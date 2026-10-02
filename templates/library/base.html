@@ -142,7 +142,7 @@
             <i class="fas fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
-        <p id="cookieConsentDescription">ATLAS always uses essential security and session cookies. With your permission, it also records privacy-conscious website usage statistics.</p>
+        <p id="cookieConsentDescription">ATLAS always uses essential security and session cookies and records signed-in account activity for repository administration. With your permission, it also records privacy-conscious guest usage statistics.</p>
         <p class="cookie-consent-current" data-cookie-current role="status" aria-live="polite"></p>
         <a href="{{ privacy_terms_url }}#cookies">Read the cookie policy</a>
       </div>
@@ -154,7 +154,7 @@
       </form>
     </section>
 
-    <script src="{% static 'library/js/app.js' %}?v=20261001-display-themes" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20261002-essential-usage" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

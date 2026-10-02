@@ -485,7 +485,9 @@ responsibility-specific file.
 ## Usage tracking and audit history
 
 WebsiteUsageMiddleware delegates tracking to WebsiteUsageTracker for signed-in
-accounts and guest-mode sessions. The Administrator Portal filters each selected date using the configured local
+accounts and guest-mode sessions. Signed-in account activity is treated as an
+essential institutional usage record, while guest-mode activity is stored only
+when the visitor selects Allow analytics. The Administrator Portal filters each selected date using the configured local
 timezone (Asia/Manila by default), with explicit start and end boundaries so a
 selected past date is not mixed with today, and displays:
 

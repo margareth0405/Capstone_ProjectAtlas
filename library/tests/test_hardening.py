@@ -354,7 +354,22 @@ class TransportAndCompressionTests(LibraryTestCase):
 
 
 class AnalyticsConsentTests(LibraryTestCase):
-    def test_server_ignores_usage_events_without_analytics_consent(self):
+    def test_dashboard_marks_signed_in_usage_as_essential(self):
+        user = self.create_user(email="essential-usage@example.com")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertContains(response, 'data-usage-authenticated="true"')
+
+    def test_dashboard_marks_guest_usage_as_consent_based(self):
+        self.client.post(reverse("library:guest_login"))
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertContains(response, 'data-usage-authenticated="false"')
+
+    def test_server_records_signed_in_usage_without_optional_analytics_consent(self):
         user = self.create_user(email="privacy-choice@example.com")
         self.client.force_login(user)
 
@@ -364,9 +379,9 @@ class AnalyticsConsentTests(LibraryTestCase):
         )
 
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())
+        self.assertTrue(WebsiteVisit.objects.filter(user=user).exists())
 
-    def test_server_ignores_usage_events_after_analytics_is_disabled(self):
+    def test_server_records_signed_in_usage_when_optional_analytics_is_disabled(self):
         user = self.create_user(email="privacy-disabled@example.com")
         self.client.force_login(user)
         self.client.cookies["atlas_cookie_consent"] = "essential"
@@ -377,7 +392,18 @@ class AnalyticsConsentTests(LibraryTestCase):
         )
 
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(WebsiteVisit.objects.filter(user=user).exists())
+        self.assertTrue(WebsiteVisit.objects.filter(user=user).exists())
+
+    def test_server_ignores_guest_usage_without_analytics_consent(self):
+        self.client.post(reverse("library:guest_login"))
+
+        response = self.client.post(
+            reverse("library:usage_heartbeat"),
+            {"event": "page_view", "path": "/dashboard/"},
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(WebsiteVisit.objects.exists())
 
 
 class SecurityRegressionTests(LibraryTestCase):

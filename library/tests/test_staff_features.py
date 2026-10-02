@@ -607,7 +607,8 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         response = self.client.get(reverse("library:staff_portal"))
 
         self.assertFalse(response.context["has_usage_activity"])
-        self.assertContains(response, "No consented usage activity recorded")
+        self.assertContains(response, "No website usage activity recorded")
+        self.assertContains(response, "Signed-in account activity is recorded automatically")
         self.assertContains(response, "Review analytics preference")
 
     def test_visit_history_search_and_account_type_filter(self):
