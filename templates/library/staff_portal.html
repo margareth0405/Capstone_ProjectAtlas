@@ -161,6 +161,10 @@
           <span class="account-type-counter-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
           <span><strong>{{ stats.administrator_users|default:0 }}</strong><small>Administrators</small></span>
         </a>
+        <a class="account-type-counter account-type-superuser{% if selected_user_role == 'superuser' %} is-active{% endif %}" href="?user_role=superuser"{% if selected_user_role == 'superuser' %} aria-current="page"{% endif %}>
+          <span class="account-type-counter-icon"><i class="fas fa-crown" aria-hidden="true"></i></span>
+          <span><strong>{{ stats.superuser_users|default:0 }}</strong><small>Superusers</small></span>
+        </a>
       </nav>
 
       <form class="staff-filter-bar" method="get" action="{{ staff_users_url }}" data-auto-submit>

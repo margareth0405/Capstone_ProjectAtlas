@@ -633,7 +633,7 @@
 .account-type-summary {
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     margin: 1rem 0;
 }
 
@@ -688,6 +688,11 @@
 .account-type-administrator .account-type-counter-icon {
     background: var(--maroon-50);
     color: var(--maroon-700);
+}
+
+.account-type-superuser .account-type-counter-icon {
+    background: #fff4d6;
+    color: #7a4d00;
 }
 
 .account-type-counter > span:last-child {
@@ -808,6 +813,11 @@
 .user-role-badge.administrator {
     background: var(--maroon-50);
     color: var(--maroon-700);
+}
+
+.user-role-badge.superuser {
+    background: #fff4d6;
+    color: #7a4d00;
 }
 
 .login-count-badge {

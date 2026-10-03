@@ -5,6 +5,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from library.models import DownloadEvent, Profile
@@ -91,13 +92,20 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         login_response = self.client.get(reverse("library:login"))
         register_response = self.client.get(reverse("library:register"))
 
-        self.assertContains(login_response, 'class="auth-role-switch"')
+        self.assertContains(
+            login_response, 'class="auth-role-switch login-role-switch"'
+        )
         self.assertContains(login_response, 'data-password-toggle="id_password"')
         self.assertContains(register_response, 'class="auth-role-switch"')
         self.assertContains(register_response, 'data-password-toggle="id_password1"')
         self.assertContains(register_response, 'data-password-toggle="id_password2"')
         self.assertContains(login_response, f'{reverse("library:login")}?role=student')
         self.assertContains(login_response, f'{reverse("library:login")}?role=teacher')
+        self.assertContains(
+            login_response,
+            f'{reverse("admin:login")}?next={reverse("library:staff_portal")}',
+        )
+        self.assertContains(login_response, "Administrator")
         self.assertContains(register_response, f'{reverse("library:register")}?role=student')
         self.assertContains(register_response, f'{reverse("library:register")}?role=teacher')
 
@@ -244,7 +252,6 @@ class AtlasAdminLoginTests(LibraryTestCase):
     def test_public_pages_do_not_expose_administrator_entry_points(self):
         public_requests = (
             (reverse("library:landing"), None),
-            (reverse("library:login"), {"role": "administrator"}),
             (reverse("library:register"), {"role": "administrator"}),
             (reverse("library:catalog"), None),
             (reverse("library:announcements"), None),
@@ -258,16 +265,25 @@ class AtlasAdminLoginTests(LibraryTestCase):
                 self.assertNotContains(response, reverse("admin:login"))
                 self.assertNotContains(response, reverse("library:staff_portal"))
 
-    def test_public_login_cannot_select_administrator_role(self):
+    def test_public_login_links_to_administrator_sign_in(self):
         response = self.client.get(
             reverse("library:login"), {"role": "administrator"}
         )
 
         self.assertContains(response, "Student Login")
-        self.assertNotContains(response, "Administrator")
+        self.assertContains(response, "Administrator")
+        self.assertContains(
+            response,
+            f'{reverse("admin:login")}?next={reverse("library:staff_portal")}',
+        )
         self.assertContains(
             response,
             '<input type="hidden" name="role" value="student">',
+            html=True,
+        )
+        self.assertNotContains(
+            response,
+            '<input type="hidden" name="role" value="administrator">',
             html=True,
         )
 
@@ -303,21 +319,30 @@ class AtlasAdminLoginTests(LibraryTestCase):
         self.assertContains(response, "Skip to main content")
         self.assertContains(response, "Email or username")
 
-    def test_staff_user_can_sign_in_through_django_admin_login(self):
-        staff = self.create_user(email="staff-login@example.com", is_staff=True)
-
-        response = self.client.post(
-            reverse("admin:login"),
-            {
-                "username": staff.get_username(),
-                "password": TEST_PASSWORD,
-                "next": reverse("admin:index"),
-            },
+    def test_createsuperuser_account_accepts_username_or_email(self):
+        superuser = get_user_model().objects.create_superuser(
+            username="atlas-root",
+            email="root-login@example.com",
+            password=TEST_PASSWORD,
         )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("admin:index"))
-        self.assertEqual(int(self.client.session["_auth_user_id"]), staff.pk)
+        for identifier in (superuser.get_username(), superuser.email):
+            with self.subTest(identifier=identifier):
+                self.client.logout()
+                response = self.client.post(
+                    reverse("admin:login"),
+                    {
+                        "username": identifier,
+                        "password": TEST_PASSWORD,
+                        "next": reverse("library:staff_portal"),
+                    },
+                )
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.url, reverse("library:staff_portal"))
+                self.assertEqual(
+                    int(self.client.session["_auth_user_id"]), superuser.pk
+                )
 
     def test_nonstaff_user_is_rejected_by_django_admin_login(self):
         nonstaff = self.create_user(email="reader-login@example.com")

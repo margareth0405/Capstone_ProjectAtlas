@@ -1,16 +1,16 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
-{% block title %}Administrator Account | ATLAS{% endblock %}
-{% block meta_description %}Update protected ATLAS administrator credentials.{% endblock %}
-{% block breadcrumb %}Administrator Account{% endblock %}
+{% block title %}{% if account.is_superuser %}Superuser{% else %}Administrator{% endif %} Account | ATLAS{% endblock %}
+{% block meta_description %}Update protected ATLAS staff credentials.{% endblock %}
+{% block breadcrumb %}{% if account.is_superuser %}Superuser{% else %}Administrator{% endif %} Account{% endblock %}
 
 {% block dashboard_content %}
   <div class="admin-form-page">
     <header class="django-page-header">
       <div>
         <span class="section-kicker">Protected account settings</span>
-        <h1>{% if editing_self %}Edit my administrator account{% else %}Edit administrator account{% endif %}</h1>
+        <h1>{% if editing_self %}Edit my {% if account.is_superuser %}Superuser{% else %}administrator{% endif %} account{% else %}Edit administrator account{% endif %}</h1>
       </div>
     </header>
 

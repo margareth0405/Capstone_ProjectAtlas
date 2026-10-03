@@ -48,6 +48,25 @@ class StaffAuthorizationTests(LibraryTestCase):
             ("get", reverse("library:staff_user_create")),
         )
 
+    def administrator_workspace_urls(self):
+        """Normal ATLAS workspaces shared by administrators and superusers."""
+
+        return (
+            reverse("library:staff_portal"),
+            reverse("library:staff_users"),
+            reverse("library:staff_reports"),
+            reverse("library:catalog"),
+            reverse("library:staff_item_create"),
+            reverse("library:staff_item_edit", args=[self.item.pk]),
+            reverse("library:announcements"),
+            reverse("library:staff_announcement_create"),
+            reverse("library:staff_announcement_edit", args=[self.announcement.pk]),
+            reverse("library:staff_user_create"),
+            reverse("library:staff_ai_detection"),
+            reverse("library:contact"),
+            reverse("library:staff_account_edit"),
+        )
+
     def test_anonymous_users_are_redirected_from_every_staff_view(self):
         for method, url in self.protected_requests():
             with self.subTest(method=method, url=url):
@@ -101,6 +120,12 @@ class StaffAuthorizationTests(LibraryTestCase):
             response,
             'class="btn btn-outline-secondary rounded-pill"',
         )
+        self.assertContains(response, "Administrator access.")
+        self.assertContains(
+            response,
+            "only the Superuser can create or manage administrators",
+        )
+        self.assertNotContains(response, reverse("library:superuser_admin_create"))
 
         users_response = self.client.get(reverse("library:staff_users"))
         self.assertContains(users_response, "staff-scroll-region-users")
@@ -110,6 +135,40 @@ class StaffAuthorizationTests(LibraryTestCase):
         self.assertContains(reports_response, "staff-scroll-region-resource-views")
         self.assertContains(reports_response, "staff-scroll-region-activity")
         self.assertNotContains(reports_response, "staff-scroll-region-users")
+
+    def test_administrator_and_superuser_access_every_normal_admin_workspace(self):
+        accounts = (
+            self.create_user(email="administrator@example.com", is_staff=True),
+            self.create_user(
+                email="system-superuser@example.com",
+                is_staff=True,
+                is_superuser=True,
+            ),
+        )
+
+        for account in accounts:
+            self.client.force_login(account)
+            for url in self.administrator_workspace_urls():
+                with self.subTest(account=account.email, url=url):
+                    self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_superuser_home_exposes_the_privileged_administrator_action(self):
+        superuser = self.create_user(
+            email="root-home@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        response = self.client.get(reverse("library:staff_portal"))
+
+        self.assertContains(response, "Superuser access.")
+        self.assertContains(response, "SUPERUSER")
+        self.assertContains(
+            response,
+            f'href="{reverse("library:superuser_admin_create")}"',
+        )
+        self.assertContains(response, "Create administrator")
 
 
 class StaffCrudTests(LibraryTestCase):

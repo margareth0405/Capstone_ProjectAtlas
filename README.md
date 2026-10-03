@@ -377,7 +377,9 @@ record in the attached Render PostgreSQL database during deployment.
 
 ## Administrator setup
 
-The administrator login is intentionally absent from public navigation.
+The shared sign-in page includes an Administrator choice. It opens Django's
+protected administrator form and returns successful sign-ins to the branded
+ATLAS staff portal.
 
 1. Set a private DJANGO_ADMIN_PATH value in .env.
 2. Apply migrations and create a superuser:
@@ -387,7 +389,8 @@ The administrator login is intentionally absent from public navigation.
    python manage.py createsuperuser
    ```
 
-3. Start Django and open:
+3. Start Django and either choose **Administrator** from the regular sign-in
+   page or open the administrator URL directly:
 
    ```text
    http://127.0.0.1:8000/<DJANGO_ADMIN_PATH>/
@@ -395,8 +398,11 @@ The administrator login is intentionally absent from public navigation.
 
 4. After signing in, open /staff/ for the branded Administrator Portal.
 
-The staff account form creates students and teachers only. Create additional
-administrators through createsuperuser or Django Admin.
+The Superuser is the main owner and controls every ATLAS administration
+function. Superusers create and manage Administrators. Administrators share the
+normal ATLAS administration workspaces, can manage readers and site content,
+and can edit only their own credentials; they cannot create or control another
+Administrator. The staff account form creates students and teachers only.
 
 ## Optional development data
 

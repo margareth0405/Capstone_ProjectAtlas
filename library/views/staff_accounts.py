@@ -219,13 +219,14 @@ class StaffAccountEditView(StaffRequiredMixin, View):
             account,
             request.POST if action == "password" else None,
         )
+        account_type = "Superuser" if account.is_superuser else "Administrator"
 
         if action == "username":
             form = username_form
-            success_message = "Administrator username updated. Password unchanged."
+            success_message = f"{account_type} username updated. Password unchanged."
         elif action == "password":
             form = password_form
-            success_message = "Administrator password changed. Username unchanged."
+            success_message = f"{account_type} password changed. Username unchanged."
         else:
             username_form.add_error(
                 None, "Choose the account setting you want to update."

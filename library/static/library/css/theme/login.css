@@ -869,9 +869,17 @@
   border-color: #7b2033;
 }
 
+.login-role-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 @media (max-width: 480px) {
   .auth-role-switch {
     gap: 0.45rem;
+  }
+
+  .login-role-switch {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .auth-role-switch a {

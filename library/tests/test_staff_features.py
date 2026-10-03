@@ -39,6 +39,11 @@ class StaffManagementFeatureTests(LibraryTestCase):
         teacher = self.create_user(
             email="teacher-filter@example.com", role=Profile.Role.TEACHER
         )
+        superuser = self.create_user(
+            email="superuser-filter@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
 
         response = self.client.get(
             reverse("library:staff_users"),
@@ -50,17 +55,39 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertNotIn(student, response.context["users"])
         self.assertEqual(response.context["selected_user_sort"], "oldest")
         account_totals = response.context["stats"]
-        self.assertEqual(account_totals["total_users"], 3)
+        self.assertEqual(account_totals["total_users"], 4)
         self.assertEqual(account_totals["student_users"], 1)
         self.assertEqual(account_totals["teacher_users"], 1)
         self.assertEqual(account_totals["administrator_users"], 1)
+        self.assertEqual(account_totals["superuser_users"], 1)
         self.assertContains(response, "All accounts")
         self.assertContains(response, "Students")
         self.assertContains(response, "Teachers")
         self.assertContains(response, "Administrators")
+        self.assertContains(response, "Superusers")
         self.assertContains(response, '?user_role=student')
         self.assertContains(response, '?user_role=teacher')
         self.assertContains(response, '?user_role=administrator')
+        self.assertContains(response, '?user_role=superuser')
+
+        superuser_response = self.client.get(
+            reverse("library:staff_users"),
+            {"user_role": "superuser"},
+        )
+        self.assertEqual(list(superuser_response.context["users"]), [superuser])
+        self.assertEqual(
+            superuser_response.context["users"][0].atlas_role_label,
+            "Superuser",
+        )
+
+        administrator_response = self.client.get(
+            reverse("library:staff_users"),
+            {"user_role": "administrator"},
+        )
+        self.assertEqual(
+            list(administrator_response.context["users"]),
+            [self.staff],
+        )
 
     def test_user_directory_handles_account_without_profile(self):
         legacy_user = get_user_model()(
@@ -190,6 +217,23 @@ class StaffManagementFeatureTests(LibraryTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 403)
+        response = self.client.post(
+            url,
+            {
+                "full_name": "Unauthorized Administrator",
+                "email": "unauthorized-admin@example.com",
+                "username": "unauthorized-admin",
+                "password1": "Unauthorized-Admin-2026!",
+                "password2": "Unauthorized-Admin-2026!",
+                "current_password": TEST_PASSWORD,
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            get_user_model()
+            .objects.filter(email="unauthorized-admin@example.com")
+            .exists()
+        )
         users_page = self.client.get(reverse("library:staff_users"))
         self.assertNotContains(users_page, url)
 
@@ -297,7 +341,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "main administrator password is incorrect")
+        self.assertContains(response, "Superuser password is incorrect")
         self.assertFalse(
             get_user_model()
             .objects.filter(email="blocked-admin@example.com")

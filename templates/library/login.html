@@ -1,13 +1,15 @@
 {% extends "library/base.html" %}
 
 {% block title %}Sign In | ATLAS{% endblock %}
-{% block meta_description %}Sign in securely to your ATLAS student or teacher account.{% endblock %}
+{% block meta_description %}Sign in securely to your ATLAS student, teacher, or administrator account.{% endblock %}
 {% block body_class %}atlas-auth-page{% endblock %}
 
 {% block body %}
   {% url 'library:landing' as landing_url %}
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
+  {% url 'admin:login' as administrator_login_url %}
+  {% url 'library:staff_portal' as staff_portal_url %}
   {% url 'library:privacy_terms' as privacy_terms_url %}
   {% url 'account_reset_password' as reset_password_url %}
   {% with auth_role=selected_role|default:'student' %}
@@ -22,9 +24,10 @@
         <i class="fas fa-user-graduate" aria-hidden="true"></i>
       </a>
 
-      <nav class="auth-role-switch" aria-label="Choose account type">
+      <nav class="auth-role-switch login-role-switch" aria-label="Choose account type">
         <a class="{% if auth_role == 'student' %}active{% endif %}" href="{{ login_url }}?role=student{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-user-graduate" aria-hidden="true"></i> Student</a>
         <a class="{% if auth_role == 'teacher' %}active{% endif %}" href="{{ login_url }}?role=teacher{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Teacher</a>
+        <a href="{{ administrator_login_url }}?next={{ staff_portal_url|urlencode }}"><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator</a>
       </nav>
       <span class="account-type-badge reader-account">
         {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account

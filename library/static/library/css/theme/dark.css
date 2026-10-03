@@ -474,7 +474,8 @@ html.atlas-dark .activity-action.update {
 }
 
 html.atlas-dark .user-role-badge.teacher,
-html.atlas-dark .user-role-badge.administrator {
+html.atlas-dark .user-role-badge.administrator,
+html.atlas-dark .user-role-badge.superuser {
   background: #30243e;
   border-color: #6d4c8c;
   color: #e3c7ff;

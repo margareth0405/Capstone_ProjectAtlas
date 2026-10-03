@@ -74,10 +74,12 @@ class PageContextBuilder:
             "can_manage_resources": active_role in {
                 Profile.Role.TEACHER,
                 "administrator",
+                "superuser",
             },
             "can_use_ai_detection": active_role in {
                 Profile.Role.TEACHER,
                 "administrator",
+                "superuser",
             },
             "display_name": self._display_name(),
             "favorite_count": self._favorite_count(),
@@ -92,7 +94,9 @@ class PageContextBuilder:
         user = self.request.user
         if not user.is_authenticated:
             return "guest"
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
+            return "superuser"
+        if user.is_staff:
             return "administrator"
         profile = getattr(user, "profile", None)
         return profile.role if profile else Profile.Role.STUDENT

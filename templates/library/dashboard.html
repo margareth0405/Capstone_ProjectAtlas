@@ -96,7 +96,7 @@
       </section>
     {% endwith %}
 
-    {% if library_activity and active_role != "administrator" %}
+    {% if library_activity and active_role != "administrator" and active_role != "superuser" %}
       <section class="library-updates-section" aria-labelledby="updatesHeading">
         <div class="section-header">
           <h2 id="updatesHeading"><i class="fas fa-bell" aria-hidden="true"></i> Latest Digital Sources Updates</h2>

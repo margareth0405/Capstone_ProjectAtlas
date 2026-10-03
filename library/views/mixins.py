@@ -22,10 +22,16 @@ class PageContextMixin:
 class StaffRequiredMixin:
     """Restrict a view to active Django staff accounts."""
 
+    @staticmethod
+    def has_administrator_access(user):
+        """Return whether an account may use normal ATLAS admin workspaces."""
+
+        return user.is_authenticated and user.is_active and user.is_staff
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path(), reverse("admin:login"))
-        if not (request.user.is_active and request.user.is_staff):
+        if not self.has_administrator_access(request.user):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
@@ -43,16 +49,11 @@ class ResourceManagerRequiredMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class SuperuserRequiredMixin:
+class SuperuserRequiredMixin(StaffRequiredMixin):
     """Restrict especially sensitive staff actions to the root administrator."""
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path(), reverse("admin:login"))
-        if not (
-            request.user.is_active
-            and request.user.is_staff
-            and request.user.is_superuser
-        ):
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
+    @staticmethod
+    def has_administrator_access(user):
+        """Reserve technical account administration for active superusers."""
+
+        return StaffRequiredMixin.has_administrator_access(user) and user.is_superuser

@@ -30,6 +30,7 @@ class StaffUserDirectory:
         Profile.Role.STUDENT,
         Profile.Role.TEACHER,
         "administrator",
+        "superuser",
     }
 
     def __init__(self, parameters):
@@ -68,7 +69,9 @@ class StaffUserDirectory:
                 | Q(username__icontains=self.query)
             )
         if self.role == "administrator":
-            users = users.filter(Q(is_staff=True) | Q(is_superuser=True))
+            users = users.filter(is_staff=True, is_superuser=False)
+        elif self.role == "superuser":
+            users = users.filter(is_superuser=True)
         elif self.role in {Profile.Role.STUDENT, Profile.Role.TEACHER}:
             users = users.filter(is_staff=False, is_superuser=False)
             if include_profiles:
@@ -114,7 +117,11 @@ class StaffUserDirectory:
     @staticmethod
     def _decorate(users, *, profiles_available):
         for account in users:
-            if account.is_staff or account.is_superuser:
+            if account.is_superuser:
+                account.atlas_role = "superuser"
+                account.atlas_role_label = "Superuser"
+                continue
+            if account.is_staff:
                 account.atlas_role = "administrator"
                 account.atlas_role_label = "Administrator"
                 continue
@@ -385,6 +392,7 @@ class StaffPortalContextService:
         ("student", "Student"),
         ("teacher", "Teacher"),
         ("administrator", "Administrator"),
+        ("superuser", "Superuser"),
     )
     usage_role_choices = WebsiteVisit.Role.choices
 
@@ -504,8 +512,10 @@ class StaffPortalContextService:
                 ).count(),
                 "teacher_users": 0,
                 "administrator_users": core_users.filter(
-                    Q(is_staff=True) | Q(is_superuser=True)
+                    is_staff=True,
+                    is_superuser=False,
                 ).count(),
+                "superuser_users": core_users.filter(is_superuser=True).count(),
                 "successful_logins": core_users.filter(
                     last_login__isnull=False
                 ).count(),
@@ -514,7 +524,8 @@ class StaffPortalContextService:
     @staticmethod
     def _staff_stats(users):
         reader_filter = Q(is_staff=False, is_superuser=False)
-        administrator_filter = Q(is_staff=True) | Q(is_superuser=True)
+        administrator_filter = Q(is_staff=True, is_superuser=False)
+        superuser_filter = Q(is_superuser=True)
         return users.aggregate(
             total_users=Count("pk"),
             student_users=Count(
@@ -527,6 +538,7 @@ class StaffPortalContextService:
                 filter=reader_filter & Q(profile__role=Profile.Role.TEACHER),
             ),
             administrator_users=Count("pk", filter=administrator_filter),
+            superuser_users=Count("pk", filter=superuser_filter),
             successful_logins=Count(
                 "pk",
                 filter=Q(last_login__isnull=False),

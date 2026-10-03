@@ -5,11 +5,13 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from library.forms import AtlasAdminAuthenticationForm
 from library.views import AccountSettingsView, PasswordResetView
 
 admin.site.site_header = "ATLAS Administration"
 admin.site.site_title = "ATLAS Admin"
 admin.site.index_title = "Digital Sources management"
+admin.site.login_form = AtlasAdminAuthenticationForm
 
 urlpatterns = [
     path(f"{settings.ADMIN_URL_PATH}/", admin.site.urls),

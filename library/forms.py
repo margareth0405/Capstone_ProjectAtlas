@@ -6,6 +6,7 @@ from pathlib import Path
 from allauth.account.models import EmailAddress
 from django import forms
 from django.conf import settings
+from django.contrib.admin.forms import AdminAuthenticationForm
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
@@ -18,6 +19,22 @@ from .services.accounts import AccountEmailPolicy
 from .services.uploads import DocumentUploadPolicy, DocumentUploadValidationError
 
 User = get_user_model()
+
+
+class AtlasAdminAuthenticationForm(AdminAuthenticationForm):
+    """Let administrators authenticate with either their username or email."""
+
+    def clean(self):
+        identifier = self.cleaned_data.get("username", "").strip()
+        if identifier:
+            matching_user = User.objects.filter(
+                email__iexact=identifier,
+                is_active=True,
+                is_staff=True,
+            ).first()
+            if matching_user is not None:
+                self.cleaned_data["username"] = matching_user.get_username()
+        return super().clean()
 
 
 class StyledFormMixin:
@@ -489,8 +506,8 @@ class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
     )
     current_password = forms.CharField(
         strip=False,
-        label="Your main administrator password",
-        help_text="Confirms that you are authorized to create another administrator.",
+        label="Your Superuser password",
+        help_text="Confirms that the Superuser authorizes this administrator.",
         widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )
 
@@ -543,7 +560,7 @@ class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
     def clean_current_password(self):
         password = self.cleaned_data.get("current_password", "")
         if not self.actor.check_password(password):
-            raise ValidationError("Your main administrator password is incorrect.")
+            raise ValidationError("Your Superuser password is incorrect.")
         return password
 
     def save(self, commit=True):
@@ -571,11 +588,19 @@ class StaffAccountAuthorizationMixin:
         self.actor = actor
         self.account = account
         super().__init__(*args, **kwargs)
+        actor_label = "Superuser" if actor.is_superuser else "administrator"
+        if "current_password" in self.fields:
+            self.fields["current_password"].label = (
+                f"Your current {actor_label} password"
+            )
 
     def clean_current_password(self):
         password = self.cleaned_data.get("current_password", "")
         if not self.actor.check_password(password):
-            raise ValidationError("Your current administrator password is incorrect.")
+            actor_label = "Superuser" if self.actor.is_superuser else "administrator"
+            raise ValidationError(
+                f"Your current {actor_label} password is incorrect."
+            )
         return password
 
 

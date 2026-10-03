@@ -14,6 +14,7 @@
   {% url 'library:contact' as contact_url %}
   {% url 'library:staff_item_create' as staff_item_create_url %}
   {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:superuser_admin_create' as superuser_admin_create_url %}
   {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
 
   <div class="staff-portal staff-home">
@@ -21,7 +22,11 @@
       <div>
         <span class="section-kicker">Administration</span>
         <h1><i class="fas fa-gauge-high" aria-hidden="true"></i> Administrator Home</h1>
-        <p>Choose a workspace below. Each function opens on its own page.</p>
+        {% if request.user.is_superuser %}
+          <p><strong>Superuser access.</strong> You are the main owner, control every ATLAS administration function, and can create or manage administrators.</p>
+        {% else %}
+          <p><strong>Administrator access.</strong> You can use every administrator workspace; only the Superuser can create or manage administrators.</p>
+        {% endif %}
       </div>
     </header>
 
@@ -81,6 +86,9 @@
         <a class="btn-register-admin" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
         <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create reader</a>
         <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"><i class="fas fa-bullhorn" aria-hidden="true"></i> Create announcement</a>
+        {% if request.user.is_superuser %}
+          <a class="btn-register-admin" href="{{ superuser_admin_create_url }}"><i class="fas fa-user-shield" aria-hidden="true"></i> Create administrator</a>
+        {% endif %}
       </div>
     </section>
   </div>
