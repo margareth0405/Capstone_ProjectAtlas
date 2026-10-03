@@ -5,13 +5,13 @@
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Resource | ATLAS{% endblock %}
-{% block meta_description %}Add or update an ATLAS repository resource and its protected abstract.{% endblock %}
+{% block meta_description %}Add or update an ATLAS Digital Sources resource and its protected abstract.{% endblock %}
 {% block breadcrumb %}{% if form.instance.pk %}Edit Resource{% else %}Add Resource{% endif %}{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
   <div class="admin-form-page">
-    <header class="django-page-header"><div><span class="section-kicker">Repository management</span><h1>{% if form.instance.pk %}Edit resource{% else %}Add a new resource{% endif %}</h1></div></header>
+    <header class="django-page-header"><div><span class="section-kicker">Digital Sources management</span><h1>{% if form.instance.pk %}Edit resource{% else %}Add a new resource{% endif %}</h1></div></header>
     <div class="resource-form-note resource-form-instructions" role="note"><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>How to add a resource:</strong> complete the details, choose PDF or Word, attach the matching resource abstract, then select Save resource. Fields marked * are required.</span></div>
     <form method="post" enctype="multipart/form-data" class="admin-object-form" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is validating and optimizing the resource…">
       {% csrf_token %}
@@ -22,7 +22,7 @@
             {% if field.name == 'hard_copy_available' %}
               <div class="resource-availability-control">
                 {{ field }}
-                <label for="{{ field.id_for_label }}"><span>{{ field.label }}</span><small>Readers will see “Hard copy available” in the repository.</small></label>
+                <label for="{{ field.id_for_label }}"><span>{{ field.label }}</span><small>Readers will see “Hard copy available” in Digital Sources.</small></label>
               </div>
             {% else %}
             <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required or field.name == 'resource_abstract' %} <span aria-hidden="true">*</span>{% endif %}</label>

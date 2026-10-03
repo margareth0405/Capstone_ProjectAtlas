@@ -1,4 +1,4 @@
-"""Digital repository, bookmark, and resource-management routes."""
+"""Digital Sources, bookmark, and resource-management routes."""
 
 from django.urls import path
 

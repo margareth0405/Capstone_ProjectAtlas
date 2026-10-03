@@ -91,6 +91,11 @@ INSTALLED_APPS = [
     "anymail",
 ]
 SITE_ID = int(os.getenv("SITE_ID", "1"))
+SITE_DOMAIN = os.getenv("SITE_DOMAIN", "atlas.local").strip() or "atlas.local"
+SITE_DISPLAY_NAME = (
+    os.getenv("SITE_DISPLAY_NAME", "A.T.L.A.S. Digital Sources").strip()
+    or "A.T.L.A.S. Digital Sources"
+)
 
 if DEBUG:
     INSTALLED_APPS.append("django_browser_reload")
@@ -331,14 +336,14 @@ SUPPORT_HOURS = os.getenv("SUPPORT_HOURS", "Monday–Friday, 8:00 AM–5:00 PM")
 
 SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "").strip()
 
-BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Repository").strip()
+BUSINESS_NAME = os.getenv("BUSINESS_NAME", "ATLAS Digital Sources").strip()
 
 BUSINESS_OPERATOR = os.getenv(
-    "BUSINESS_OPERATOR", "ATLAS Digital Repository team"
+    "BUSINESS_OPERATOR", "ATLAS Digital Sources team"
 ).strip()
 
 BUSINESS_SERVICE_TYPE = os.getenv(
-    "BUSINESS_SERVICE_TYPE", "Non-commercial academic digital repository"
+    "BUSINESS_SERVICE_TYPE", "Non-commercial academic Digital Sources service"
 ).strip()
 
 BUSINESS_COUNTRY = os.getenv("BUSINESS_COUNTRY", "Philippines").strip()

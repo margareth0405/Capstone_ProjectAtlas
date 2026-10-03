@@ -95,12 +95,12 @@ class StaffFormView(View):
 
 
 class StaffItemCreateView(ResourceManagerRequiredMixin, StaffFormView):
-    """Create one digital repository resource."""
+    """Create one Digital Sources resource."""
 
     form_class = LibraryItemForm
     template_name = "library/admin/item_form.html"
     active_page = "catalog"
-    form_title = "Add repository item"
+    form_title = "Add Digital Sources item"
     submit_label = "Add item"
     activity_object_type = "repository resource"
     persistence_service_class = RepositoryItemPersistenceService
@@ -129,14 +129,14 @@ class StaffItemCreateView(ResourceManagerRequiredMixin, StaffFormView):
 
     def prepare_instance(self, instance):
         instance.created_by = self.request.user
-        self.success_message = f"{instance.title} was added to the digital repository."
+        self.success_message = f"{instance.title} was added to Digital Sources."
         return instance
 
 
 class StaffItemEditView(StaffItemCreateView):
-    """Edit one existing digital repository resource."""
+    """Edit one existing Digital Sources resource."""
 
-    form_title = "Edit repository item"
+    form_title = "Edit Digital Sources item"
     submit_label = "Save changes"
 
     def get_instance(self):
@@ -148,7 +148,7 @@ class StaffItemEditView(StaffItemCreateView):
 
 
 class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
-    """Delete one digital repository resource and retain an audit entry."""
+    """Delete one Digital Sources resource and retain an audit entry."""
 
     activity_recorder_class = ActivityRecorder
     persistence_service_class = RepositoryItemPersistenceService
@@ -164,7 +164,7 @@ class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
             object_id=pk,
             description=title,
         )
-        messages.info(request, f"{title} was removed from the digital repository.")
+        messages.info(request, f"{title} was removed from Digital Sources.")
         destination = "library:staff_portal" if request.user.is_staff else "library:catalog"
         return redirect(destination)
 

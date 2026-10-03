@@ -157,7 +157,8 @@ html.atlas-dark .accessibility-option-label {
   color: #cdbfc3;
 }
 
-html.atlas-dark .accessibility-theme-setting {
+html.atlas-dark .accessibility-theme-setting,
+html.atlas-dark .accessibility-language-setting {
   border-color: #57464c;
 }
 
@@ -636,6 +637,32 @@ html.atlas-dark .form-select.is-valid {
   background-color: #15271e;
   border-color: var(--atlas-dark-success-border);
   color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-status-card,
+html.atlas-dark .account-status-card.is-verified,
+html.atlas-dark .account-status-card.is-unverified {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark .account-status-card strong,
+html.atlas-dark .account-status-card span,
+html.atlas-dark .account-settings-section h2,
+html.atlas-dark .account-settings-section > p {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-status-card.is-verified .account-status-icon {
+  color: #8de5ac;
+}
+
+html.atlas-dark .account-status-card.is-unverified .account-status-icon {
+  color: #f4cf7c;
+}
+
+html.atlas-dark .account-settings-section {
+  border-top-color: var(--atlas-dark-border);
 }
 
 /* High contrast remains meaningful when it is combined with dark mode. */

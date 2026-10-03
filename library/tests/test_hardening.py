@@ -123,7 +123,10 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
         self.assertNotContains(landing, "fonts.googleapis.com")
         self.assertNotContains(landing, "cdn.jsdelivr.net")
         self.assertNotContains(landing, "font-awesome/6.5.0/css/all.min.css")
-        self.assertContains(landing, "library/css/django.css")
+        self.assertRegex(
+            landing.content.decode(),
+            r"library/css/django(?:\.[0-9a-f]+)?\.css",
+        )
         self.assertContains(landing, 'class="page-loader is-hidden"')
 
         self.client.post(reverse("library:guest_login"))

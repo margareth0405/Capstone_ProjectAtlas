@@ -5,16 +5,19 @@ import smtplib
 
 from allauth.account import app_settings as allauth_account_settings
 from allauth.account.utils import complete_signup, perform_login, setup_user_email
+from allauth.account.views import EmailView, PasswordResetView as AllauthPasswordResetView
+from anymail.exceptions import AnymailError
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 
-from library.forms import RegistrationForm, RoleLoginForm
+from library.forms import RegistrationForm, RoleLoginForm, TeacherDisplayNameForm
 from library.models import ActivityLog, Profile
 from library.services import PageContextBuilder, SafeRedirectService
 from library.services.activity import ActivityRecorder
@@ -29,13 +32,17 @@ class EmailDeliveryErrorMixin:
         "ATLAS could not send the verification email right now. "
         "Please try again or contact support."
     )
-    email_exceptions = (smtplib.SMTPException, OSError)
+    # SMTP is used for local deployments while production can use Anymail's
+    # Brevo API backend. Both failure families must become recoverable form
+    # errors instead of an HTTP 500 response.
+    email_exceptions = (smtplib.SMTPException, AnymailError, OSError)
 
-    def handle_email_error(self, request, form):
+    def handle_email_error(self, request, form=None):
         logger.exception("Account email delivery failed.")
         if request.user.is_authenticated:
             auth_logout(request)
-        form.add_error(None, self.email_error_message)
+        if form is not None:
+            form.add_error(None, self.email_error_message)
         messages.error(request, self.email_error_message)
 
 
@@ -58,6 +65,86 @@ class RoleSelectionMixin:
             if requested == Profile.Role.TEACHER
             else Profile.Role.STUDENT
         )
+
+
+class AccountSettingsView(EmailDeliveryErrorMixin, EmailView):
+    """Show email verification and teacher display-name settings together."""
+
+    template_name = "account/email.html"
+    display_name_form_class = TeacherDisplayNameForm
+
+    def post(self, request, *args, **kwargs):
+        if "action_update_display_name" in request.POST:
+            return self._update_display_name(request)
+        try:
+            return super().post(request, *args, **kwargs)
+        except self.email_exceptions:
+            # Keep the signed-in session on the settings page so the visitor
+            # can retry a failed resend. Registration/login failures still
+            # use handle_email_error(), which logs out partial sessions.
+            logger.exception("Verification email resend failed.")
+            messages.error(request, self.email_error_message)
+            return self.get(request, *args, **kwargs)
+
+    def _update_display_name(self, request):
+        profile = getattr(request.user, "profile", None)
+        if profile is None or profile.role != Profile.Role.TEACHER:
+            raise PermissionDenied
+
+        form = self.display_name_form_class(request.POST, account=request.user)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+                ActivityRecorder.record(
+                    actor=request.user,
+                    action=ActivityLog.Action.UPDATE,
+                    object_type="teacher display name",
+                    object_id=request.user.pk,
+                    description=request.user.get_full_name(),
+                )
+            messages.success(request, "Your display name has been updated.")
+            return redirect("account_email")
+
+        messages.error(request, "Your display name was not updated.")
+        return self.render_to_response(
+            self.get_context_data(display_name_form=form)
+        )
+
+    def get_context_data(self, **kwargs):
+        display_name_form = kwargs.pop("display_name_form", None)
+        context = super().get_context_data(**kwargs)
+        profile = getattr(self.request.user, "profile", None)
+        is_teacher = profile is not None and profile.role == Profile.Role.TEACHER
+        emailaddresses = context.get("emailaddresses", [])
+        primary_email = next(
+            (address for address in emailaddresses if address.primary),
+            emailaddresses[0] if emailaddresses else None,
+        )
+        context.update(
+            {
+                "is_teacher": is_teacher,
+                "primary_email": primary_email,
+                "email_is_verified": bool(primary_email and primary_email.verified),
+                "display_name_form": (
+                    display_name_form
+                    or self.display_name_form_class(account=self.request.user)
+                    if is_teacher
+                    else None
+                ),
+            }
+        )
+        return context
+
+
+class PasswordResetView(EmailDeliveryErrorMixin, AllauthPasswordResetView):
+    """Keep temporary email-provider failures on the reset form."""
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except self.email_exceptions:
+            self.handle_email_error(self.request, form)
+            return self.form_invalid(form)
 
 
 class RegisterView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):

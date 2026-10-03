@@ -1,10 +1,12 @@
 """Feature-grouped class-based views for the ATLAS application."""
 
 from .authentication import (
+    AccountSettingsView,
     GuestLoginView,
     LandingView,
     LoginView,
     LogoutView,
+    PasswordResetView,
     RegisterView,
 )
 from .catalog import (
@@ -44,6 +46,7 @@ from .staff import (
 )
 
 __all__ = (
+    "AccountSettingsView",
     "AnnouncementsView",
     "CatalogView",
     "ContactView",
@@ -57,6 +60,7 @@ __all__ = (
     "LandingView",
     "LoginView",
     "LogoutView",
+    "PasswordResetView",
     "PrivacyTermsView",
     "RegisterView",
     "ResourceAbstractReaderView",

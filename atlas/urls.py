@@ -5,9 +5,11 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from library.views import AccountSettingsView, PasswordResetView
+
 admin.site.site_header = "ATLAS Administration"
 admin.site.site_title = "ATLAS Admin"
-admin.site.index_title = "Digital repository management"
+admin.site.index_title = "Digital Sources management"
 
 urlpatterns = [
     path(f"{settings.ADMIN_URL_PATH}/", admin.site.urls),
@@ -24,6 +26,16 @@ urlpatterns = [
     path(
         "accounts/logout/",
         RedirectView.as_view(pattern_name="library:landing", permanent=False),
+    ),
+    path(
+        "accounts/email/",
+        AccountSettingsView.as_view(),
+        name="account_email",
+    ),
+    path(
+        "accounts/password/reset/",
+        PasswordResetView.as_view(),
+        name="account_reset_password",
     ),
     path("accounts/", include("allauth.urls")),
     path("", include("library.urls")),

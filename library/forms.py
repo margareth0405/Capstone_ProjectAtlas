@@ -204,6 +204,39 @@ class RoleLoginForm(StyledFormMixin, forms.Form):
         return self.user_cache
 
 
+class TeacherDisplayNameForm(StyledFormMixin, forms.Form):
+    """Update the friendly name shown for a teacher across ATLAS."""
+
+    display_name = forms.CharField(
+        max_length=150,
+        label="Display name",
+        help_text="This name appears in your ATLAS welcome message and account menu.",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Example: Maria Santos",
+                "autocomplete": "name",
+            }
+        ),
+    )
+
+    def __init__(self, *args, account, **kwargs):
+        self.account = account
+        kwargs.setdefault("initial", {"display_name": account.get_full_name().strip()})
+        super().__init__(*args, **kwargs)
+
+    def clean_display_name(self):
+        display_name = " ".join(self.cleaned_data["display_name"].split())
+        if not display_name:
+            raise ValidationError("Enter the name you want ATLAS to display.")
+        return display_name
+
+    def save(self):
+        display_name = self.cleaned_data["display_name"]
+        self.account.first_name, _, self.account.last_name = display_name.partition(" ")
+        self.account.save(update_fields=("first_name", "last_name"))
+        return self.account
+
+
 class LibraryItemForm(StyledFormMixin, forms.ModelForm):
     """Validate uploaded PDF/Word resources and publication precision."""
 

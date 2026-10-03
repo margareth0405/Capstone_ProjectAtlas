@@ -2450,7 +2450,8 @@ main p a,
   grid-template-columns: 1fr;
 }
 
-.accessibility-theme-setting {
+.accessibility-theme-setting,
+.accessibility-language-setting {
   border-bottom: 1px solid #ddd2cd;
   margin-bottom: 0.15rem;
   padding-bottom: 0.65rem;

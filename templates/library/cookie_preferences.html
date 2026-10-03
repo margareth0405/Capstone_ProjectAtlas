@@ -1,7 +1,7 @@
 {% extends "library/base.html" %}
 
 {% block title %}Cookie Preferences | ATLAS{% endblock %}
-{% block meta_description %}Review and change the optional guest analytics preference used by the ATLAS Digital Repository.{% endblock %}
+{% block meta_description %}Review and change the optional guest analytics preference used by ATLAS Digital Sources.{% endblock %}
 
 {% block body %}
   <main class="legal-page" id="mainContent" tabindex="-1">
@@ -23,7 +23,7 @@
             No optional cookie choice has been saved yet.
           {% endif %}
         </p>
-        <p>Essential security, sign-in, session, and CSRF cookies cannot be disabled because ATLAS needs them to provide its requested features. When an account is signed in, ATLAS records page navigation and active-session duration for institutional repository administration regardless of this optional guest analytics choice.</p>
+        <p>Essential security, sign-in, session, and CSRF cookies cannot be disabled because ATLAS needs them to provide its requested features. When an account is signed in, ATLAS records page navigation and active-session duration for institutional Digital Sources administration regardless of this optional guest analytics choice.</p>
 
         <form class="cookie-preference-page-actions" method="post" action="{% url 'library:cookie_preferences' %}">
           {% csrf_token %}

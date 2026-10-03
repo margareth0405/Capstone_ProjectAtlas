@@ -74,6 +74,72 @@
   padding-bottom: 1rem;
 }
 
+.account-status-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #e7dfd8;
+  border-radius: 14px;
+  background: #fbf8f5;
+  text-align: left;
+}
+
+.account-status-card.is-verified {
+  border-color: #b9ddc8;
+  background: #f1faf5;
+}
+
+.account-status-card.is-unverified {
+  border-color: #e7c98f;
+  background: #fff8e9;
+}
+
+.account-status-icon {
+  flex: 0 0 auto;
+  font-size: 1.55rem;
+  color: #9a6714;
+}
+
+.account-status-card.is-verified .account-status-icon {
+  color: #227647;
+}
+
+.account-status-card > div {
+  display: grid;
+  min-width: 0;
+}
+
+.account-status-label,
+.account-status-card span:last-child {
+  color: #6e625c;
+  font-size: 0.78rem;
+}
+
+.account-status-card strong {
+  color: #342924;
+  font-size: 1rem;
+}
+
+.account-settings-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f0ece8;
+  text-align: left;
+}
+
+.account-settings-section h2 {
+  margin-bottom: 0.25rem;
+  font-size: 1.15rem;
+}
+
+.account-settings-section > p {
+  margin-bottom: 1rem;
+  color: #6e625c;
+  font-size: 0.85rem;
+}
+
 /* Role Buttons */
 .role-buttons {
   display: flex;

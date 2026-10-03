@@ -1,6 +1,6 @@
 Hello,
 
-Welcome to A.T.L.A.S. – Academic Repository Management System of Tingloy Senior High School.
+Welcome to A.T.L.A.S. – Academic Digital Sources System of Tingloy Senior High School.
 
 Thank you for registering an account.
 

@@ -15,10 +15,12 @@ from .base import TEST_PASSWORD, LibraryTestCase
 class ReaderAuthPresentationTests(LibraryTestCase):
     def test_landing_role_links_preserve_student_and_teacher_selection(self):
         response = self.client.get(reverse("library:landing"))
-        login_url = reverse("library:login")
+        register_url = reverse("library:register")
 
-        self.assertContains(response, f'href="{login_url}?role=student"')
-        self.assertContains(response, f'href="{login_url}?role=teacher"')
+        self.assertContains(response, f'href="{register_url}?role=student"')
+        self.assertContains(response, f'href="{register_url}?role=teacher"')
+        self.assertContains(response, "Already have an account?")
+        self.assertContains(response, f'href="{reverse("library:login")}">Sign in</a>')
 
     def test_landing_role_buttons_do_not_render_subtitles(self):
         response = self.client.get(reverse("library:landing"))

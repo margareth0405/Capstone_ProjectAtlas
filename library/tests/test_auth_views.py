@@ -527,6 +527,81 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
+class AccountSettingsTests(LibraryTestCase):
+    def test_account_settings_shows_verified_email_status(self):
+        user = self.create_user(email="verified-reader@example.com")
+        EmailAddress.objects.create(
+            user=user,
+            email=user.email,
+            primary=True,
+            verified=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_email"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email status")
+        self.assertContains(response, "Verified")
+        self.assertNotContains(response, "Resend verification email")
+
+    def test_account_settings_shows_unverified_email_and_resend_action(self):
+        user = self.create_user(email="unverified-reader@example.com")
+        EmailAddress.objects.create(
+            user=user,
+            email=user.email,
+            primary=True,
+            verified=False,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_email"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Not verified")
+        self.assertContains(response, "Resend verification email")
+
+    def test_teacher_can_update_display_name_from_account_settings(self):
+        teacher = self.create_user(
+            email="display.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        teacher.username = "legacy_teacher_username"
+        teacher.save(update_fields=("username",))
+        self.client.force_login(teacher)
+
+        response = self.client.post(
+            reverse("account_email"),
+            {
+                "display_name": "Maria Dela Cruz",
+                "action_update_display_name": "",
+            },
+        )
+
+        self.assertRedirects(response, reverse("account_email"))
+        teacher.refresh_from_db()
+        self.assertEqual(teacher.get_full_name(), "Maria Dela Cruz")
+        dashboard = self.client.get(reverse("library:dashboard"))
+        self.assertEqual(dashboard.context["display_name"], "Maria Dela Cruz")
+        self.assertContains(dashboard, "Welcome, Maria Dela Cruz")
+
+    def test_student_cannot_update_display_name(self):
+        student = self.create_user(email="display.student@example.com")
+        self.client.force_login(student)
+
+        response = self.client.post(
+            reverse("account_email"),
+            {
+                "display_name": "Changed Student",
+                "action_update_display_name": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        student.refresh_from_db()
+        self.assertEqual(student.get_full_name(), "Atlas User")
+
+
 class WelcomeGreetingTests(LibraryTestCase):
     def test_greeting_prefers_non_email_username(self):
         user = self.create_user(email="reader@example.com")

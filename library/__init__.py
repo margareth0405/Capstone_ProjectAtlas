@@ -1,2 +1,2 @@
-"""Domain app for the ATLAS Digital Repository."""
+"""Domain app for ATLAS Digital Sources."""
 

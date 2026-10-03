@@ -49,7 +49,10 @@ class NavigationAndMetadataTests(LibraryTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("| ATLAS</title>", content)
                 self.assertIn('<meta\n      name="description"', content)
-                self.assertIn("library/images/favicon.svg", content)
+                self.assertRegex(
+                    content,
+                    r"library/images/favicon(?:\.[0-9a-f]+)?\.svg",
+                )
                 self.assertNotIn('href="#"', content)
                 self.assertNotIn('action=""', content)
 
@@ -193,7 +196,7 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertNotContains(response, "jsDelivr")
         self.assertNotContains(response, "Bootstrap")
         self.assertContains(response, "cdnjs")
-        self.assertContains(response, "ATLAS Digital Repository")
+        self.assertContains(response, "ATLAS Digital Sources")
 
     def test_sensitive_consents_are_not_prechecked(self):
         registration = self.client.get(reverse("library:register"))
@@ -252,12 +255,33 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, 'data-contrast-toggle aria-pressed="false"')
         self.assertContains(response, 'data-theme-choice="light" aria-pressed="true"')
         self.assertContains(response, 'data-theme-choice="dark" aria-pressed="false"')
+        self.assertContains(response, 'data-language-choice="en" aria-pressed="true"')
+        self.assertContains(response, 'data-language-choice="fil" aria-pressed="false"')
+        self.assertContains(response, "Language / Wika")
         self.assertContains(response, "Light mode")
         self.assertContains(response, "Dark mode")
         content = response.content.decode()
         self.assertRegex(content, r"library/css/theme/dark(?:\.[0-9a-f]+)?\.css")
         self.assertRegex(content, r"library/css/theme/responsive(?:\.[0-9a-f]+)?\.css")
+        self.assertRegex(content, r"library/js/language(?:\.[0-9a-f]+)?\.js")
         self.assertNotContains(response, 'class="reading-preferences"')
+
+    def test_language_switcher_persists_and_translates_dynamic_interface_text(self):
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "language.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("class AtlasLanguagePreference", script)
+        self.assertIn('this.storageKey = "atlas_language"', script)
+        self.assertIn('document.documentElement.lang', script)
+        self.assertIn("MutationObserver", script)
+        self.assertIn('"Student": "Mag-aaral"', script)
+        self.assertIn('"Digital Sources": "Mga Digital na Sanggunian"', script)
 
     def test_accessibility_preferences_use_an_encapsulated_controller(self):
         script = (

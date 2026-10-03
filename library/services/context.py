@@ -38,11 +38,15 @@ class GreetingNameResolver:
 
     @classmethod
     def resolve(cls, user):
+        full_name = user.get_full_name().strip()
+        profile = getattr(user, "profile", None)
+        if profile is not None and profile.role == Profile.Role.TEACHER and full_name:
+            return full_name
+
         username = (user.get_username() or "").strip()
         if username and "@" not in username:
             return username
 
-        full_name = user.get_full_name().strip()
         if full_name:
             return full_name
 

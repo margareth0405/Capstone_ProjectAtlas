@@ -1,11 +1,22 @@
 {% extends "account/base_atlas.html" %}
 
-{% block title %}Email Verification | ATLAS{% endblock %}
-{% block account_icon %}fa-envelope-circle-check{% endblock %}
+{% block title %}Account Settings | ATLAS{% endblock %}
+{% block account_icon %}fa-user-gear{% endblock %}
 
 {% block account_content %}
-  <h1 id="accountTitle">Email verification</h1>
-  <p class="sub">Review your account email and resend a verification link when needed.</p>
+  <h1 id="accountTitle">Account settings</h1>
+  <p class="sub">Review your account identity and email verification status.</p>
+
+  <section class="account-status-card {% if email_is_verified %}is-verified{% else %}is-unverified{% endif %}" aria-labelledby="verificationStatusTitle">
+    <span class="account-status-icon" aria-hidden="true">
+      <i class="fas {% if email_is_verified %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+    </span>
+    <div>
+      <span class="account-status-label" id="verificationStatusTitle">Email status</span>
+      <strong>{% if email_is_verified %}Verified{% else %}Not verified{% endif %}</strong>
+      {% if primary_email %}<span>{{ primary_email.email }}</span>{% endif %}
+    </div>
+  </section>
 
   {% if emailaddresses %}
     <form method="post" action="{% url 'account_email' %}">
@@ -15,15 +26,35 @@
           <div class="consent-field">
             <input type="radio" name="email" value="{{ emailaddress.email }}" id="{{ radio.id }}"{% if radio.checked %} checked{% endif %}>
             <label for="{{ radio.id }}">
-              {{ emailaddress.email }} — {% if emailaddress.verified %}Verified{% else %}Not verified{% endif %}{% if emailaddress.primary %} (primary){% endif %}
+              {{ emailaddress.email }} &mdash; {% if emailaddress.verified %}Verified{% else %}Not verified{% endif %}{% if emailaddress.primary %} (primary){% endif %}
             </label>
           </div>
         {% endwith %}
       {% endfor %}
-      <button class="btn-login reader-btn" type="submit" name="action_send">Resend verification email <i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+      {% if not email_is_verified %}
+        <button class="btn-login reader-btn" type="submit" name="action_send">Resend verification email <i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+      {% endif %}
     </form>
   {% else %}
     <p class="sub">No email address is associated with this account.</p>
+  {% endif %}
+
+  {% if is_teacher %}
+    <section class="account-settings-section" aria-labelledby="displayNameTitle">
+      <h2 id="displayNameTitle">Teacher display name</h2>
+      <p>Choose the name shown in your dashboard welcome message and account menu.</p>
+      <form method="post" action="{% url 'account_email' %}" novalidate>
+        {% csrf_token %}
+        {% include "library/includes/form_errors.html" with form=display_name_form %}
+        <div class="form-group">
+          <label for="{{ display_name_form.display_name.id_for_label }}"><i class="fas fa-signature" aria-hidden="true"></i> {{ display_name_form.display_name.label }}</label>
+          {{ display_name_form.display_name }}
+          {% if display_name_form.display_name.help_text %}<small class="form-helper">{{ display_name_form.display_name.help_text }}</small>{% endif %}
+          {% if display_name_form.display_name.errors %}<div class="invalid-feedback d-block">{% for error in display_name_form.display_name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <button class="btn-login reader-btn" type="submit" name="action_update_display_name">Save display name <i class="fas fa-floppy-disk" aria-hidden="true"></i></button>
+      </form>
+    </section>
   {% endif %}
 
   <p class="auth-switch"><a href="{% url 'library:dashboard' %}">Return to dashboard</a></p>

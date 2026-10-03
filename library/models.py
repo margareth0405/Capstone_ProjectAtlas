@@ -87,8 +87,8 @@ class LibraryItem(models.Model):
 
     class Meta:
         ordering = ("title", "author")
-        verbose_name = "repository item"
-        verbose_name_plural = "repository items"
+        verbose_name = "Digital Sources item"
+        verbose_name_plural = "Digital Sources items"
         indexes = [
             models.Index(fields=("collection", "title"), name="library_col_title_idx"),
         ]
