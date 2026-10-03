@@ -53,6 +53,7 @@
         themeColor.setAttribute("content", this.state.darkMode ? "#171214" : "#4a111c");
       }
       this.syncButtons();
+      window.dispatchEvent(new CustomEvent("atlas:display-preferences-changed"));
     }
 
     syncButtons() {
@@ -836,7 +837,109 @@
     var toggle = document.getElementById("mobileToggle");
     var closeButton = document.getElementById("mobileMenuClose");
     var overlay = document.getElementById("sidebarOverlay");
+    var resizeHandle = sidebar && sidebar.querySelector("[data-sidebar-resize]");
     if (!sidebar || !toggle || !overlay) return;
+
+    var sidebarStorageKey = "atlas_sidebar_width";
+    var resizing = false;
+
+    function sidebarLimits() {
+      var rootFontSize = parseFloat(
+        window.getComputedStyle(document.documentElement).fontSize
+      ) || 16;
+      var minimum = rootFontSize * 17.5;
+      var maximum = Math.max(
+        minimum,
+        Math.min(rootFontSize * 28, window.innerWidth * 0.45)
+      );
+      return { minimum: minimum, maximum: maximum };
+    }
+
+    function syncResizeHandle() {
+      if (!resizeHandle) return;
+      var limits = sidebarLimits();
+      var currentWidth = Math.round(sidebar.getBoundingClientRect().width);
+      resizeHandle.setAttribute("aria-valuemin", String(Math.round(limits.minimum)));
+      resizeHandle.setAttribute("aria-valuemax", String(Math.round(limits.maximum)));
+      resizeHandle.setAttribute("aria-valuenow", String(currentWidth));
+      resizeHandle.setAttribute("aria-valuetext", currentWidth + " pixels wide");
+    }
+
+    function setSidebarWidth(width, persist) {
+      var limits = sidebarLimits();
+      var nextWidth = Math.min(limits.maximum, Math.max(limits.minimum, width));
+      document.documentElement.style.setProperty(
+        "--sidebar-preferred-width",
+        Math.round(nextWidth) + "px"
+      );
+      syncResizeHandle();
+      if (persist) {
+        try {
+          window.localStorage.setItem(sidebarStorageKey, String(Math.round(nextWidth)));
+        } catch (error) {
+          // The resized sidebar remains active when browser storage is unavailable.
+        }
+      }
+    }
+
+    if (resizeHandle) {
+      try {
+        var savedWidth = parseFloat(window.localStorage.getItem(sidebarStorageKey));
+        if (Number.isFinite(savedWidth)) setSidebarWidth(savedWidth, false);
+      } catch (error) {
+        // Use the responsive CSS default when browser storage is unavailable.
+      }
+      syncResizeHandle();
+
+      resizeHandle.addEventListener("pointerdown", function (event) {
+        if (window.innerWidth <= 820) return;
+        event.preventDefault();
+        resizing = true;
+        resizeHandle.setPointerCapture(event.pointerId);
+        document.body.classList.add("atlas-sidebar-resizing");
+      });
+      resizeHandle.addEventListener("pointermove", function (event) {
+        if (!resizing) return;
+        setSidebarWidth(event.clientX, false);
+      });
+
+      function finishSidebarResize(event) {
+        if (!resizing) return;
+        resizing = false;
+        document.body.classList.remove("atlas-sidebar-resizing");
+        if (resizeHandle.hasPointerCapture(event.pointerId)) {
+          resizeHandle.releasePointerCapture(event.pointerId);
+        }
+        setSidebarWidth(sidebar.getBoundingClientRect().width, true);
+      }
+
+      resizeHandle.addEventListener("pointerup", finishSidebarResize);
+      resizeHandle.addEventListener("pointercancel", finishSidebarResize);
+      resizeHandle.addEventListener("lostpointercapture", function () {
+        if (!resizing) return;
+        resizing = false;
+        document.body.classList.remove("atlas-sidebar-resizing");
+        setSidebarWidth(sidebar.getBoundingClientRect().width, true);
+      });
+      resizeHandle.addEventListener("keydown", function (event) {
+        var currentWidth = sidebar.getBoundingClientRect().width;
+        var limits = sidebarLimits();
+        var nextWidth = currentWidth;
+        if (event.key === "ArrowLeft") nextWidth -= 16;
+        else if (event.key === "ArrowRight") nextWidth += 16;
+        else if (event.key === "Home") nextWidth = limits.minimum;
+        else if (event.key === "End") nextWidth = limits.maximum;
+        else return;
+        event.preventDefault();
+        setSidebarWidth(nextWidth, true);
+      });
+      resizeHandle.addEventListener("dblclick", function () {
+        setSidebarWidth(sidebarLimits().minimum, true);
+      });
+      window.addEventListener("atlas:display-preferences-changed", function () {
+        window.requestAnimationFrame(syncResizeHandle);
+      });
+    }
 
     function setOpen(isOpen) {
       sidebar.classList.toggle("open", isOpen);
@@ -869,6 +972,7 @@
     });
     window.addEventListener("resize", function () {
       if (window.innerWidth > 820) setOpen(false);
+      syncResizeHandle();
     });
   }
 

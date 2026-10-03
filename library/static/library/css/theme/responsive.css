@@ -79,8 +79,14 @@ body {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   text-align: center;
+}
+
+.sidebar-nav-label {
+  hyphens: none;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .quick-stats .stat-item {
@@ -355,6 +361,10 @@ html.atlas-dark .account-menu-panel button {
     max-width: 86vw;
     padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
     width: 19rem;
+  }
+
+  .sidebar-resize-handle {
+    display: none;
   }
 
   .main-content {

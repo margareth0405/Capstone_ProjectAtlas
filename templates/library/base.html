@@ -23,12 +23,12 @@
     <link rel="icon" href="{% static 'library/images/favicon.svg' %}" type="image/svg+xml">
 
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261003-sidebar-account-menu">
+    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261003-resizable-sidebar">
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20261003-consent-disclosure">
     <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261003-content-containment">
     {% block role_css %}{% endblock %}
     <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261003-account-counters">
-    <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261003-content-containment">
+    <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261003-resizable-sidebar">
     {% block extra_head %}{% endblock %}
   </head>
   <body class="{% block body_class %}atlas-page{% endblock %}">
@@ -166,7 +166,7 @@
     </section>
 
     <script src="{% static 'library/js/language.js' %}?v=20261003-filipino" defer></script>
-    <script src="{% static 'library/js/app.js' %}?v=20261003-unicode-passwords" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20261003-resizable-sidebar" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

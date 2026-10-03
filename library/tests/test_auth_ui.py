@@ -379,3 +379,27 @@ class ScrollingStyleTests(LibraryTestCase):
                 rule = self._last_rule(css, selector)
                 self.assertRegex(rule, r"(?m)^\s*overflow\s*:\s*visible\s*;")
                 self.assertNotRegex(rule, r"(?m)^\s*overflow\s*:\s*hidden\s*;")
+
+    def test_dashboard_sidebar_can_resize_without_splitting_words(self):
+        project_root = Path(settings.BASE_DIR)
+        template = (project_root / "templates/library/dashboard_base.html").read_text(
+            encoding="utf-8"
+        )
+        styles = (
+            project_root / "library/static/library/css/theme/style.css"
+        ).read_text(encoding="utf-8")
+        responsive_styles = (
+            project_root / "library/static/library/css/theme/responsive.css"
+        ).read_text(encoding="utf-8")
+        script = (project_root / "library/static/library/js/app.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('data-sidebar-resize', template)
+        self.assertIn('role="separator"', template)
+        self.assertIn("--sidebar-min-width: 17.5rem", styles)
+        self.assertIn(".sidebar-resize-handle", styles)
+        self.assertIn("overflow-wrap: normal", responsive_styles)
+        self.assertIn('var sidebarStorageKey = "atlas_sidebar_width"', script)
+        self.assertIn('event.key === "ArrowLeft"', script)
+        self.assertIn('event.key === "ArrowRight"', script)
