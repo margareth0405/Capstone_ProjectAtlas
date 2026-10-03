@@ -3,7 +3,7 @@
 
 {% block role_css %}
   {% if active_role == "administrator" or request.user.is_staff %}
-    <link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261003-account-counters">
+    <link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261003-compact-admin-home">
   {% elif active_role == "guest" %}
     <link rel="stylesheet" href="{% static 'library/css/theme/guest.css' %}">
   {% else %}
@@ -21,6 +21,8 @@
   {% url 'library:contact' as contact_url %}
   {% url 'library:logout' as logout_url %}
   {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:staff_users' as staff_users_url %}
+  {% url 'library:staff_reports' as staff_reports_url %}
   {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
   {% url 'library:usage_heartbeat' as usage_heartbeat_url %}
   {% url 'library:login' as login_url %}
@@ -76,7 +78,7 @@
 
         {% if active_role == "administrator" or request.user.is_staff %}
           <a
-            href="{{ staff_portal_url }}#users"
+            href="{{ staff_users_url }}"
             {% if active_page == 'users' %}class="active" aria-current="page"{% endif %}
           >
             <i class="fas fa-users" aria-hidden="true"></i>
@@ -84,6 +86,16 @@
             {% if user_count is not None %}
               <span class="item-counter">{{ user_count }}</span>
             {% endif %}
+          </a>
+        {% endif %}
+
+        {% if active_role == "administrator" or request.user.is_staff %}
+          <a
+            href="{{ staff_reports_url }}"
+            {% if active_page == 'reports' %}class="active" aria-current="page"{% endif %}
+          >
+            <i class="fas fa-chart-line" aria-hidden="true"></i>
+            <span class="sidebar-nav-label">REPORTS</span>
           </a>
         {% endif %}
 
@@ -211,7 +223,7 @@
         <nav aria-label="Breadcrumb">
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
-              <a href="{{ dashboard_url }}">Home</a>
+              <a href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url }}{% else %}{{ dashboard_url }}{% endif %}">Home</a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
               {% block breadcrumb %}Dashboard{% endblock %}

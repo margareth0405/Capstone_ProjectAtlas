@@ -1,9 +1,9 @@
 {% extends "library/dashboard_base.html" %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">{% endblock %}
-{% block title %}Staff Portal | ATLAS{% endblock %}
-{% block meta_description %}Manage ATLAS resources, announcements, accounts, and privacy-conscious usage reports.{% endblock %}
-{% block breadcrumb %}Staff Portal{% endblock %}
+{% block title %}{% if portal_section == 'users' %}Website Users{% else %}Reports and Activity{% endif %} | ATLAS{% endblock %}
+{% block meta_description %}{% if portal_section == 'users' %}Manage ATLAS website accounts.{% else %}Review privacy-conscious ATLAS usage and audit reports.{% endif %}{% endblock %}
+{% block breadcrumb %}{% if portal_section == 'users' %}Website Users{% else %}Reports and Activity{% endif %}{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:staff_item_create' as staff_item_create_url %}
@@ -14,26 +14,35 @@
   {% url 'library:catalog' as catalog_url %}
   {% url 'library:announcements' as announcements_url %}
   {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:staff_users' as staff_users_url %}
+  {% url 'library:staff_reports' as staff_reports_url %}
 
   <div class="staff-portal">
     <header class="staff-portal-header django-page-header">
       <div>
-        <span class="section-kicker">Archive management</span>
-        <h1><i class="fas fa-user-shield" aria-hidden="true"></i> Administrator Portal</h1>
+        <span class="section-kicker">{% if portal_section == 'users' %}Account management{% else %}Administration reporting{% endif %}</span>
+        <h1>
+          {% if portal_section == 'users' %}
+            <i class="fas fa-users" aria-hidden="true"></i> Website Users
+          {% else %}
+            <i class="fas fa-chart-line" aria-hidden="true"></i> Reports and Activity
+          {% endif %}
+        </h1>
       </div>
       <div class="staff-header-actions">
-        <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn btn-outline-secondary" href="{{ staff_portal_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Administrator Home</a>
       </div>
     </header>
 
     <aside class="staff-guidance" aria-labelledby="staffGuidanceHeading">
       <i class="fas fa-circle-info" aria-hidden="true"></i>
       <div>
-        <strong id="staffGuidanceHeading">How to use the Administrator Portal</strong>
-        <span>Use the action buttons to manage records. Long lists stay inside their cards; scroll within a card to review more entries without making the page unnecessarily long.</span>
+        <strong id="staffGuidanceHeading">{% if portal_section == 'users' %}Manage website accounts{% else %}Review website reporting{% endif %}</strong>
+        <span>{% if portal_section == 'users' %}Search or filter accounts, then use the actions beside the relevant user.{% else %}Usage, resource-view, and audit records are grouped here instead of crowding the Administrator Home page.{% endif %}</span>
       </div>
     </aside>
 
+    {% if portal_section == 'overview' %}
     <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Digital Sources resources</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
@@ -121,7 +130,9 @@
         {% else %}<p class="staff-empty-copy">No announcements are available.</p>{% endif %}
       </section>
     </div>
+    {% endif %}
 
+    {% if portal_section == 'users' %}
     <section class="user-monitoring" id="users" aria-labelledby="usersHeading">
       <div class="user-monitoring-header">
         <div><span class="section-kicker">Accounts</span><h2 id="usersHeading"><i class="fas fa-users" aria-hidden="true"></i> Website Users</h2></div>
@@ -134,25 +145,25 @@
       </div>
 
       <nav class="account-type-summary" aria-label="Account totals and filters">
-        <a class="account-type-counter account-type-all{% if not selected_user_role %} is-active{% endif %}" href="{{ staff_portal_url }}#users"{% if not selected_user_role %} aria-current="page"{% endif %}>
+        <a class="account-type-counter account-type-all{% if not selected_user_role %} is-active{% endif %}" href="{{ staff_users_url }}"{% if not selected_user_role %} aria-current="page"{% endif %}>
           <span class="account-type-counter-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
           <span><strong>{{ stats.total_users|default:0 }}</strong><small>All accounts</small></span>
         </a>
-        <a class="account-type-counter account-type-student{% if selected_user_role == 'student' %} is-active{% endif %}" href="?user_role=student#users"{% if selected_user_role == 'student' %} aria-current="page"{% endif %}>
+        <a class="account-type-counter account-type-student{% if selected_user_role == 'student' %} is-active{% endif %}" href="?user_role=student"{% if selected_user_role == 'student' %} aria-current="page"{% endif %}>
           <span class="account-type-counter-icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></span>
           <span><strong>{{ stats.student_users|default:0 }}</strong><small>Students</small></span>
         </a>
-        <a class="account-type-counter account-type-teacher{% if selected_user_role == 'teacher' %} is-active{% endif %}" href="?user_role=teacher#users"{% if selected_user_role == 'teacher' %} aria-current="page"{% endif %}>
+        <a class="account-type-counter account-type-teacher{% if selected_user_role == 'teacher' %} is-active{% endif %}" href="?user_role=teacher"{% if selected_user_role == 'teacher' %} aria-current="page"{% endif %}>
           <span class="account-type-counter-icon"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span>
           <span><strong>{{ stats.teacher_users|default:0 }}</strong><small>Teachers</small></span>
         </a>
-        <a class="account-type-counter account-type-administrator{% if selected_user_role == 'administrator' %} is-active{% endif %}" href="?user_role=administrator#users"{% if selected_user_role == 'administrator' %} aria-current="page"{% endif %}>
+        <a class="account-type-counter account-type-administrator{% if selected_user_role == 'administrator' %} is-active{% endif %}" href="?user_role=administrator"{% if selected_user_role == 'administrator' %} aria-current="page"{% endif %}>
           <span class="account-type-counter-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
           <span><strong>{{ stats.administrator_users|default:0 }}</strong><small>Administrators</small></span>
         </a>
       </nav>
 
-      <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>
+      <form class="staff-filter-bar" method="get" action="{{ staff_users_url }}" data-auto-submit>
         <div class="form-group">
           <label for="userSearch">Search users</label>
           <input class="form-control" id="userSearch" type="search" name="user_q" value="{{ selected_user_query }}" placeholder="Example: Maria or maria@example.com">
@@ -186,7 +197,7 @@
 
           </select>
         </div>
-        {% if selected_user_query or selected_user_role or selected_user_sort == 'oldest' %}<a class="btn btn-outline-secondary" href="{% url 'library:staff_portal' %}#users">Clear</a>{% endif %}
+        {% if selected_user_query or selected_user_role or selected_user_sort == 'oldest' %}<a class="btn btn-outline-secondary" href="{{ staff_users_url }}">Clear</a>{% endif %}
       </form>
 
       <div class="user-table-card">
@@ -229,11 +240,13 @@
         </div>
       </div>
     </section>
+    {% endif %}
 
+    {% if portal_section == 'reports' %}
     <section class="staff-analytics" id="usage" aria-labelledby="usageHeading">
       <div class="staff-panel-heading usage-heading">
         <div><span class="section-kicker">Usage analytics</span><h2 id="usageHeading"><i class="fas fa-chart-pie" aria-hidden="true"></i> Website usage</h2></div>
-        <form class="analytics-date-form" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
+        <form class="analytics-date-form" method="get" action="{{ staff_reports_url }}" data-auto-submit>
           <label for="analyticsDate">Date</label>
           <input class="form-control" id="analyticsDate" type="date" name="analytics_date" value="{{ analytics_date }}">
         </form>
@@ -279,7 +292,7 @@
 
       <div class="usage-history-panel">
         <div class="usage-history-heading"><h3>Visit history</h3><span>{{ analytics_date }}</span></div>
-        <form class="staff-filter-bar usage-history-filters" method="get" action="{{ staff_portal_url }}#usage" data-auto-submit>
+        <form class="staff-filter-bar usage-history-filters" method="get" action="{{ staff_reports_url }}" data-auto-submit>
           <input type="hidden" name="analytics_date" value="{{ analytics_date }}">
           <div class="form-group">
             <label for="usageSearch">Search visitor</label>
@@ -298,7 +311,7 @@
               {% endfor %}
             </select>
           </div>
-          {% if selected_usage_query or selected_usage_role %}<a class="btn btn-outline-secondary" href="?analytics_date={{ analytics_date }}#usage">Clear</a>{% endif %}
+          {% if selected_usage_query or selected_usage_role %}<a class="btn btn-outline-secondary" href="?analytics_date={{ analytics_date }}">Clear</a>{% endif %}
         </form>
         <div class="table-responsive staff-scroll-region staff-scroll-region-visits" tabindex="0" role="region" aria-label="Visit history; scroll for more visits">
           <table class="staff-compact-table">
@@ -325,7 +338,7 @@
     <div class="staff-management-grid staff-history-grid">
       <section class="staff-panel" id="resource-views" aria-labelledby="resourceViewsHeading">
         <div class="staff-panel-heading"><div><span class="section-kicker">Privacy-safe access log</span><h2 id="resourceViewsHeading">Resource viewing history</h2></div></div>
-        <form class="staff-filter-bar resource-view-filters" method="get" action="{{ staff_portal_url }}#resource-views" data-auto-submit>
+        <form class="staff-filter-bar resource-view-filters" method="get" action="{{ staff_reports_url }}" data-auto-submit>
           <div class="form-group">
             <label for="resourceViewSearch">Search resource or user</label>
             <input class="form-control" id="resourceViewSearch" type="search" name="resource_view_q" value="{{ selected_resource_view_query }}" placeholder="Example: resource title or reader email">
@@ -343,7 +356,7 @@
               {% endfor %}
             </select>
           </div>
-          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#resource-views">Clear</a>{% endif %}
+          {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="{{ staff_reports_url }}">Clear</a>{% endif %}
         </form>
         <div class="table-responsive staff-scroll-region staff-scroll-region-resource-views" tabindex="0" role="region" aria-label="Resource viewing history; scroll for more entries">
           <table class="staff-compact-table">
@@ -365,7 +378,7 @@
 
       <section class="staff-panel" id="history" aria-labelledby="historyHeading">
         <div class="staff-panel-heading"><div><span class="section-kicker">Audit trail</span><h2 id="historyHeading">Activity history</h2></div></div>
-        <form class="audit-filter-form" method="get" action="{{ staff_portal_url }}#history" aria-describedby="auditFilterSummary">
+        <form class="audit-filter-form" method="get" action="{{ staff_reports_url }}" aria-describedby="auditFilterSummary">
           <div class="form-group">
             <label for="auditAction">Action</label>
             <select class="form-select" id="auditAction" name="audit_action">
@@ -382,7 +395,7 @@
             <input class="form-control" id="auditEndDate" type="date" name="audit_end_date" value="{{ selected_audit_end_date }}" max="{{ audit_today }}">
           </div>
           <div class="audit-filter-actions">
-            {% if audit_filters_active %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#history"><i class="fas fa-rotate-left" aria-hidden="true"></i> Clear</a>{% endif %}
+            {% if audit_filters_active %}<a class="btn btn-outline-secondary" href="{{ staff_reports_url }}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Clear</a>{% endif %}
             <button class="btn-create-admin" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Apply filters</button>
           </div>
         </form>
@@ -416,5 +429,6 @@
         </div>
       </section>
     </div>
+    {% endif %}
   </div>
 {% endblock %}

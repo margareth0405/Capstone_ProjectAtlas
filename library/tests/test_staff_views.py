@@ -26,6 +26,8 @@ class StaffAuthorizationTests(LibraryTestCase):
     def protected_requests(self):
         return (
             ("get", reverse("library:staff_portal")),
+            ("get", reverse("library:staff_users")),
+            ("get", reverse("library:staff_reports")),
             ("get", reverse("library:staff_item_create")),
             ("get", reverse("library:staff_item_edit", args=[self.item.pk])),
             ("post", reverse("library:staff_item_delete", args=[self.item.pk])),
@@ -73,10 +75,22 @@ class StaffAuthorizationTests(LibraryTestCase):
         response = self.client.get(reverse("library:staff_portal"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "How to use the Administrator Portal")
-        self.assertContains(response, "staff-scroll-region-users")
-        self.assertContains(response, "staff-scroll-region-resource-views")
-        self.assertContains(response, "staff-scroll-region-activity")
+        self.assertContains(response, "Administrator Home")
+        self.assertContains(response, "Administration functions")
+        self.assertContains(response, 'class="admin-function-card"', count=6)
+        for destination in (
+            reverse("library:catalog"),
+            reverse("library:staff_users"),
+            reverse("library:staff_ai_detection"),
+            reverse("library:announcements"),
+            reverse("library:staff_reports"),
+            reverse("library:contact"),
+        ):
+            with self.subTest(destination=destination):
+                self.assertContains(response, f'href="{destination}"')
+        self.assertNotContains(response, "staff-scroll-region-users")
+        self.assertNotContains(response, "staff-scroll-region-resource-views")
+        self.assertNotContains(response, "staff-scroll-region-activity")
         self.assertContains(
             response,
             f'<a href="{reverse("admin:index")}">',
@@ -87,6 +101,15 @@ class StaffAuthorizationTests(LibraryTestCase):
             response,
             'class="btn btn-outline-secondary rounded-pill"',
         )
+
+        users_response = self.client.get(reverse("library:staff_users"))
+        self.assertContains(users_response, "staff-scroll-region-users")
+        self.assertNotContains(users_response, "staff-scroll-region-resource-views")
+
+        reports_response = self.client.get(reverse("library:staff_reports"))
+        self.assertContains(reports_response, "staff-scroll-region-resource-views")
+        self.assertContains(reports_response, "staff-scroll-region-activity")
+        self.assertNotContains(reports_response, "staff-scroll-region-users")
 
 
 class StaffCrudTests(LibraryTestCase):
@@ -153,6 +176,7 @@ class StaffCrudTests(LibraryTestCase):
 
         post_response = self.client.post(url, self.item_payload())
         self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(post_response.url, reverse("library:catalog"))
         item = LibraryItem.objects.get(call_number="RES-2026-101")
         self.assertEqual(item.title, "New Research Resource")
         self.assertEqual(item.created_by, self.staff)
@@ -384,6 +408,7 @@ class StaffCrudTests(LibraryTestCase):
             url, self.item_payload(call_number=item.call_number, title="Edited title")
         )
         self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(post_response.url, reverse("library:catalog"))
         item.refresh_from_db()
         self.assertEqual(item.title, "Edited title")
 
@@ -520,6 +545,7 @@ class StaffCrudTests(LibraryTestCase):
         )
 
         self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(post_response.url, reverse("library:staff_users"))
         self.assertEqual(get_user_model().objects.count(), starting_count + 1)
         user = get_user_model().objects.get(email="new-teacher@deped.gov.ph")
         self.assertTrue(user.check_password(TEST_PASSWORD))

@@ -40,8 +40,10 @@ from .staff import (
     StaffItemDeleteView,
     StaffItemEditView,
     StaffPortalView,
+    StaffReportsView,
     StaffUserCreateView,
     StaffUserDeleteView,
+    StaffUsersView,
     SuperuserAdminCreateView,
 )
 
@@ -78,8 +80,10 @@ __all__ = (
     "StaffItemDeleteView",
     "StaffItemEditView",
     "StaffPortalView",
+    "StaffReportsView",
     "StaffUserCreateView",
     "StaffUserDeleteView",
+    "StaffUsersView",
     "SuperuserAdminCreateView",
     "UsageHeartbeatView",
 )

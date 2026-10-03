@@ -41,6 +41,7 @@ body {
   .announcement-item,
   .contact-form-card,
   .staff-panel,
+  .admin-function-card,
   .user-stat-card
 ) :where(h1, h2, h3, p, li, dt, dd, a, label, small, strong, span, time) {
   overflow-wrap: anywhere;

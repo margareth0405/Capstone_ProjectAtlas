@@ -29,6 +29,8 @@ urlpatterns = [
     path("announcements/", views.AnnouncementsView.as_view(), name="announcements"),
     path("contact/", views.ContactView.as_view(), name="contact"),
     path("staff/", views.StaffPortalView.as_view(), name="staff_portal"),
+    path("staff/users/", views.StaffUsersView.as_view(), name="staff_users"),
+    path("staff/reports/", views.StaffReportsView.as_view(), name="staff_reports"),
     path(
         "staff/announcements/add/",
         views.StaffAnnouncementCreateView.as_view(),

@@ -49,7 +49,7 @@ class StaffUserCreateView(StaffRequiredMixin, View):
                         description=user.email,
                     )
                 messages.success(request, f"Account created for {user.email}.")
-                return redirect("library:staff_portal")
+                return redirect("library:staff_users")
         except DatabaseError:
             logger.exception("Staff account creation failed and was rolled back")
             form.add_error(
@@ -105,7 +105,7 @@ class SuperuserAdminCreateView(SuperuserRequiredMixin, View):
                     request,
                     f"Administrator account created for {administrator.email}.",
                 )
-                return redirect(f'{reverse("library:staff_portal")}#users')
+                return redirect("library:staff_users")
         except DatabaseError:
             logger.exception("Administrator account creation failed and was rolled back")
             form.add_error(
@@ -136,7 +136,7 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
     @staticmethod
     def users_url():
         """Return staff to the account list instead of the portal's first tab."""
-        return f'{reverse("library:staff_portal")}#users'
+        return reverse("library:staff_users")
 
     def post(self, request, pk):
         try:
@@ -268,7 +268,7 @@ class StaffAccountEditView(StaffRequiredMixin, View):
         messages.success(request, success_message)
         if updated_account == request.user:
             return redirect("library:staff_account_edit")
-        return redirect(f'{reverse("library:staff_portal")}#users')
+        return redirect("library:staff_users")
 
     def _username_form(self, account, data=None):
         return self.username_form_class(
@@ -296,7 +296,7 @@ class StaffAccountEditView(StaffRequiredMixin, View):
                 "username_form": username_form or self._username_form(account),
                 "password_form": password_form or self._password_form(account),
                 "cancel_url": (
-                    reverse("library:staff_portal") + "#users"
+                    reverse("library:staff_users")
                     if not editing_self
                     else reverse("library:staff_portal")
                 ),

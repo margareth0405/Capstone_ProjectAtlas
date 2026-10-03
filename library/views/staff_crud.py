@@ -105,6 +105,11 @@ class StaffItemCreateView(ResourceManagerRequiredMixin, StaffFormView):
     activity_object_type = "repository resource"
     persistence_service_class = RepositoryItemPersistenceService
 
+    def get_success_url(self, instance):
+        """Keep resource management on the dedicated Digital Sources page."""
+
+        return reverse("library:catalog")
+
     def post(self, request, *args, **kwargs):
         try:
             return super().post(request, *args, **kwargs)
@@ -165,8 +170,7 @@ class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
             description=title,
         )
         messages.info(request, f"{title} was removed from Digital Sources.")
-        destination = "library:staff_portal" if request.user.is_staff else "library:catalog"
-        return redirect(destination)
+        return redirect("library:catalog")
 
 
 class StaffAnnouncementCreateView(StaffRequiredMixin, StaffFormView):

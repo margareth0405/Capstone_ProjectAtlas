@@ -1,0 +1,87 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">{% endblock %}
+{% block title %}Administrator Home | ATLAS{% endblock %}
+{% block meta_description %}Open focused ATLAS administration tools from a compact dashboard.{% endblock %}
+{% block breadcrumb %}Administrator Home{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:catalog' as catalog_url %}
+  {% url 'library:staff_users' as staff_users_url %}
+  {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
+  {% url 'library:announcements' as announcements_url %}
+  {% url 'library:staff_reports' as staff_reports_url %}
+  {% url 'library:contact' as contact_url %}
+  {% url 'library:staff_item_create' as staff_item_create_url %}
+  {% url 'library:staff_user_create' as staff_user_create_url %}
+  {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
+
+  <div class="staff-portal staff-home">
+    <header class="staff-portal-header django-page-header">
+      <div>
+        <span class="section-kicker">Administration</span>
+        <h1><i class="fas fa-gauge-high" aria-hidden="true"></i> Administrator Home</h1>
+        <p>Choose a workspace below. Each function opens on its own page.</p>
+      </div>
+    </header>
+
+    <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Resources</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Accounts</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book-reader" aria-hidden="true"></i></span><strong>{{ resource_view_count|default:0 }}</strong><span>Resource views</span></article>
+      <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open messages</span></article>
+    </section>
+
+    <section class="admin-function-section" aria-labelledby="adminFunctionsHeading">
+      <div class="admin-function-heading">
+        <div>
+          <span class="section-kicker">Workspaces</span>
+          <h2 id="adminFunctionsHeading">Administration functions</h2>
+        </div>
+        <span>Open one focused page at a time</span>
+      </div>
+
+      <div class="admin-function-grid">
+        <a class="admin-function-card" href="{{ catalog_url }}">
+          <span class="admin-function-icon"><i class="fas fa-book" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Digital Sources</strong><small>Browse and manage repository resources.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ staff_users_url }}">
+          <span class="admin-function-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Users</strong><small>Search, create, edit, and remove accounts.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ staff_ai_detection_url }}">
+          <span class="admin-function-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>AI Detection</strong><small>Review text, PDF, or Word content.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ announcements_url }}">
+          <span class="admin-function-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Announcements</strong><small>Create and manage website updates.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ staff_reports_url }}">
+          <span class="admin-function-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Reports</strong><small>Review usage, resource views, and audit activity.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ contact_url }}">
+          <span class="admin-function-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Contact</strong><small>Open support and contact tools.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
+
+    <section class="admin-quick-actions" aria-labelledby="quickActionsHeading">
+      <div><span class="section-kicker">Shortcuts</span><h2 id="quickActionsHeading">Quick actions</h2></div>
+      <div>
+        <a class="btn-register-admin" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
+        <a class="btn-register-admin" href="{{ staff_user_create_url }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create reader</a>
+        <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"><i class="fas fa-bullhorn" aria-hidden="true"></i> Create announcement</a>
+      </div>
+    </section>
+  </div>
+{% endblock %}

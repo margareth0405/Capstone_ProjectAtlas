@@ -6,7 +6,7 @@
 {% block breadcrumb %}Create Account{% endblock %}
 
 {% block dashboard_content %}
-  {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:staff_users' as staff_users_url %}
   <div class="admin-form-page">
     <header class="django-page-header"><div><span class="section-kicker">Restricted action</span><h1>Create an authorized account</h1></div></header>
     <div class="usage-count-note" role="note"><i class="fas fa-lock" aria-hidden="true"></i> Only an authenticated staff member can use this page. Every new password requires at least 12 characters, one number, and one special character, and is securely hashed by Django.</div>
@@ -32,7 +32,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#users">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</button></div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ staff_users_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</button></div>
     </form>
   </div>
 {% endblock %}

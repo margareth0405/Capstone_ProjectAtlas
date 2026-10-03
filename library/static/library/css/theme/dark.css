@@ -68,6 +68,8 @@ html.atlas-dark :where(
   .catalog-resource-card,
   .catalog-announcement-strip,
   .staff-panel,
+  .admin-function-section,
+  .admin-quick-actions,
   .admin-registration-panel,
   .user-table-card,
   .staff-analytics,
@@ -103,6 +105,28 @@ html.atlas-dark :where(
   background: #2a2225;
   border-color: #57464c;
   color: #eee5e8;
+}
+
+html.atlas-dark .admin-function-card {
+  background: #2a2225;
+  border-color: #57464c;
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark :where(
+  .staff-home .staff-portal-header p,
+  .admin-function-heading > span,
+  .admin-function-copy small
+) {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark :where(
+  .admin-function-heading h2,
+  .admin-quick-actions h2,
+  .admin-function-copy strong
+) {
+  color: var(--atlas-dark-text);
 }
 
 html.atlas-dark :where(
@@ -739,6 +763,9 @@ html.atlas-dark.atlas-high-contrast :where(
   .site-footer,
   .accessibility-panel,
   .staff-panel,
+  .admin-function-section,
+  .admin-function-card,
+  .admin-quick-actions,
   .login-card,
   .legal-copy,
   .catalog-resource-card,

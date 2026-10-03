@@ -41,7 +41,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_users"),
             {"user_q": "teacher-filter", "user_role": "teacher", "user_sort": "oldest"},
         )
 
@@ -58,9 +58,9 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertContains(response, "Students")
         self.assertContains(response, "Teachers")
         self.assertContains(response, "Administrators")
-        self.assertContains(response, '?user_role=student#users')
-        self.assertContains(response, '?user_role=teacher#users')
-        self.assertContains(response, '?user_role=administrator#users')
+        self.assertContains(response, '?user_role=student')
+        self.assertContains(response, '?user_role=teacher')
+        self.assertContains(response, '?user_role=administrator')
 
     def test_user_directory_handles_account_without_profile(self):
         legacy_user = get_user_model()(
@@ -69,14 +69,14 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
         get_user_model().objects.bulk_create([legacy_user])
 
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_users"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "legacy-without-profile@example.com")
         self.assertContains(response, "Student")
 
         filtered_response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_users"),
             {"user_role": "student"},
         )
         self.assertContains(filtered_response, "legacy-without-profile@example.com")
@@ -179,7 +179,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
 
         self.assertRedirects(
             response,
-            f'{reverse("library:staff_portal")}#users',
+            reverse("library:staff_users"),
         )
         target.refresh_from_db()
         self.assertEqual(target.username, "managed-admin")
@@ -190,8 +190,8 @@ class StaffManagementFeatureTests(LibraryTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 403)
-        portal = self.client.get(reverse("library:staff_portal"))
-        self.assertNotContains(portal, url)
+        users_page = self.client.get(reverse("library:staff_users"))
+        self.assertNotContains(users_page, url)
 
         superuser = self.create_user(
             email="root-create-admin@example.com",
@@ -206,7 +206,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertContains(response, 'data-password-toggle="id_password1"')
         self.assertContains(response, 'data-password-toggle="id_password2"')
         self.assertContains(response, 'data-password-toggle="id_current_password"')
-        self.assertContains(self.client.get(reverse("library:staff_portal")), url)
+        self.assertContains(self.client.get(reverse("library:staff_users")), url)
 
     def test_superuser_can_create_regular_administrator(self):
         superuser = self.create_user(
@@ -233,7 +233,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
 
         self.assertRedirects(
             response,
-            f'{reverse("library:staff_portal")}#users',
+            reverse("library:staff_users"),
         )
         administrator = get_user_model().objects.get(
             email="second-admin@example.com"
@@ -315,13 +315,13 @@ class StaffManagementFeatureTests(LibraryTestCase):
                 fallback_accounts,
             ],
         ):
-            response = self.client.get(reverse("library:staff_portal"))
+            response = self.client.get(reverse("library:staff_users"))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["users"], fallback_accounts)
         self.assertContains(response, self.staff.email)
 
-    def test_staff_portal_survives_unavailable_optional_history_tables(self):
+    def test_staff_reports_survive_unavailable_optional_history_tables(self):
         with (
             patch(
                 "library.services.staff_portal.ResourceViewEvent.objects.count",
@@ -340,7 +340,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
                 side_effect=DatabaseError("activity history unavailable"),
             ),
         ):
-            response = self.client.get(reverse("library:staff_portal"))
+            response = self.client.get(reverse("library:staff_reports"))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["resource_view_count"], 0)
@@ -349,7 +349,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertEqual(response.context["visit_history"], [])
         self.assertEqual(response.context["usage_summary"]["sessions"], 0)
 
-    def test_staff_portal_renders_guest_visit_and_null_activity_actor(self):
+    def test_staff_reports_render_guest_visit_and_null_activity_actor(self):
         WebsiteVisit.objects.create(
             session_key="anonymous-dashboard-visit",
             user=None,
@@ -365,7 +365,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
             description="Automated maintenance",
         )
 
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_reports"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Guest visitor")
@@ -403,7 +403,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {
                 "audit_action": ActivityLog.Action.UPDATE,
                 "audit_start_date": "2026-09-15",
@@ -428,7 +428,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {
                 "audit_start_date": "2026-09-20",
                 "audit_end_date": "2026-09-10",
@@ -443,7 +443,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
     def test_audit_filters_use_mobile_friendly_native_controls(self):
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_reports"))
 
         self.assertContains(response, 'class="audit-filter-form"')
         self.assertContains(response, 'type="date" name="audit_start_date"')
@@ -462,7 +462,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
 
         self.assertRedirects(
             response,
-            f'{reverse("library:staff_portal")}#users',
+            reverse("library:staff_users"),
         )
         self.assertFalse(type(reader).objects.filter(pk=reader.pk).exists())
         self.assertTrue(
@@ -480,7 +480,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
         self.assertRedirects(
             response,
-            f'{reverse("library:staff_portal")}#users',
+            reverse("library:staff_users"),
         )
         self.assertTrue(type(self.staff).objects.filter(pk=self.staff.pk).exists())
 
@@ -523,7 +523,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {"analytics_date": selected_date.isoformat()},
         )
 
@@ -572,7 +572,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {"analytics_date": historical_date.isoformat()},
         )
 
@@ -632,7 +632,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
             role=WebsiteVisit.Role.STUDENT,
         )
 
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_reports"))
 
         self.assertEqual(response.context["usage_summary"]["sessions"], 4)
         self.assertEqual(response.context["usage_summary"]["visitors"], 2)
@@ -654,7 +654,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
             role=WebsiteVisit.Role.TEACHER,
         )
 
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_reports"))
         role_usage = {row["role"]: row for row in response.context["role_usage"]}
 
         self.assertEqual(response.context["usage_percentage_basis"], "Sessions")
@@ -663,7 +663,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         self.assertContains(response, "66.7% sessions")
 
     def test_empty_usage_dashboard_explains_analytics_consent(self):
-        response = self.client.get(reverse("library:staff_portal"))
+        response = self.client.get(reverse("library:staff_reports"))
 
         self.assertFalse(response.context["has_usage_activity"])
         self.assertContains(response, "No website usage activity recorded")
@@ -687,12 +687,13 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {"usage_q": "find-this", "usage_role": WebsiteVisit.Role.TEACHER},
         )
 
         self.assertEqual(list(response.context["visit_history"]), [teacher_visit])
-        self.assertContains(response, "find-this-teacher@example.com")
+        self.assertContains(response, teacher_visit.display_name)
+        self.assertContains(response, 'value="find-this"')
         self.assertContains(response, 'name="usage_role"')
 
     def test_resource_view_history_can_filter_by_role_and_resource(self):
@@ -709,7 +710,7 @@ class WebsiteUsageRegressionTests(LibraryTestCase):
         )
 
         response = self.client.get(
-            reverse("library:staff_portal"),
+            reverse("library:staff_reports"),
             {
                 "resource_view_q": "Filtered Atlas",
                 "resource_view_role": WebsiteVisit.Role.TEACHER,
@@ -784,8 +785,11 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(page_response, 'class="staff-panel ai-detection-result-card"')
         self.assertContains(portal_response, "AI Detection")
         self.assertContains(portal_response, self.url)
-        self.assertContains(portal_response, 'class="staff-panel staff-ai-entry"')
-        self.assertNotContains(portal_response, 'class="staff-service-card"')
+        self.assertContains(
+            portal_response,
+            f'class="admin-function-card" href="{self.url}"',
+        )
+        self.assertNotContains(portal_response, 'class="staff-panel staff-ai-entry"')
 
     def test_ai_result_styles_keep_scores_inside_cards_on_narrow_screens(self):
         stylesheet = (
