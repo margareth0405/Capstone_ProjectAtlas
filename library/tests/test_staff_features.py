@@ -49,6 +49,18 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertEqual(list(response.context["users"]), [teacher])
         self.assertNotIn(student, response.context["users"])
         self.assertEqual(response.context["selected_user_sort"], "oldest")
+        account_totals = response.context["stats"]
+        self.assertEqual(account_totals["total_users"], 3)
+        self.assertEqual(account_totals["student_users"], 1)
+        self.assertEqual(account_totals["teacher_users"], 1)
+        self.assertEqual(account_totals["administrator_users"], 1)
+        self.assertContains(response, "All accounts")
+        self.assertContains(response, "Students")
+        self.assertContains(response, "Teachers")
+        self.assertContains(response, "Administrators")
+        self.assertContains(response, '?user_role=student#users')
+        self.assertContains(response, '?user_role=teacher#users')
+        self.assertContains(response, '?user_role=administrator#users')
 
     def test_user_directory_handles_account_without_profile(self):
         legacy_user = get_user_model()(
@@ -63,20 +75,67 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.assertContains(response, "legacy-without-profile@example.com")
         self.assertContains(response, "Student")
 
-    def test_staff_can_update_own_username_and_password_without_logout(self):
+        filtered_response = self.client.get(
+            reverse("library:staff_portal"),
+            {"user_role": "student"},
+        )
+        self.assertContains(filtered_response, "legacy-without-profile@example.com")
+
+    def test_account_page_presents_username_and_password_as_separate_actions(self):
+        response = self.client.get(reverse("library:staff_account_edit"))
+
+        self.assertContains(response, "These are two separate actions.")
+        self.assertContains(response, "Change username")
+        self.assertContains(response, "Change password")
+        self.assertContains(response, 'name="account_action" value="username"')
+        self.assertContains(response, 'name="account_action" value="password"')
+        self.assertContains(response, 'id="id_username-current_password"')
+        self.assertContains(response, 'id="id_password-current_password"')
+
+    def test_staff_can_update_own_username_without_changing_password(self):
         response = self.client.post(
             reverse("library:staff_account_edit"),
             {
-                "username": "updated-atlas-admin",
-                "current_password": TEST_PASSWORD,
-                "new_password1": "New-Atlas-Admin-2026!",
-                "new_password2": "New-Atlas-Admin-2026!",
+                "account_action": "username",
+                "username-username": "updated-atlas-admin",
+                "username-current_password": TEST_PASSWORD,
+                # Password-looking values must be ignored by this action.
+                "password-new_password1": "Ignored-Password-2026!",
+                "password-new_password2": "Ignored-Password-2026!",
             },
         )
 
         self.assertRedirects(response, reverse("library:staff_account_edit"))
         self.staff.refresh_from_db()
         self.assertEqual(self.staff.username, "updated-atlas-admin")
+        self.assertTrue(self.staff.check_password(TEST_PASSWORD))
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                actor=self.staff,
+                action=ActivityLog.Action.UPDATE,
+                object_type="administrator account",
+                description="Username changed to updated-atlas-admin",
+            ).exists()
+        )
+
+    def test_staff_can_change_own_password_without_changing_username(self):
+        original_username = self.staff.username
+        response = self.client.post(
+            reverse("library:staff_account_edit"),
+            {
+                "account_action": "password",
+                "password-current_password": TEST_PASSWORD,
+                "password-new_password1": "New-Atlas-Admin-2026!",
+                "password-new_password2": "New-Atlas-Admin-2026!",
+                # Username-looking values must be ignored by this action.
+                "username-username": "ignored-username",
+            },
+        )
+
+        self.assertRedirects(response, reverse("library:staff_account_edit"))
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.username, original_username)
         self.assertTrue(self.staff.check_password("New-Atlas-Admin-2026!"))
         self.assertIn("_auth_user_id", self.client.session)
         self.assertTrue(
@@ -84,6 +143,7 @@ class StaffManagementFeatureTests(LibraryTestCase):
                 actor=self.staff,
                 action=ActivityLog.Action.UPDATE,
                 object_type="administrator account",
+                description="Password changed",
             ).exists()
         )
 
@@ -111,10 +171,9 @@ class StaffManagementFeatureTests(LibraryTestCase):
         response = self.client.post(
             reverse("library:staff_admin_edit", args=[target.pk]),
             {
-                "username": "managed-admin",
-                "current_password": TEST_PASSWORD,
-                "new_password1": "",
-                "new_password2": "",
+                "account_action": "username",
+                "username-username": "managed-admin",
+                "username-current_password": TEST_PASSWORD,
             },
         )
 

@@ -12,7 +12,8 @@ from django.views import View
 
 from library.forms import (
     AdminCreatedUserForm,
-    StaffAccountUpdateForm,
+    StaffPasswordChangeForm,
+    StaffUsernameUpdateForm,
     SuperuserCreatedAdminForm,
 )
 from library.models import ActivityLog
@@ -190,7 +191,8 @@ class StaffAccountEditView(StaffRequiredMixin, View):
     """Edit the current administrator or, for superusers, another admin."""
 
     template_name = "library/admin/account_form.html"
-    form_class = StaffAccountUpdateForm
+    username_form_class = StaffUsernameUpdateForm
+    password_form_class = StaffPasswordChangeForm
     user_model = get_user_model()
     activity_recorder_class = ActivityRecorder
 
@@ -204,21 +206,42 @@ class StaffAccountEditView(StaffRequiredMixin, View):
 
     def get(self, request, pk=None):
         account = self.account_for(request, pk)
-        return self._render(
-            account,
-            self.form_class(actor=request.user, account=account),
-        )
+        return self._render(account)
 
     def post(self, request, pk=None):
         account = self.account_for(request, pk)
-        form = self.form_class(
-            request.POST,
-            actor=request.user,
-            account=account,
+        action = request.POST.get("account_action")
+        username_form = self._username_form(
+            account,
+            request.POST if action == "username" else None,
         )
+        password_form = self._password_form(
+            account,
+            request.POST if action == "password" else None,
+        )
+
+        if action == "username":
+            form = username_form
+            success_message = "Administrator username updated. Password unchanged."
+        elif action == "password":
+            form = password_form
+            success_message = "Administrator password changed. Username unchanged."
+        else:
+            username_form.add_error(
+                None, "Choose the account setting you want to update."
+            )
+            messages.error(request, "The administrator account was not updated.")
+            return self._render(account, username_form, password_form)
+
         if not form.is_valid():
             messages.error(request, "The administrator account was not updated.")
-            return self._render(account, form)
+            return self._render(account, username_form, password_form)
+
+        activity_description = (
+            f"Username changed to {form.cleaned_data['username']}"
+            if action == "username"
+            else "Password changed"
+        )
 
         try:
             with transaction.atomic():
@@ -228,7 +251,7 @@ class StaffAccountEditView(StaffRequiredMixin, View):
                     action=ActivityLog.Action.UPDATE,
                     object_type="administrator account",
                     object_id=updated_account.pk,
-                    description=updated_account.get_username(),
+                    description=activity_description,
                 )
         except DatabaseError:
             logger.exception("Administrator account update failed for %s", account.pk)
@@ -238,23 +261,40 @@ class StaffAccountEditView(StaffRequiredMixin, View):
                 "were saved. Try again after the database is available.",
             )
             messages.error(request, "The administrator account was not updated.")
-            return self._render(account, form)
+            return self._render(account, username_form, password_form)
 
-        if updated_account == request.user and form.password_changed:
+        if action == "password" and updated_account == request.user:
             update_session_auth_hash(request, updated_account)
-        messages.success(request, "Administrator account settings updated.")
+        messages.success(request, success_message)
         if updated_account == request.user:
             return redirect("library:staff_account_edit")
         return redirect(f'{reverse("library:staff_portal")}#users')
 
-    def _render(self, account, form):
+    def _username_form(self, account, data=None):
+        return self.username_form_class(
+            data,
+            actor=self.request.user,
+            account=account,
+            prefix="username",
+        )
+
+    def _password_form(self, account, data=None):
+        return self.password_form_class(
+            data,
+            actor=self.request.user,
+            account=account,
+            prefix="password",
+        )
+
+    def _render(self, account, username_form=None, password_form=None):
         editing_self = account == self.request.user
         context = PageContextBuilder(self.request).build("users")
         context.update(
             {
                 "account": account,
                 "editing_self": editing_self,
-                "form": form,
+                "username_form": username_form or self._username_form(account),
+                "password_form": password_form or self._password_form(account),
                 "cancel_url": (
                     reverse("library:staff_portal") + "#users"
                     if not editing_self

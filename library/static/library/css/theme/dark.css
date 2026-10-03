@@ -679,6 +679,57 @@ html.atlas-dark .account-settings-section {
   border-top-color: var(--atlas-dark-border);
 }
 
+html.atlas-dark .account-action-note,
+html.atlas-dark .account-setting-card {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-setting-header,
+html.atlas-dark .account-setting-actions {
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark .account-setting-header h2,
+html.atlas-dark .account-setting-header p,
+html.atlas-dark .account-setting-kicker {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-setting-icon {
+  background: #482b34;
+  color: #f2bac7;
+}
+
+html.atlas-dark .account-setting-icon-security {
+  background: #493d23;
+  color: #f4cf7c;
+}
+
+html.atlas-dark .account-type-counter {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-type-counter:hover,
+html.atlas-dark .account-type-counter.is-active {
+  background: #39292f;
+  border-color: #a66a78;
+  color: #fff;
+}
+
+html.atlas-dark .account-type-counter strong,
+html.atlas-dark .account-type-counter small {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .account-type-counter-icon {
+  background: #332b2e;
+  color: #f2bac7;
+}
+
 /* High contrast remains meaningful when it is combined with dark mode. */
 html.atlas-dark.atlas-high-contrast :where(
   body,
@@ -693,7 +744,10 @@ html.atlas-dark.atlas-high-contrast :where(
   .catalog-resource-card,
   .favorite-card,
   .resource-detail-card,
-  .announcement-item
+  .announcement-item,
+  .account-action-note,
+  .account-setting-card,
+  .account-type-counter
 ) {
   background: #000;
   border-color: #fff;

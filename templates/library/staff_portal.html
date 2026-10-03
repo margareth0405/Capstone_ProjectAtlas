@@ -133,6 +133,25 @@
         </div>
       </div>
 
+      <nav class="account-type-summary" aria-label="Account totals and filters">
+        <a class="account-type-counter account-type-all{% if not selected_user_role %} is-active{% endif %}" href="{{ staff_portal_url }}#users"{% if not selected_user_role %} aria-current="page"{% endif %}>
+          <span class="account-type-counter-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+          <span><strong>{{ stats.total_users|default:0 }}</strong><small>All accounts</small></span>
+        </a>
+        <a class="account-type-counter account-type-student{% if selected_user_role == 'student' %} is-active{% endif %}" href="?user_role=student#users"{% if selected_user_role == 'student' %} aria-current="page"{% endif %}>
+          <span class="account-type-counter-icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></span>
+          <span><strong>{{ stats.student_users|default:0 }}</strong><small>Students</small></span>
+        </a>
+        <a class="account-type-counter account-type-teacher{% if selected_user_role == 'teacher' %} is-active{% endif %}" href="?user_role=teacher#users"{% if selected_user_role == 'teacher' %} aria-current="page"{% endif %}>
+          <span class="account-type-counter-icon"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span>
+          <span><strong>{{ stats.teacher_users|default:0 }}</strong><small>Teachers</small></span>
+        </a>
+        <a class="account-type-counter account-type-administrator{% if selected_user_role == 'administrator' %} is-active{% endif %}" href="?user_role=administrator#users"{% if selected_user_role == 'administrator' %} aria-current="page"{% endif %}>
+          <span class="account-type-counter-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+          <span><strong>{{ stats.administrator_users|default:0 }}</strong><small>Administrators</small></span>
+        </a>
+      </nav>
+
       <form class="staff-filter-bar" method="get" action="{{ staff_portal_url }}#users" data-auto-submit>
         <div class="form-group">
           <label for="userSearch">Search users</label>

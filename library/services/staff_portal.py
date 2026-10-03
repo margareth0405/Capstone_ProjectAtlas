@@ -72,7 +72,13 @@ class StaffUserDirectory:
         elif self.role in {Profile.Role.STUDENT, Profile.Role.TEACHER}:
             users = users.filter(is_staff=False, is_superuser=False)
             if include_profiles:
-                users = users.filter(profile__role=self.role)
+                if self.role == Profile.Role.STUDENT:
+                    users = users.filter(
+                        Q(profile__role=Profile.Role.STUDENT)
+                        | Q(profile__isnull=True)
+                    )
+                else:
+                    users = users.filter(profile__role=self.role)
         return users.order_by("date_joined" if self.sort == "oldest" else "-date_joined")
 
     def load(self):
@@ -392,6 +398,7 @@ class StaffPortalContextService:
     def build(self):
         users = self.directory.load()
         all_users = get_user_model().objects.select_related("profile")
+        staff_stats = self._safe_staff_stats(all_users)
         analytics_context = self._analytics_context()
         activity_history = self._optional_database_value(
             "activity history",
@@ -399,13 +406,13 @@ class StaffPortalContextService:
             [],
         )
         return {
-            "staff_stats": self._safe_staff_stats(all_users),
+            "staff_stats": staff_stats,
             "items": LibraryItem.objects.order_by("-created_at"),
             "recent_items": LibraryItem.objects.order_by("-created_at")[:8],
             "announcements": Announcement.objects.all(),
             "recent_announcements": Announcement.objects.all()[:6],
             "users": users,
-            "user_count": all_users.count(),
+            "user_count": staff_stats["total_users"],
             "resource_view_count": self._optional_database_value(
                 "resource-view count",
                 ResourceViewEvent.objects.count,
@@ -491,8 +498,14 @@ class StaffPortalContextService:
             core_users = get_user_model().objects.all()
             return {
                 "total_users": core_users.count(),
-                "student_users": 0,
+                "student_users": core_users.filter(
+                    is_staff=False,
+                    is_superuser=False,
+                ).count(),
                 "teacher_users": 0,
+                "administrator_users": core_users.filter(
+                    Q(is_staff=True) | Q(is_superuser=True)
+                ).count(),
                 "successful_logins": core_users.filter(
                     last_login__isnull=False
                 ).count(),
@@ -500,13 +513,22 @@ class StaffPortalContextService:
 
     @staticmethod
     def _staff_stats(users):
-        return {
-            "total_users": users.count(),
-            "student_users": users.filter(
-                profile__role=Profile.Role.STUDENT
-            ).count(),
-            "teacher_users": users.filter(
-                profile__role=Profile.Role.TEACHER
-            ).count(),
-            "successful_logins": users.filter(last_login__isnull=False).count(),
-        }
+        reader_filter = Q(is_staff=False, is_superuser=False)
+        administrator_filter = Q(is_staff=True) | Q(is_superuser=True)
+        return users.aggregate(
+            total_users=Count("pk"),
+            student_users=Count(
+                "pk",
+                filter=reader_filter
+                & (Q(profile__role=Profile.Role.STUDENT) | Q(profile__isnull=True)),
+            ),
+            teacher_users=Count(
+                "pk",
+                filter=reader_filter & Q(profile__role=Profile.Role.TEACHER),
+            ),
+            administrator_users=Count("pk", filter=administrator_filter),
+            successful_logins=Count(
+                "pk",
+                filter=Q(last_login__isnull=False),
+            ),
+        )
