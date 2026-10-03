@@ -20,7 +20,11 @@ from django.views.generic import TemplateView
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from library.models import Announcement, Favorite, LibraryItem
-from library.services import CatalogQueryService, SafeRedirectService
+from library.services import (
+    CatalogQueryService,
+    PageContextBuilder,
+    SafeRedirectService,
+)
 from library.services.documents import DocumentExtractionError, DocumentTextExtractor
 from library.services.resource_views import ResourceViewTracker
 
@@ -251,6 +255,7 @@ class FavoriteToggleView(View):
         else:
             favorite.delete()
             message = f"Removed the bookmark for {item.title}."
+        cache.delete(PageContextBuilder.favorite_count_cache_key(request.user.pk))
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
                 {

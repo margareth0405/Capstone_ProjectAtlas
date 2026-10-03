@@ -4,6 +4,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 
+from library.models import Profile
 from library.services import PageContextBuilder
 
 
@@ -25,6 +26,19 @@ class StaffRequiredMixin:
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path(), reverse("admin:login"))
         if not (request.user.is_active and request.user.is_staff):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ResourceManagerRequiredMixin:
+    """Allow administrators and verified teacher-role accounts to manage resources."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), reverse("library:login"))
+        profile = getattr(request.user, "profile", None)
+        is_teacher = profile is not None and profile.role == Profile.Role.TEACHER
+        if not (request.user.is_active and (request.user.is_staff or is_teacher)):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 

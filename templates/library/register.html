@@ -32,7 +32,7 @@
       </h1>
       <p class="sub">Create your secure ATLAS reading account.</p>
 
-      <form action="{{ register_url }}" method="post" novalidate>
+      <form action="{{ register_url }}" method="post" novalidate data-single-submit>
         {% csrf_token %}
         <input type="hidden" name="role" value="{{ auth_role }}">
         {% include "library/includes/form_errors.html" with form=form %}
@@ -162,8 +162,8 @@
         </div>
         {% if form.privacy_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.privacy_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
 
-        <button class="btn-login reader-btn" type="submit">
-          Register as {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %}
+        <button class="btn-login reader-btn" type="submit" data-submit-label="Registering…">
+          <span>Register as {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %}</span>
           <i class="fas fa-arrow-right" aria-hidden="true"></i>
         </button>
       </form>

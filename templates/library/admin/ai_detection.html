@@ -1,4 +1,7 @@
 {% extends "library/dashboard_base.html" %}
+{% load static %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261003-teacher-tools">{% endblock %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}AI Detection | ATLAS{% endblock %}

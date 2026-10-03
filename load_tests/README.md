@@ -11,6 +11,7 @@ administrator account or real student credentials.
 ```powershell
 $env:ATLAS_LOAD_TEST_PASSWORD = "replace-with-a-strong-test-password"
 .\.venv\Scripts\python.exe manage.py create_load_test_users --count 100
+$env:DB_CONN_MAX_AGE = "0"
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
@@ -18,6 +19,13 @@ The account command creates verified student accounts named
 `loadtest001@example.com` through `loadtest100@example.com`. It is idempotent and
 reads the password from the environment so the credential is not committed or
 placed in shell history.
+
+`DB_CONN_MAX_AGE=0` is for a local `runserver` capacity check. Django's
+development server may create one thread per request; closing each thread's
+connection prevents a 100-user test from exhausting a small local PostgreSQL
+installation. Staging and production should keep their normal connection age,
+use the bounded Gunicorn thread count, and provide enough database connections
+for those web threads plus maintenance access.
 
 ## Run in stages
 
@@ -47,10 +55,15 @@ The authenticated test assigns one numbered account to each virtual user. It
 refuses to run when the selected profile is larger than `TEST_USER_COUNT`, unless
 `ALLOW_SHARED_ACCOUNTS=true` is deliberately supplied.
 
-The `busy` profile is the release gate for ATLAS's 30-50 concurrent-user target.
-Run both public and authenticated variants against staging before release. Both
-must finish with zero 429 responses, zero 5xx responses, a failed-request rate
-below 1%, and p95 response time below two seconds. A passing local run confirms
+Each virtual student signs in once and keeps that session while browsing, which
+models normal concurrent use. To run the separate, deliberately harsher repeated
+authentication scenario, add `-e REAUTHENTICATE_EACH_ITERATION=true`.
+
+The `busy` profile is the baseline gate for ATLAS's 30-50 concurrent-user target.
+The authenticated `peak` profile is the release gate for the 100-student target.
+Run public and authenticated variants against staging before release. They must
+finish with zero 429 responses, zero 5xx responses, a failed-request rate below
+1%, and p95 response time below two seconds. A passing local run confirms
 application behavior; a staging run is still required to verify the actual web,
 database, network, and object-storage plans.
 

@@ -110,6 +110,8 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertContains(response, 'data-password-rule="match"')
         self.assertContains(response, 'data-password-strength')
         self.assertContains(response, 'aria-label="Password strength"')
+        self.assertContains(response, "data-single-submit")
+        self.assertContains(response, 'data-submit-label="Registering…"')
         self.assertNotContains(response, "Example format: 12+ characters")
 
     def test_login_clearly_explains_legacy_and_new_password_rules(self):

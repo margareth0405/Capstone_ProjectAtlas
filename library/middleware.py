@@ -1,6 +1,7 @@
 """Application middleware kept thin by delegating to service objects."""
 
 import logging
+import math
 import time
 from typing import ClassVar
 
@@ -57,12 +58,6 @@ class RateLimitMiddleware:
     }
 
     post_rules: ClassVar[dict[str, tuple[str, str, str, str]]] = {
-        "library:register": (
-            "register",
-            "RATE_LIMIT_REGISTER_REQUESTS",
-            "RATE_LIMIT_REGISTER_WINDOW",
-            "account",
-        ),
         "library:contact": (
             "contact",
             "RATE_LIMIT_CONTACT_REQUESTS",
@@ -117,7 +112,7 @@ class RateLimitMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        pending = getattr(request, "atlas_failed_login_rate_limit", None)
+        pending = getattr(request, "atlas_failed_action_rate_limit", None)
         if pending is not None and response.status_code == 200:
             scope, identifier, _limit, window = pending
             self._increment(scope, identifier, window)
@@ -166,8 +161,32 @@ class RateLimitMiddleware:
                 window=window,
             )
             if response is None:
-                request.atlas_failed_login_rate_limit = (
+                request.atlas_failed_action_rate_limit = (
                     "login",
+                    identifier,
+                    limit,
+                    window,
+                )
+            return response
+
+        # A student correcting an ordinary validation mistake must not burn
+        # through the registration allowance before the form is even handled.
+        # As with sign-in, only unsuccessful submissions consume the budget;
+        # completed registrations redirect and therefore are not counted.
+        if view_name == "library:register":
+            identifier = self._identifier(request, strategy="account")
+            limit = settings.RATE_LIMIT_REGISTER_REQUESTS
+            window = settings.RATE_LIMIT_REGISTER_WINDOW
+            response = self._blocked_response_if_at_limit(
+                request,
+                scope="register",
+                identifier=identifier,
+                limit=limit,
+                window=window,
+            )
+            if response is None:
+                request.atlas_failed_action_rate_limit = (
+                    "register",
                     identifier,
                     limit,
                     window,
@@ -227,8 +246,11 @@ class RateLimitMiddleware:
 
     @staticmethod
     def _cache_key(scope, identifier, window):
-        window_id = int(time.time() // window)
-        return f"atlas:rate:{scope}:{identifier}:{window_id}"
+        return f"atlas:rate:{scope}:{identifier}:{window}"
+
+    @classmethod
+    def _deadline_key(cls, scope, identifier, window):
+        return f"{cls._cache_key(scope, identifier, window)}:deadline"
 
     def _blocked_response_if_at_limit(
         self, request, *, scope, identifier, limit, window
@@ -242,12 +264,21 @@ class RateLimitMiddleware:
             return None
         if count < limit:
             return None
-        return self._limited_response(request, limit=limit, window=window)
+        return self._limited_response(
+            request,
+            limit=limit,
+            retry_after=self._retry_after(scope, identifier, window),
+        )
 
     def _increment(self, scope, identifier, window):
         cache_key = self._cache_key(scope, identifier, window)
         try:
             if cache.add(cache_key, 1, timeout=window + 1):
+                cache.set(
+                    self._deadline_key(scope, identifier, window),
+                    time.time() + window,
+                    timeout=window + 1,
+                )
                 return 1
             return cache.incr(cache_key)
         except Exception:
@@ -261,17 +292,37 @@ class RateLimitMiddleware:
         if count <= limit:
             return None
 
-        return self._limited_response(request, limit=limit, window=window)
+        return self._limited_response(
+            request,
+            limit=limit,
+            retry_after=self._retry_after(scope, identifier, window),
+        )
+
+    @classmethod
+    def _retry_after(cls, scope, identifier, window):
+        try:
+            deadline = cache.get(cls._deadline_key(scope, identifier, window))
+        except Exception:
+            logger.exception("Rate-limit cache unavailable while reading deadline.")
+            deadline = None
+        if deadline is None:
+            return window
+        return max(1, min(window, math.ceil(deadline - time.time())))
 
     @staticmethod
-    def _limited_response(request, *, limit, window):
+    def _limited_response(request, *, limit, retry_after):
+        retry_minutes, retry_seconds = divmod(retry_after, 60)
         response = render(
             request,
             "errors/429.html",
-            {"retry_after": window},
+            {
+                "retry_after": retry_after,
+                "retry_minutes": retry_minutes,
+                "retry_seconds": retry_seconds,
+            },
             status=429,
         )
-        response["Retry-After"] = str(window)
+        response["Retry-After"] = str(retry_after)
         response["Cache-Control"] = "no-store"
         response["X-RateLimit-Limit"] = str(limit)
         return response

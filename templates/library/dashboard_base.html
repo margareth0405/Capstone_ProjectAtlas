@@ -82,7 +82,7 @@
           </a>
         {% endif %}
 
-        {% if active_role == "administrator" or request.user.is_staff %}
+        {% if can_use_ai_detection %}
           <a
             href="{{ staff_ai_detection_url }}"
             {% if active_page == 'ai_detection' %}class="active" aria-current="page"{% endif %}
@@ -127,43 +127,54 @@
         </button>
 
         <div class="user-greeting">
-          {% if active_role == "administrator" or request.user.is_staff %}
-            <i class="fas fa-user-shield" aria-hidden="true"></i>
-          {% elif active_role == "guest" %}
-            <i class="fas fa-user-friends" aria-hidden="true"></i>
-          {% else %}
-            <i class="fas fa-user-graduate" aria-hidden="true"></i>
-          {% endif %}
-          <span class="greeting-name">
-            Welcome,
-            {{ display_name|default:'Guest' }}
-          </span>
-          <span class="badge atlas-role-badge">
-            {% if active_role == "administrator" or request.user.is_staff %}
-              ADMINISTRATOR
-            {% elif active_role == "teacher" %}
-              TEACHER
-            {% elif active_role == "guest" %}
-              GUEST
-            {% else %}
-              STUDENT
-            {% endif %}
-          </span>
-
           {% if request.user.is_authenticated or active_role == "guest" %}
-            {% if request.user.is_authenticated %}
-              <a class="btn btn-sm btn-outline-danger" href="{% if request.user.is_staff %}{{ staff_account_edit_url }}{% else %}{{ account_email_url }}{% endif %}">
-                <i class="fas fa-user-gear" aria-hidden="true"></i>
-                Account
-              </a>
-            {% endif %}
-            <form action="{{ logout_url }}" method="post" class="logout-form">
-              {% csrf_token %}
-              <button class="btn btn-sm btn-outline-danger" type="submit">
-                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
-                Logout
-              </button>
-            </form>
+            <details class="account-menu">
+              <summary aria-label="Open account menu">
+                <span class="account-menu-avatar" aria-hidden="true">
+                  {% if active_role == "administrator" or request.user.is_staff %}
+                    <i class="fas fa-user-shield"></i>
+                  {% elif active_role == "guest" %}
+                    <i class="fas fa-user-friends"></i>
+                  {% else %}
+                    <i class="fas fa-user-graduate"></i>
+                  {% endif %}
+                </span>
+                <span class="account-menu-identity">
+                  <span class="greeting-name">Welcome, {{ display_name|default:'Guest' }}</span>
+                  <span class="badge atlas-role-badge">
+                    {% if active_role == "administrator" or request.user.is_staff %}
+                      ADMINISTRATOR
+                    {% elif active_role == "teacher" %}
+                      TEACHER
+                    {% elif active_role == "guest" %}
+                      GUEST
+                    {% else %}
+                      STUDENT
+                    {% endif %}
+                  </span>
+                </span>
+                <i class="fas fa-chevron-down account-menu-chevron" aria-hidden="true"></i>
+              </summary>
+              <div class="account-menu-panel">
+                <div class="account-menu-heading">
+                  <strong>{{ display_name|default:'Guest' }}</strong>
+                  <span>Account options</span>
+                </div>
+                {% if request.user.is_authenticated %}
+                  <a href="{% if request.user.is_staff %}{{ staff_account_edit_url }}{% else %}{{ account_email_url }}{% endif %}">
+                    <i class="fas fa-user-gear" aria-hidden="true"></i>
+                    Account settings
+                  </a>
+                {% endif %}
+                <form action="{{ logout_url }}" method="post" class="logout-form">
+                  {% csrf_token %}
+                  <button type="submit">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            </details>
           {% else %}
             <a class="btn btn-sm btn-outline-danger" href="{{ login_url }}">Sign in</a>
           {% endif %}

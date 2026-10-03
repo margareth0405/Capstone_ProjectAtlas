@@ -89,6 +89,17 @@ class NavigationAndMetadataTests(LibraryTestCase):
         self.assertNotContains(response, "Recommendations")
         self.assertNotContains(response, "recommended=1")
 
+    def test_signed_in_header_uses_compact_account_dropdown(self):
+        user = self.create_user(role=Profile.Role.STUDENT)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertContains(response, 'class="account-menu"')
+        self.assertContains(response, 'aria-label="Open account menu"')
+        self.assertContains(response, "Account settings")
+        self.assertContains(response, "Sign out")
+
     def test_rendered_public_internal_links_resolve(self):
         self.create_item()
         self.create_announcement()
@@ -243,8 +254,9 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertContains(response, 'data-theme-choice="dark" aria-pressed="false"')
         self.assertContains(response, "Light mode")
         self.assertContains(response, "Dark mode")
-        self.assertContains(response, "library/css/theme/dark.css")
-        self.assertContains(response, "library/css/theme/responsive.css")
+        content = response.content.decode()
+        self.assertRegex(content, r"library/css/theme/dark(?:\.[0-9a-f]+)?\.css")
+        self.assertRegex(content, r"library/css/theme/responsive(?:\.[0-9a-f]+)?\.css")
         self.assertNotContains(response, 'class="reading-preferences"')
 
     def test_accessibility_preferences_use_an_encapsulated_controller(self):

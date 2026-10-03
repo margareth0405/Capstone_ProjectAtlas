@@ -412,6 +412,76 @@
     });
   }
 
+  function initializeSingleSubmitForms() {
+    document.querySelectorAll("form[data-single-submit]").forEach(function (form) {
+      form.querySelectorAll("button[type='submit']").forEach(function (button) {
+        var text = button.querySelector("span");
+        if (text) button.dataset.originalSubmitLabel = text.textContent.trim();
+      });
+      form.addEventListener("submit", function (event) {
+        if (form.dataset.submitting === "true") {
+          event.preventDefault();
+          return;
+        }
+        form.dataset.submitting = "true";
+        form.querySelectorAll("button[type='submit']").forEach(function (button) {
+          button.disabled = true;
+          button.setAttribute("aria-busy", "true");
+          var label = button.dataset.submitLabel;
+          var text = button.querySelector("span");
+          if (label && text) text.textContent = label;
+        });
+      });
+    });
+
+    // A browser back/forward-cache restore must never leave the form locked.
+    window.addEventListener("pageshow", function () {
+      document.querySelectorAll("form[data-single-submit]").forEach(function (form) {
+        form.dataset.submitting = "false";
+        form.querySelectorAll("button[type='submit']").forEach(function (button) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+          var text = button.querySelector("span");
+          if (text && button.dataset.originalSubmitLabel) {
+            text.textContent = button.dataset.originalSubmitLabel;
+          }
+        });
+      });
+    });
+  }
+
+  function initializeRateLimitCountdowns() {
+    document.querySelectorAll("[data-rate-limit-countdown]").forEach(function (timer) {
+      var initialSeconds = Number.parseInt(timer.dataset.seconds || "60", 10);
+      var remaining = Number.isFinite(initialSeconds) ? Math.max(0, initialSeconds) : 60;
+      var clock = timer.querySelector("[data-countdown-clock]");
+      var label = timer.querySelector("[data-countdown-label]");
+
+      function render() {
+        var minutes = Math.floor(remaining / 60);
+        var seconds = remaining % 60;
+        if (clock) {
+          clock.textContent = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+        }
+        if (label) {
+          label.textContent = remaining === 0
+            ? "You can try again now."
+            : minutes + " minute" + (minutes === 1 ? "" : "s") + " " +
+              seconds + " second" + (seconds === 1 ? "" : "s");
+        }
+        if (remaining === 0) timer.classList.add("is-ready");
+      }
+
+      render();
+      if (remaining === 0) return;
+      var interval = window.setInterval(function () {
+        remaining -= 1;
+        render();
+        if (remaining <= 0) window.clearInterval(interval);
+      }, 1000);
+    });
+  }
+
   function formatFileSize(bytes) {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
     if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + " KB";
@@ -1163,6 +1233,8 @@
     initializeCookieConsent();
     accessibilityPreferences.initializeControls();
     initializePageLoading();
+    initializeSingleSubmitForms();
+    initializeRateLimitCountdowns();
     initializeMessages();
     initializeSidebar();
     initializeScrollTop();

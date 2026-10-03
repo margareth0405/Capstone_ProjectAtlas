@@ -14,12 +14,12 @@ from library.services.documents import (
     DocumentTextExtractor,
 )
 
-from .mixins import PageContextMixin, StaffRequiredMixin
+from .mixins import PageContextMixin, ResourceManagerRequiredMixin
 
 logger = logging.getLogger(__name__)
 
 
-class StaffAIDetectionView(StaffRequiredMixin, PageContextMixin, TemplateView):
+class StaffAIDetectionView(ResourceManagerRequiredMixin, PageContextMixin, TemplateView):
     """Analyze pasted text or text extracted from a supported document."""
 
     template_name = "library/admin/ai_detection.html"

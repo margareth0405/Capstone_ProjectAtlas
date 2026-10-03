@@ -3,6 +3,7 @@
 import re
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, Sum
 
 from library.models import Favorite, LibraryItem, Profile
@@ -54,15 +55,26 @@ class PageContextBuilder:
     """Create shared template context for one request."""
 
     greeting_name_resolver_class = GreetingNameResolver
+    stats_cache_key = "atlas:page-context:repository-stats"
+    cache_timeout = 15
 
     def __init__(self, request):
         self.request = request
 
     def build(self, active_page):
         stats = self._stats()
+        active_role = self._active_role()
         return {
             "active_page": active_page,
-            "active_role": self._active_role(),
+            "active_role": active_role,
+            "can_manage_resources": active_role in {
+                Profile.Role.TEACHER,
+                "administrator",
+            },
+            "can_use_ai_detection": active_role in {
+                Profile.Role.TEACHER,
+                "administrator",
+            },
             "display_name": self._display_name(),
             "favorite_count": self._favorite_count(),
             "resource_count": stats["total_items"],
@@ -90,11 +102,23 @@ class PageContextBuilder:
     def _favorite_count(self):
         user = self.request.user
         if user.is_authenticated and not user.is_staff:
-            return Favorite.objects.filter(user=user).count()
+            cache_key = self.favorite_count_cache_key(user.pk)
+            count = cache.get(cache_key)
+            if count is None:
+                count = Favorite.objects.filter(user=user).count()
+                cache.set(cache_key, count, timeout=self.cache_timeout)
+            return count
         return 0
 
-    @staticmethod
-    def _stats():
+    @classmethod
+    def favorite_count_cache_key(cls, user_pk):
+        return f"atlas:page-context:favorites:{user_pk}"
+
+    @classmethod
+    def _stats(cls):
+        stats = cache.get(cls.stats_cache_key)
+        if stats is not None:
+            return stats
         stats = LibraryItem.objects.aggregate(
             total_items=Count("id"),
             total_pages=Sum("pages"),
@@ -102,4 +126,5 @@ class PageContextBuilder:
             unique_types=Count("collection", distinct=True),
         )
         stats["total_pages"] = stats["total_pages"] or 0
+        cache.set(cls.stats_cache_key, stats, timeout=cls.cache_timeout)
         return stats

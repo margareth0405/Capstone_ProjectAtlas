@@ -1,6 +1,7 @@
 """Security, privacy, performance, and public-error regression coverage."""
 
 from io import BytesIO
+from unittest.mock import patch
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from allauth.account.models import EmailAddress
@@ -8,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponseRedirect
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
@@ -196,6 +198,11 @@ class AbuseProtectionTests(LibraryTestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response["Retry-After"], "300")
         self.assertContains(response, "Please slow down", status_code=429)
+        self.assertContains(response, "data-rate-limit-countdown", status_code=429)
+        self.assertContains(response, "data-countdown-clock", status_code=429)
+        self.assertContains(response, "05:00", status_code=429)
+        self.assertContains(response, "5 minutes 0 seconds", status_code=429)
+        self.assertContains(response, "minutes and seconds", status_code=429)
 
     def test_failed_login_limits_are_separate_for_accounts_on_the_same_ip(self):
         url = reverse("library:login")
@@ -302,6 +309,47 @@ class AbuseProtectionTests(LibraryTestCase):
         self.assertEqual(
             self.client.post(url, payload("one@example.com")).status_code, 429
         )
+
+    @override_settings(RATE_LIMIT_REGISTER_REQUESTS=1)
+    def test_one_hundred_students_on_one_school_ip_do_not_share_registration_limit(self):
+        url = reverse("library:register")
+
+        for student_number in range(100):
+            response = self.client.post(
+                url,
+                {
+                    "full_name": f"Student {student_number}",
+                    "email": f"student{student_number}@example.com",
+                    "role": "student",
+                    "password1": "Atlas-Test-Pass-2026!",
+                    "password2": "does-not-match",
+                    "age_consent": "on",
+                    "privacy_consent": "on",
+                },
+                REMOTE_ADDR="192.0.2.10",
+            )
+            self.assertEqual(response.status_code, 200)
+
+    @override_settings(RATE_LIMIT_REGISTER_REQUESTS=1)
+    def test_successful_registration_does_not_consume_failure_allowance(self):
+        url = reverse("library:register")
+        payload = {
+            "full_name": "Successful Student",
+            "email": "successful@example.com",
+            "role": "student",
+            "password1": "Atlas-Test-Pass-2026!",
+            "password2": "Atlas-Test-Pass-2026!",
+            "age_consent": "on",
+            "privacy_consent": "on",
+        }
+
+        with patch(
+            "library.views.authentication.complete_signup",
+            return_value=HttpResponseRedirect("/dashboard/"),
+        ):
+            self.assertEqual(self.client.post(url, payload).status_code, 302)
+        self.assertEqual(self.client.post(url, payload).status_code, 200)
+        self.assertEqual(self.client.post(url, payload).status_code, 429)
 
     def test_registration_honeypot_rejects_bot_submission(self):
         payload = {

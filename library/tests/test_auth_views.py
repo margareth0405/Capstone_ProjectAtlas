@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.management import call_command
+from django.db import IntegrityError
 from django.test import override_settings
 from django.urls import reverse
 
@@ -56,6 +57,18 @@ class RegistrationTests(LibraryTestCase):
         email_address = EmailAddress.objects.get(user=user)
         self.assertEqual(email_address.email, "jamie@gmail.com")
         self.assertTrue(email_address.primary)
+
+    @patch(
+        "library.views.authentication.RegistrationForm.save",
+        side_effect=IntegrityError("duplicate account"),
+    )
+    def test_concurrent_duplicate_registration_returns_form_error(self, _save):
+        response = self.client.post(
+            reverse("library:register"), self.registration_payload()
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "An account with this email already exists.")
 
     @patch(
         "library.views.authentication.complete_signup",

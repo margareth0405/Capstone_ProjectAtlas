@@ -15,10 +15,10 @@ from library.services import (
 )
 from library.services.activity import ActivityRecorder
 
-from .mixins import StaffRequiredMixin
+from .mixins import ResourceManagerRequiredMixin, StaffRequiredMixin
 
 
-class StaffFormView(StaffRequiredMixin, View):
+class StaffFormView(View):
     """Shared create/edit workflow for staff-managed model forms."""
 
     form_class = None
@@ -45,7 +45,9 @@ class StaffFormView(StaffRequiredMixin, View):
         return instance
 
     def get_success_url(self, instance):
-        return reverse("library:staff_portal")
+        if self.request.user.is_staff:
+            return reverse("library:staff_portal")
+        return reverse("library:catalog")
 
     def get(self, request, *args, **kwargs):
         return self.render_form(self.get_form())
@@ -92,7 +94,7 @@ class StaffFormView(StaffRequiredMixin, View):
         return render(self.request, self.template_name, context)
 
 
-class StaffItemCreateView(StaffFormView):
+class StaffItemCreateView(ResourceManagerRequiredMixin, StaffFormView):
     """Create one digital repository resource."""
 
     form_class = LibraryItemForm
@@ -145,7 +147,7 @@ class StaffItemEditView(StaffItemCreateView):
         return instance
 
 
-class StaffItemDeleteView(StaffRequiredMixin, View):
+class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
     """Delete one digital repository resource and retain an audit entry."""
 
     activity_recorder_class = ActivityRecorder
@@ -163,10 +165,11 @@ class StaffItemDeleteView(StaffRequiredMixin, View):
             description=title,
         )
         messages.info(request, f"{title} was removed from the digital repository.")
-        return redirect("library:staff_portal")
+        destination = "library:staff_portal" if request.user.is_staff else "library:catalog"
+        return redirect(destination)
 
 
-class StaffAnnouncementCreateView(StaffFormView):
+class StaffAnnouncementCreateView(StaffRequiredMixin, StaffFormView):
     """Create and optionally publish one announcement."""
 
     form_class = AnnouncementForm

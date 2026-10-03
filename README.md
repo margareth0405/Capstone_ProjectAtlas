@@ -3,22 +3,29 @@
 ATLAS is a role-aware digital repository for guests, students, teachers, and
 administrators. Django owns authentication, permissions, validation, catalog
 records, protected resource views, announcements, contact messages, staff activity history,
-website-usage analytics, and the administrator AI Detection service.
+website-usage analytics, and teacher/administrator AI Detection.
 
 The active interface is server-rendered HTML and CSS with presentation-only
 JavaScript. Node.js is not required.
 
 ## Main features
 
-### Guests, students, and teachers
+### Guests and students
 
 - Browse and search the connected digital repository. Filters and sorting update automatically.
 - Sort resources by title A-Z/Z-A, author A-Z/Z-A, or publication date newest/oldest.
 - See each resource's title, author, file format, description or abstract, publication date, and system-added date.
 - View published announcements on both the Announcements page and the Digital Repository page.
 - Submit support messages to atlastshs@gmail.com.
-- Register and sign in as a student or teacher.
+- Register and sign in with the appropriate student or teacher role.
 - Read PDF or Word Resource abstracts inside ATLAS as a guest or member; authenticated readers can also save Bookmarks.
+
+### Teachers
+
+- Keep all authenticated reader capabilities, including protected reading and Bookmarks.
+- Add, edit, and delete repository resources, including covers, publication details, hard-copy availability, and protected PDF or Word abstracts.
+- Use AI Detection with pasted text, PDF files, or Word (.docx) files.
+- Teacher resource and AI access does not grant sensitive administrator capabilities such as user-account management, announcement publishing, usage analytics, or Django Admin.
 
 ### Administrators
 
@@ -36,8 +43,7 @@ JavaScript. Node.js is not required.
 - Review which guest, student, teacher, or administrator opened each protected resource.
 - Review a dated audit history of resource, account, and announcement actions.
 - Review a responsive side-by-side website-usage chart and searchable visit history by date and account type, including active time, sessions, distinct visitors, deduplicated page views, and each session's last page.
-- Analyze pasted text, PDF files, and Word (.docx) files with the
-  administrator-only AI Detection service.
+- Analyze pasted text, PDF files, and Word (.docx) files with AI Detection.
 
 AI Detection accepts pasted text from 100 to 20,000 characters or one PDF or
 Word (.docx) document up to 25 MB by default. Set
@@ -551,7 +557,8 @@ Staged public and authenticated k6 scenarios, safe test-account creation, and
 the 10/25/50/100/150-user workflow are documented in
 [`load_tests/README.md`](load_tests/README.md). Start with the local smoke
 profile and review all errors before increasing concurrency. The 50-user
-`busy` profile is the release gate: both public and authenticated runs require
+`busy` profile is the baseline gate, and the 100-user `peak` authenticated
+profile is the release gate for the student-capacity target. Runs require
 zero 429 and 5xx responses, less than 1% failed requests, and p95 below two
 seconds. Remote targets require an explicit authorization opt-in.
 
@@ -626,13 +633,16 @@ deletion requests with explicit form consent. Configure `BUSINESS_NAME`,
 `DATA_PRIVACY_EMAIL` with the responsible institution's exact details before
 public launch.
 
-Endpoint-specific fixed-window limits protect failed sign-in attempts,
-registration, contact, password-reset/email actions, staff uploads/actions,
+Endpoint-specific fixed-window limits protect failed sign-in and registration
+attempts, contact, password-reset/email actions, staff uploads/actions,
 catalog searches, and AI Detection. Home pages, repository browsing, and
 resource viewing do not share a global IP limit. Authenticated operations are
 keyed by user account, while anonymous account actions are keyed by the
 submitted email/username so unrelated readers behind one school router do not
-share an allowance. The included Procfile uses one worker, so Django's default
+share an allowance. Successful sign-ins and registrations do not consume the
+failure allowance; registration defaults to ten failed attempts per email in
+ten minutes so students can safely correct form mistakes. The included
+Procfile uses one worker, so Django's default
 in-memory cache applies these limits consistently. A deployment with multiple
 workers or application instances must configure a shared atomic cache (for
 example Redis); otherwise each instance maintains a separate counter. Set

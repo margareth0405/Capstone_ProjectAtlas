@@ -261,9 +261,14 @@ class FavoriteTests(LibraryTestCase):
         user = self.create_user()
         self.client.force_login(user)
 
+        initial_page = self.client.get(reverse("library:catalog"))
+        self.assertEqual(initial_page.context["favorite_count"], 0)
+
         add_response = self.client.post(self.favorite_url())
         self.assertEqual(add_response.status_code, 302)
         self.assertTrue(Favorite.objects.filter(user=user, item=self.item).exists())
+        updated_page = self.client.get(reverse("library:catalog"))
+        self.assertEqual(updated_page.context["favorite_count"], 1)
 
         remove_response = self.client.post(self.favorite_url())
         self.assertEqual(remove_response.status_code, 302)

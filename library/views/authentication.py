@@ -8,7 +8,7 @@ from allauth.account.utils import complete_signup, perform_login, setup_user_ema
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -103,6 +103,15 @@ class RegisterView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):
             except self.email_exceptions:
                 self.handle_email_error(request, form)
                 email_failed = True
+            except IntegrityError:
+                # Two near-simultaneous submissions can both pass the initial
+                # uniqueness check. Let the database keep the single account,
+                # then turn the losing request into a recoverable form error.
+                logger.info(
+                    "Registration conflict for an email that already exists.",
+                    exc_info=True,
+                )
+                form.add_error("email", "An account with this email already exists.")
             else:
                 request.session.pop("guest_mode", None)
                 messages.success(request, "Your ATLAS account is ready.")

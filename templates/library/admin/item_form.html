@@ -1,4 +1,7 @@
 {% extends "library/dashboard_base.html" %}
+{% load static %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261003-teacher-tools">{% endblock %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Resource | ATLAS{% endblock %}
@@ -9,6 +12,7 @@
   {% url 'library:catalog' as catalog_url %}
   <div class="admin-form-page">
     <header class="django-page-header"><div><span class="section-kicker">Repository management</span><h1>{% if form.instance.pk %}Edit resource{% else %}Add a new resource{% endif %}</h1></div></header>
+    <div class="resource-form-note resource-form-instructions" role="note"><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>How to add a resource:</strong> complete the details, choose PDF or Word, attach the matching resource abstract, then select Save resource. Fields marked * are required.</span></div>
     <form method="post" enctype="multipart/form-data" class="admin-object-form" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is validating and optimizing the resource…">
       {% csrf_token %}
       {% include "library/includes/form_errors.html" with form=form %}

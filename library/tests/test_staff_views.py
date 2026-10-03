@@ -51,7 +51,12 @@ class StaffAuthorizationTests(LibraryTestCase):
             with self.subTest(method=method, url=url):
                 response = getattr(self.client, method)(url)
                 self.assertEqual(response.status_code, 302)
-                self.assertIn(reverse("admin:login"), response.url)
+                expected_login = (
+                    reverse("library:login")
+                    if "/staff/repository/" in url
+                    else reverse("admin:login")
+                )
+                self.assertIn(expected_login, response.url)
 
     def test_authenticated_nonstaff_users_receive_forbidden(self):
         self.client.force_login(self.nonstaff)
@@ -68,6 +73,10 @@ class StaffAuthorizationTests(LibraryTestCase):
         response = self.client.get(reverse("library:staff_portal"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "How to use the Administrator Portal")
+        self.assertContains(response, "staff-scroll-region-users")
+        self.assertContains(response, "staff-scroll-region-resource-views")
+        self.assertContains(response, "staff-scroll-region-activity")
 
 
 class StaffCrudTests(LibraryTestCase):
@@ -219,6 +228,63 @@ class StaffCrudTests(LibraryTestCase):
         self.assertFalse(
             LibraryItem.objects.filter(call_number="NO-ABSTRACT-001").exists()
         )
+
+    def test_teacher_can_manage_resources_but_not_open_admin_management(self):
+        item = self.create_item(call_number="TEACHER-MANAGE-001")
+        teacher = self.create_user(
+            email="teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+
+        self.assertEqual(
+            self.client.get(reverse("library:staff_item_create")).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("library:staff_item_edit", args=[item.pk])
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:staff_ai_detection")).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:staff_portal")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:staff_user_create")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(reverse("library:staff_announcement_create")).status_code,
+            403,
+        )
+
+        delete_response = self.client.post(
+            reverse("library:staff_item_delete", args=[item.pk])
+        )
+        self.assertEqual(delete_response.status_code, 302)
+        self.assertFalse(LibraryItem.objects.filter(pk=item.pk).exists())
+
+    def test_teacher_resource_controls_keep_reader_bookmark_access(self):
+        self.create_item(call_number="TEACHER-CATALOG-001")
+        teacher = self.create_user(
+            email="catalog.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+
+        response = self.client.get(reverse("library:catalog"))
+
+        self.assertContains(response, "Add resource")
+        self.assertContains(response, "AI DETECTION")
+        self.assertContains(response, "Bookmark")
+        self.assertContains(response, "Edit")
+        self.assertContains(response, "Delete")
 
     def test_resource_storage_failure_returns_clear_error_without_record(self):
         class FailingPersistenceService:

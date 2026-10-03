@@ -137,8 +137,11 @@ class Command(BaseCommand):
 
         profile, _ = Profile.objects.get_or_create(user=user)
         profile.role = role
-        profile.privacy_consent_accepted_at = timezone.now()
+        consented_at = timezone.now()
+        profile.privacy_consent_accepted_at = consented_at
         profile.privacy_consent_version = settings.PRIVACY_CONSENT_VERSION
+        profile.age_consent_confirmed_at = consented_at
+        profile.age_consent_version = settings.PRIVACY_CONSENT_VERSION
         profile.save()
 
         EmailAddress.objects.update_or_create(

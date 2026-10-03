@@ -3,5 +3,12 @@
 {% block error_code %}429{% endblock %}
 {% block error_icon %}fa-hourglass-half{% endblock %}
 {% block error_title %}Please slow down{% endblock %}
-{% block error_message %}ATLAS received too many requests for this protected action. Wait a moment before trying again.{% endblock %}
-{% block error_extra %}<p class="error-detail">Retry after approximately {{ retry_after|default:60 }} seconds.</p>{% endblock %}
+{% block error_message %}ATLAS temporarily paused this protected action after too many requests. Your account and saved work are safe.{% endblock %}
+{% block error_extra %}
+  <div class="rate-limit-countdown" data-rate-limit-countdown data-seconds="{{ retry_after|default:60 }}" role="timer" aria-live="polite" aria-atomic="true">
+    <span>Try again in</span>
+    <strong data-countdown-clock>{{ retry_minutes|stringformat:"02d" }}:{{ retry_seconds|stringformat:"02d" }}</strong>
+    <span data-countdown-label>{{ retry_minutes }} minute{{ retry_minutes|pluralize }} {{ retry_seconds }} second{{ retry_seconds|pluralize }}</span>
+  </div>
+  <p class="error-detail">Keep this page open to see the minutes and seconds update automatically.</p>
+{% endblock %}

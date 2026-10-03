@@ -1,8 +1,10 @@
 import os
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
 from django.test import TestCase
@@ -36,6 +38,16 @@ class CreateLoadTestUsersCommandTests(TestCase):
         self.assertEqual(users[0].email, "loadcase001@example.com")
         self.assertTrue(users[0].check_password(self.password))
         self.assertEqual(users[0].profile.role, Profile.Role.STUDENT)
+        self.assertIsNotNone(users[0].profile.privacy_consent_accepted_at)
+        self.assertEqual(
+            users[0].profile.privacy_consent_version,
+            settings.PRIVACY_CONSENT_VERSION,
+        )
+        self.assertIsNotNone(users[0].profile.age_consent_confirmed_at)
+        self.assertEqual(
+            users[0].profile.age_consent_version,
+            settings.PRIVACY_CONSENT_VERSION,
+        )
         self.assertTrue(
             EmailAddress.objects.filter(
                 user=users[0],
@@ -84,3 +96,12 @@ class CreateLoadTestUsersCommandTests(TestCase):
                 role=Profile.Role.TEACHER,
                 email_domain="example.com",
             )
+
+    def test_authenticated_scenario_preserves_each_student_session(self):
+        script = (
+            Path(settings.BASE_DIR) / "load_tests" / "atlas-authenticated-test.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("noCookiesReset: true", script)
+        self.assertIn("if (!authenticated)", script)
+        self.assertIn("REAUTHENTICATE_EACH_ITERATION", script)

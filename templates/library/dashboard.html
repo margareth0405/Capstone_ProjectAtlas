@@ -42,14 +42,17 @@
       <a class="btn atlas-secondary-action" href="{{ catalog_url }}?sort=newest">
         <i class="fas fa-plus-circle" aria-hidden="true"></i> New Arrivals
       </a>
-      {% if active_role == "administrator" or request.user.is_staff %}
+      {% if can_manage_resources %}
         <a class="btn btn-outline-secondary atlas-outline-action" href="{{ staff_item_create_url }}">
           <i class="fas fa-upload" aria-hidden="true"></i> Add Resource
         </a>
+      {% endif %}
+      {% if can_use_ai_detection %}
         <a class="btn btn-outline-secondary atlas-outline-action" href="{{ staff_ai_detection_url }}">
           <i class="fas fa-robot" aria-hidden="true"></i> AI Detection
         </a>
-      {% elif active_role == "student" or active_role == "teacher" %}
+      {% endif %}
+      {% if active_role == "student" or active_role == "teacher" %}
         <a class="btn btn-outline-secondary atlas-outline-action" href="{{ favorites_url }}">
           <i class="fas fa-bookmark" aria-hidden="true"></i> My Bookmarks
         </a>

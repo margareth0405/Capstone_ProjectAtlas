@@ -689,13 +689,20 @@ class AIDetectionServiceTests(LibraryTestCase):
                 "model_version": "test-commit-123",
             }
 
-    def test_ai_detection_is_restricted_to_staff(self):
+    def test_ai_detection_is_restricted_to_staff_and_teachers(self):
         anonymous_response = self.client.get(self.url)
         self.assertEqual(anonymous_response.status_code, 302)
 
         reader = self.create_user(email="ai-reader@example.com")
         self.client.force_login(reader)
         self.assertEqual(self.client.get(self.url).status_code, 403)
+
+        teacher = self.create_user(
+            email="ai-teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
 
     def test_ai_detection_is_visible_in_staff_navigation_and_homepage(self):
         self.client.force_login(self.staff)

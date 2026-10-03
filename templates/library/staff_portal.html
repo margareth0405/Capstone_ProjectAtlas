@@ -28,6 +28,14 @@
       </div>
     </header>
 
+    <aside class="staff-guidance" aria-labelledby="staffGuidanceHeading">
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      <div>
+        <strong id="staffGuidanceHeading">How to use the Administrator Portal</strong>
+        <span>Use the action buttons to manage records. Long lists stay inside their cards; scroll within a card to review more entries without making the page unnecessarily long.</span>
+      </div>
+    </aside>
+
     <section class="user-stat-grid staff-stat-grid" aria-label="Administration summary">
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></span><strong>{{ stats.total_items|default:0 }}</strong><span>Repository resources</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-address-card" aria-hidden="true"></i></span><strong>{{ user_count|default:0 }}</strong><span>Registered users</span></article>
@@ -56,7 +64,7 @@
           <a href="{{ catalog_url }}">View all</a>
         </div>
         {% if items %}
-          <div class="table-responsive">
+          <div class="table-responsive staff-scroll-region staff-scroll-region-resources" tabindex="0" role="region" aria-label="Recent resources; scroll for more entries">
             <table class="staff-compact-table">
               <thead><tr><th>Title</th><th>Type</th><th>Hard copy</th><th>Published</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody>
@@ -89,7 +97,7 @@
           <a class="btn-register-admin" href="{{ staff_announcement_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Create</a>
         </div>
         {% if announcements %}
-          <div class="staff-record-list">
+          <div class="staff-record-list staff-scroll-region staff-scroll-region-announcements" tabindex="0" role="region" aria-label="Recent announcements; scroll for more entries">
             {% for announcement in announcements|slice:":6" %}
               {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
               {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
@@ -165,7 +173,7 @@
       </form>
 
       <div class="user-table-card">
-        <div class="table-responsive">
+        <div class="table-responsive staff-scroll-region staff-scroll-region-users" tabindex="0" role="region" aria-label="Website users; scroll for more accounts">
           <table class="user-activity-table">
             <thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Date created</th><th>Last sign-in</th><th>Resources viewed</th><th>Actions</th></tr></thead>
             <tbody>
@@ -275,7 +283,7 @@
           </div>
           {% if selected_usage_query or selected_usage_role %}<a class="btn btn-outline-secondary" href="?analytics_date={{ analytics_date }}#usage">Clear</a>{% endif %}
         </form>
-        <div class="table-responsive">
+        <div class="table-responsive staff-scroll-region staff-scroll-region-visits" tabindex="0" role="region" aria-label="Visit history; scroll for more visits">
           <table class="staff-compact-table">
             <thead><tr><th>User</th><th>Type</th><th>Started</th><th>Last activity</th><th>Active time</th><th>Page views</th><th>Last page</th></tr></thead>
             <tbody>
@@ -320,7 +328,7 @@
           </div>
           {% if selected_resource_view_query or selected_resource_view_role %}<a class="btn btn-outline-secondary" href="{{ staff_portal_url }}#resource-views">Clear</a>{% endif %}
         </form>
-        <div class="table-responsive">
+        <div class="table-responsive staff-scroll-region staff-scroll-region-resource-views" tabindex="0" role="region" aria-label="Resource viewing history; scroll for more entries">
           <table class="staff-compact-table">
             <thead><tr><th>Resource</th><th>Visitor</th><th>Account type</th><th>First viewed</th><th>Last viewed</th></tr></thead>
             <tbody>
@@ -363,7 +371,7 @@
         </form>
         {% if audit_filter_error %}<p class="audit-filter-error" role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i> {{ audit_filter_error }}</p>{% endif %}
         <p class="audit-filter-summary" id="auditFilterSummary" role="status">Showing {{ audit_history_count }} audit entr{{ audit_history_count|pluralize:'y,ies' }}{% if audit_filters_active %} matching the selected filters{% endif %}.</p>
-        <div class="activity-history-list">
+        <div class="activity-history-list staff-scroll-region staff-scroll-region-activity" tabindex="0" role="region" aria-label="Activity history; scroll for more entries">
           {% for entry in activity_history %}
             <article>
               <span class="activity-action {{ entry.action }}">{{ entry.get_action_display }}</span>

@@ -54,7 +54,7 @@
           <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Remove bookmark" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if is_favorite %}Remove bookmark{% else %}Bookmark{% endif %}</span></button>
         </form>
       {% endif %}
-      {% if request.user.is_staff %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
+      {% if can_manage_resources %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
     </div>
   </article>
 {% endblock %}

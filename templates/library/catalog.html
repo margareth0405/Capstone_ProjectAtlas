@@ -21,7 +21,7 @@
           <span class="badge bg-maroon">Total Items: {{ resource_count|default:0 }}</span>
         </div>
       </div>
-      {% if request.user.is_staff %}
+      {% if can_manage_resources %}
         <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
       {% endif %}
     </header>
@@ -51,7 +51,7 @@
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
         <i class="fas fa-eye" aria-hidden="true"></i>
-        <span>{% if active_role == "teacher" %}Teacher{% else %}Student{% endif %} access — protected reading and bookmarks</span>
+        <span>{% if active_role == "teacher" %}Teacher access: read, bookmark, add, edit, or remove resources, and use AI Detection.{% else %}Student access: protected reading and bookmarks.{% endif %}</span>
         <a href="{{ bookmarks_url }}">View bookmarks</a>
       </div>
     {% endif %}
@@ -126,7 +126,8 @@
                   {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit" aria-pressed="{% if item.pk in favorite_ids %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Bookmarked" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</span></button>
                 </form>
-              {% elif request.user.is_staff %}
+              {% endif %}
+              {% if can_manage_resources %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
                 <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone." data-confirm-title="Delete resource?" data-confirm-action="Delete resource" data-confirm-cancel="Keep resource" data-confirm-variant="danger">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
               {% endif %}

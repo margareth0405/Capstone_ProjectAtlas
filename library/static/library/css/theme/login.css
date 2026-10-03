@@ -20,6 +20,8 @@
   text-align: center;
   transition: transform 0.3s ease;
   position: relative;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .login-card:hover {
@@ -144,6 +146,9 @@
 
 .form-group .form-control,
 .form-group .form-select {
+  display: block;
+  min-width: 0;
+  width: 100%;
   border-radius: 12px;
   padding: 0.7rem 1rem;
   border: 1.5px solid #e0dcd8;
@@ -201,6 +206,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 0.5rem;
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 46px;
+  white-space: normal;
 }
 
 .btn-login.administrator-btn {
@@ -225,7 +236,7 @@
 }
 
 .btn-login i {
-  margin-left: 0.5rem;
+  margin-left: 0;
 }
 
 .btn-back {
@@ -610,8 +621,15 @@
 }
 /* Responsive */
 @media (max-width: 480px) {
+  .login-container {
+    align-items: flex-start;
+    min-height: 100dvh;
+    padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  }
+
   .login-card {
-    padding: 2rem 1.5rem;
+    border-radius: 20px;
+    padding: 1.5rem 1rem;
   }
 
   .login-card h1 {
@@ -639,6 +657,36 @@
   .btn-back {
     position: static;
     margin-bottom: 0.5rem;
+  }
+
+  .consent-field,
+  .password-guidance {
+    padding-inline: 0.75rem;
+  }
+
+  .invalid-feedback,
+  .form-helper,
+  .consent-field label,
+  .password-checklist li,
+  .verification-note,
+  .auth-switch {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-card .brand-icon {
+    font-size: 2.1rem;
+    height: 64px;
+    width: 64px;
+  }
+
+  .password-strength {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .password-strength-label {
+    white-space: normal;
   }
 }
 
@@ -671,4 +719,16 @@
   color: #fff;
   background: #7b2033;
   border-color: #7b2033;
+}
+
+@media (max-width: 480px) {
+  .auth-role-switch {
+    gap: 0.45rem;
+  }
+
+  .auth-role-switch a {
+    gap: 0.3rem;
+    min-width: 0;
+    padding-inline: 0.5rem;
+  }
 }

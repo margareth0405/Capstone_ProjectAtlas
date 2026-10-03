@@ -26,9 +26,12 @@ const USER_DOMAIN = __ENV.TEST_USER_DOMAIN || "example.com";
 const USER_COUNT = Number.parseInt(__ENV.TEST_USER_COUNT || "100", 10);
 const PASSWORD = __ENV.TEST_PASSWORD || "";
 const ROLE = __ENV.TEST_ROLE === "teacher" ? "teacher" : "student";
+const REAUTHENTICATE_EACH_ITERATION = __ENV.REAUTHENTICATE_EACH_ITERATION === "true";
 const METRICS = { error403, error404, error429, serverErrors };
+let authenticated = false;
 
 export const options = {
+  noCookiesReset: true,
   stages: stagesFor(PROFILE),
   thresholds: {
     http_req_failed: ["rate<0.01"],
@@ -156,9 +159,12 @@ function logout() {
 }
 
 export default function () {
-  if (!login()) {
-    sleep(1);
-    return;
+  if (!authenticated) {
+    authenticated = login();
+    if (!authenticated) {
+      sleep(1);
+      return;
+    }
   }
 
   testPage("/dashboard/", "Student Dashboard");
@@ -189,5 +195,8 @@ export default function () {
   testPage("/announcements/", "Announcements");
   sleep(2);
 
-  logout();
+  if (REAUTHENTICATE_EACH_ITERATION) {
+    logout();
+    authenticated = false;
+  }
 }
