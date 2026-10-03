@@ -109,6 +109,10 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertContains(response, 'data-password-rule="length"')
         self.assertContains(response, 'data-password-rule="number"')
         self.assertContains(response, 'data-password-rule="special"')
+        self.assertContains(
+            response,
+            "At least one symbol or punctuation character (any one is accepted)",
+        )
         self.assertContains(response, 'data-password-rule="match"')
         self.assertContains(response, 'data-password-strength')
         self.assertContains(response, 'aria-label="Password strength"')
@@ -133,8 +137,22 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("class PasswordFeedback", script)
-        self.assertIn('special: /[^\\w\\s]/.test(password)', script)
+        self.assertIn('special: /[^\\p{L}\\p{N}\\s]/u.test(password)', script)
         self.assertIn('this.updateRule("match"', script)
+
+    def test_consent_information_is_collapsed_behind_review_controls(self):
+        login = self.client.get(reverse("library:login"))
+        registration = self.client.get(reverse("library:register"))
+        contact = self.client.get(reverse("library:contact"))
+
+        self.assertContains(login, 'class="consent-disclosure"')
+        self.assertContains(login, "Review privacy agreement")
+        self.assertContains(login, "<strong>Yes</strong>", html=True)
+        self.assertContains(registration, 'class="consent-disclosure"', count=2)
+        self.assertContains(registration, "Review age and guardian confirmation")
+        self.assertContains(registration, "Review privacy agreement")
+        self.assertContains(contact, 'class="consent-disclosure"')
+        self.assertContains(contact, "Review message privacy agreement")
 
     def test_every_password_input_can_receive_a_visibility_toggle(self):
         script = (

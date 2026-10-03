@@ -232,12 +232,13 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 0.7rem;
-  margin: 0.2rem 0 1rem;
-  padding: 0.85rem 0.95rem;
-  border: 1px solid #e7dfd8;
-  border-radius: 12px;
-  background: #fbf8f5;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #dfd4cd;
+  border-radius: 10px;
+  background: #fff;
   text-align: left;
+  cursor: pointer;
 }
 
 .consent-checkbox {
@@ -253,12 +254,93 @@
   outline-offset: 2px;
 }
 
-.consent-field label {
+.consent-field span {
   margin: 0;
   color: #5f5652;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.consent-disclosure {
+  margin: 0.2rem 0 1rem;
+  border: 1px solid #e7dfd8;
+  border-radius: 12px;
+  background: #fbf8f5;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.consent-disclosure summary {
+  align-items: center;
+  color: var(--maroon-700);
   cursor: pointer;
+  display: flex;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 0.75rem;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 46px;
+  padding: 0.75rem 0.9rem;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+}
+
+.consent-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.consent-disclosure summary > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.consent-disclosure summary:focus-visible {
+  outline: 3px solid rgba(176, 58, 79, 0.25);
+  outline-offset: -3px;
+}
+
+.consent-disclosure-action {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.76rem;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.consent-disclosure-action i {
+  transition: transform 0.2s ease;
+}
+
+.consent-disclosure[open] .consent-disclosure-action i {
+  transform: rotate(180deg);
+}
+
+.consent-disclosure-body {
+  border-top: 1px solid #e7dfd8;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.85rem;
+}
+
+.consent-disclosure-body > p {
+  color: #5f5652;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.consent-disclosure-body a {
+  color: var(--maroon-700);
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .btn-login {
@@ -732,7 +814,7 @@
 
   .invalid-feedback,
   .form-helper,
-  .consent-field label,
+  .consent-field span,
   .password-checklist li,
   .verification-note,
   .auth-switch {

@@ -571,6 +571,20 @@ html.atlas-dark input[type="radio"] {
   accent-color: #d98295;
 }
 
+html.atlas-dark .consent-disclosure,
+html.atlas-dark .consent-disclosure-body,
+html.atlas-dark .consent-field {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark .consent-disclosure summary,
+html.atlas-dark .consent-disclosure-body > p,
+html.atlas-dark .consent-disclosure-body a,
+html.atlas-dark .consent-field span {
+  color: var(--atlas-dark-text);
+}
+
 html.atlas-dark .catalog-cover-link,
 html.atlas-dark .favorite-cover-link {
   background: #181315;

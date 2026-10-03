@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import IntegrityError
 from django.test import override_settings
@@ -195,6 +196,11 @@ class RegistrationTests(LibraryTestCase):
         self.assertFalse(
             get_user_model().objects.filter(email="jamie@gmail.com").exists()
         )
+        self.assertContains(
+            response,
+            '<details class="consent-disclosure" open>',
+            count=1,
+        )
 
     def test_registration_requires_minor_or_guardian_confirmation(self):
         payload = self.registration_payload()
@@ -250,6 +256,17 @@ class RegistrationTests(LibraryTestCase):
         user = get_user_model().objects.get(email="twelve-character@example.com")
         self.assertTrue(user.check_password(password))
 
+    def test_password_validator_accepts_all_symbol_categories(self):
+        from library.validators import PasswordCharacterValidator
+
+        validator = PasswordCharacterValidator()
+        for symbol in ("_", "&", "^", "[", "\\", "~", "₱", "🔒"):
+            with self.subTest(symbol=symbol):
+                validator.validate(f"Atlas2026{symbol}secure")
+
+        with self.assertRaises(ValidationError):
+            validator.validate("Atlas2026é漢字")
+
     def test_public_registration_cannot_create_an_administrator(self):
         response = self.client.post(
             reverse("library:register"),
@@ -296,6 +313,11 @@ class LoginAndSessionTests(LibraryTestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
         self.user.profile.refresh_from_db()
         self.assertIsNone(self.user.profile.privacy_consent_accepted_at)
+        self.assertContains(
+            response,
+            '<details class="consent-disclosure" open>',
+            count=1,
+        )
 
     def test_existing_six_character_password_remains_usable(self):
         legacy_user = self.create_user(

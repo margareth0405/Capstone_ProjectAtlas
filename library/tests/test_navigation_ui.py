@@ -102,6 +102,7 @@ class NavigationAndMetadataTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Open account menu"')
         self.assertContains(response, "Account settings")
         self.assertContains(response, "Sign out")
+        self.assertNotContains(response, "Django admin")
 
     def test_rendered_public_internal_links_resolve(self):
         self.create_item()

@@ -154,8 +154,8 @@
       var confirmation = this.confirmation ? this.confirmation.value : "";
       return {
         length: password.length >= 12,
-        number: /\d/.test(password),
-        special: /[^\w\s]/.test(password),
+        number: /\p{N}/u.test(password),
+        special: /[^\p{L}\p{N}\s]/u.test(password),
         match: password.length > 0 && confirmation.length > 0 && password === confirmation,
       };
     }

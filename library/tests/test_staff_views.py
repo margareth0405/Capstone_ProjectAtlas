@@ -77,6 +77,16 @@ class StaffAuthorizationTests(LibraryTestCase):
         self.assertContains(response, "staff-scroll-region-users")
         self.assertContains(response, "staff-scroll-region-resource-views")
         self.assertContains(response, "staff-scroll-region-activity")
+        self.assertContains(
+            response,
+            f'<a href="{reverse("admin:index")}">',
+            count=1,
+        )
+        self.assertContains(response, "Django admin")
+        self.assertNotContains(
+            response,
+            'class="btn btn-outline-secondary rounded-pill"',
+        )
 
 
 class StaffCrudTests(LibraryTestCase):

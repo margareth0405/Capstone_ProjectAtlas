@@ -1236,15 +1236,29 @@ a.role-btn,
 .announcement-filters select { max-width: 230px; }
 .django-featured-announcement { margin: 1.5rem auto; max-width: 900px; }
 .featured-mark { display: inline-block; margin-bottom: 0.8rem; padding: 0.18rem 0.7rem; border-radius: 30px; background: var(--maroon-500); color: #fff; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
-.announcement-card-heading { display: flex; align-items: flex-start; gap: 0.9rem; }
-.announcement-icon { font-size: 2rem; }
+.announcement-card-heading { display: flex; align-items: flex-start; gap: 0.9rem; min-width: 0; }
+.announcement-card-heading > div { flex: 1 1 auto; min-width: 0; }
+.announcement-icon { flex: 0 0 auto; font-size: 2rem; }
 .announcement-title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
 .announcement-title-line h3, .django-featured-announcement h2 { margin: 0; color: var(--maroon-800); }
-.announcement-title-line h3 { font-size: 1.05rem; }
+.announcement-title-line h3 { flex: 1 1 16rem; font-size: 1.05rem; min-width: 0; overflow-wrap: anywhere; }
 .announcement-meta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.25rem; color: #837975; font-size: 0.74rem; }
-.announcement-category { padding: 0.08rem 0.55rem; border-radius: 30px; background: var(--maroon-50); color: var(--maroon-600); font-weight: 700; }
+.announcement-category { max-width: 100%; padding: 0.08rem 0.55rem; border-radius: 30px; background: var(--maroon-50); color: var(--maroon-600); font-weight: 700; overflow-wrap: anywhere; }
 .announcement-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
 .announcement-actions button, .announcement-actions a { border: 1px solid #e6dfda; border-radius: 30px; background: transparent; color: #716763; padding: 0.25rem 0.8rem; font-size: 0.72rem; text-decoration: none; }
+
+.django-announcement-card {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.django-announcement-card > p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  width: 100%;
+}
 
 .contact-methods {
   display: grid;

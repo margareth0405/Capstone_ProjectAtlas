@@ -188,6 +188,20 @@ class ContactTests(LibraryTestCase):
         self.assertIn("Form consent recorded: yes", delivered.body)
         self.assertIn("Please help me find a research paper.", delivered.body)
 
+    def test_missing_contact_consent_reopens_the_privacy_details(self):
+        payload = self.contact_payload()
+        payload.pop("privacy_consent")
+
+        response = self.client.post(reverse("library:contact"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ContactMessage.objects.count(), 0)
+        self.assertContains(
+            response,
+            '<details class="consent-disclosure" open>',
+            count=1,
+        )
+
     def test_data_deletion_request_is_classified_and_acknowledged(self):
         payload = self.contact_payload()
         payload.update(

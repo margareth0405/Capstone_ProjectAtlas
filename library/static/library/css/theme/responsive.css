@@ -4,13 +4,26 @@ body {
   max-width: 100%;
 }
 
-:where(.atlas-shell, .main-content, .django-view, main, section, article, form) {
+:where(.atlas-shell, .main-content, .django-view, main, section, article, form, fieldset, figure) {
+  min-width: 0;
+}
+
+:where(.django-view, .login-card, .site-footer, .sidebar, .accessibility-panel) * {
   min-width: 0;
 }
 
 :where(img, video, iframe, embed, object) {
   height: auto;
   max-width: 100%;
+}
+
+:where(svg, canvas) {
+  max-width: 100%;
+}
+
+:where(pre, code) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 :where(input, select, textarea, button) {
@@ -25,8 +38,11 @@ body {
   .resource-detail-card,
   .catalog-resource-card,
   .favorite-card,
-  .announcement-item
-) :where(h1, h2, h3, p, li, dd, a, label, small, strong, span) {
+  .announcement-item,
+  .contact-form-card,
+  .staff-panel,
+  .user-stat-card
+) :where(h1, h2, h3, p, li, dt, dd, a, label, small, strong, span, time) {
   overflow-wrap: anywhere;
 }
 
@@ -60,7 +76,7 @@ body {
 }
 
 .sidebar-nav a .item-counter {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
   max-width: 100%;
   overflow-wrap: anywhere;

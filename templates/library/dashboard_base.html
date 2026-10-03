@@ -26,6 +26,7 @@
   {% url 'library:login' as login_url %}
   {% url 'account_email' as account_email_url %}
   {% url 'library:staff_account_edit' as staff_account_edit_url %}
+  {% url 'admin:index' as django_admin_url %}
 
   <div class="d-flex atlas-shell"{% if request.user.is_authenticated or request.session.guest_mode %} data-usage-heartbeat-url="{{ usage_heartbeat_url }}" data-usage-csrf-token="{{ csrf_token }}" data-usage-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}"{% endif %}>
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
@@ -48,13 +49,15 @@
           href="{% if active_role == 'administrator' or request.user.is_staff %}{{ staff_portal_url }}{% else %}{{ dashboard_url }}{% endif %}"
           {% if active_page == 'home' %}class="active" aria-current="page"{% endif %}
         >
-          <i class="fas fa-home" aria-hidden="true"></i> HOME
+          <i class="fas fa-home" aria-hidden="true"></i>
+          <span class="sidebar-nav-label">HOME</span>
         </a>
         <a
           href="{{ catalog_url }}"
           {% if active_page == 'catalog' %}class="active" aria-current="page"{% endif %}
         >
-          <i class="fas fa-book" aria-hidden="true"></i> DIGITAL SOURCES
+          <i class="fas fa-book" aria-hidden="true"></i>
+          <span class="sidebar-nav-label">DIGITAL SOURCES</span>
           <span class="item-counter">{{ stats.total_items|default:resource_count|default:0 }}</span>
         </a>
 
@@ -63,7 +66,8 @@
             href="{{ favorites_url }}"
             {% if active_page == 'favorites' %}class="active" aria-current="page"{% endif %}
           >
-            <i class="fas fa-bookmark" aria-hidden="true"></i> BOOKMARKS
+            <i class="fas fa-bookmark" aria-hidden="true"></i>
+            <span class="sidebar-nav-label">BOOKMARKS</span>
             {% if favorite_count is not None %}
               <span class="item-counter" data-favorite-count>{{ favorite_count }}</span>
             {% endif %}
@@ -75,7 +79,8 @@
             href="{{ staff_portal_url }}#users"
             {% if active_page == 'users' %}class="active" aria-current="page"{% endif %}
           >
-            <i class="fas fa-users" aria-hidden="true"></i> USERS
+            <i class="fas fa-users" aria-hidden="true"></i>
+            <span class="sidebar-nav-label">USERS</span>
             {% if user_count is not None %}
               <span class="item-counter">{{ user_count }}</span>
             {% endif %}
@@ -87,20 +92,23 @@
             href="{{ staff_ai_detection_url }}"
             {% if active_page == 'ai_detection' %}class="active" aria-current="page"{% endif %}
           >
-            <i class="fas fa-robot" aria-hidden="true"></i> AI DETECTION
+            <i class="fas fa-robot" aria-hidden="true"></i>
+            <span class="sidebar-nav-label">AI DETECTION</span>
           </a>
         {% endif %}
         <a
           href="{{ announcements_url }}"
           {% if active_page == 'announcements' %}class="active" aria-current="page"{% endif %}
         >
-          <i class="fas fa-bullhorn" aria-hidden="true"></i> ANNOUNCEMENTS
+          <i class="fas fa-bullhorn" aria-hidden="true"></i>
+          <span class="sidebar-nav-label">ANNOUNCEMENTS</span>
         </a>
         <a
           href="{{ contact_url }}"
           {% if active_page == 'contact' %}class="active" aria-current="page"{% endif %}
         >
-          <i class="fas fa-envelope" aria-hidden="true"></i> CONTACT
+          <i class="fas fa-envelope" aria-hidden="true"></i>
+          <span class="sidebar-nav-label">CONTACT</span>
         </a>
       </nav>
 
@@ -164,6 +172,12 @@
                   <a href="{% if request.user.is_staff %}{{ staff_account_edit_url }}{% else %}{{ account_email_url }}{% endif %}">
                     <i class="fas fa-user-gear" aria-hidden="true"></i>
                     Account settings
+                  </a>
+                {% endif %}
+                {% if request.user.is_staff %}
+                  <a href="{{ django_admin_url }}">
+                    <i class="fas fa-gears" aria-hidden="true"></i>
+                    Django admin
                   </a>
                 {% endif %}
                 <form action="{{ logout_url }}" method="post" class="logout-form">

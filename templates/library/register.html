@@ -119,7 +119,7 @@
           <ul class="password-checklist" aria-label="Password requirements">
             <li data-password-rule="length"><i class="fas fa-circle" aria-hidden="true"></i><span>At least 12 characters</span></li>
             <li data-password-rule="number"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one number</span></li>
-            <li data-password-rule="special"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one special character, such as !, @, #, or $</span></li>
+            <li data-password-rule="special"><i class="fas fa-circle" aria-hidden="true"></i><span>At least one symbol or punctuation character (any one is accepted)</span></li>
             <li data-password-rule="match"><i class="fas fa-circle" aria-hidden="true"></i><span>Both password fields match</span></li>
           </ul>
           <div class="password-strength" data-password-strength data-level="empty">
@@ -130,36 +130,50 @@
           </div>
         </div>
 
-        <div class="consent-field">
-          <input
-            type="checkbox"
-            name="age_consent"
-            id="id_age_consent"
-            class="consent-checkbox{% if form.age_consent.errors %} is-invalid{% endif %}"
-            value="1"
-            {% if form.age_consent.value %}checked{% endif %}
-            required
-          >
-          <label for="id_age_consent">
-            I confirm that I am legally able to consent, or that my parent or legal guardian has authorized this account and reviewed the <a href="{{ privacy_terms_url }}#children" target="_blank" rel="noopener">privacy notice for minors</a>.
-          </label>
-        </div>
+        <details class="consent-disclosure"{% if form.age_consent.errors %} open{% endif %}>
+          <summary>
+            <span><i class="fas fa-user-shield" aria-hidden="true"></i> Review age and guardian confirmation</span>
+            <span class="consent-disclosure-action" aria-hidden="true">View <i class="fas fa-chevron-down"></i></span>
+          </summary>
+          <div class="consent-disclosure-body">
+            <p>I confirm that I am legally able to consent, or that my parent or legal guardian has authorized this account and reviewed the <a href="{{ privacy_terms_url }}#children" target="_blank" rel="noopener">privacy notice for minors</a>.</p>
+            <label class="consent-field" for="id_age_consent">
+              <input
+                type="checkbox"
+                name="age_consent"
+                id="id_age_consent"
+                class="consent-checkbox{% if form.age_consent.errors %} is-invalid{% endif %}"
+                value="1"
+                {% if form.age_consent.value %}checked{% endif %}
+                required
+              >
+              <span><strong>Yes</strong>, I confirm and want to continue.</span>
+            </label>
+          </div>
+        </details>
         {% if form.age_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.age_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
 
-        <div class="consent-field">
-          <input
-            type="checkbox"
-            name="privacy_consent"
-            id="id_privacy_consent"
-            class="consent-checkbox{% if form.privacy_consent.errors %} is-invalid{% endif %}"
-            value="1"
-            {% if form.privacy_consent.value %}checked{% endif %}
-            required
-          >
-          <label for="id_privacy_consent">
-            I agree to keep the information I access through ATLAS private and accept the <a href="{{ privacy_terms_url }}" target="_blank" rel="noopener">Privacy Policy and Terms &amp; Conditions</a>.
-          </label>
-        </div>
+        <details class="consent-disclosure"{% if form.privacy_consent.errors %} open{% endif %}>
+          <summary>
+            <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Review privacy agreement</span>
+            <span class="consent-disclosure-action" aria-hidden="true">View <i class="fas fa-chevron-down"></i></span>
+          </summary>
+          <div class="consent-disclosure-body">
+            <p>I agree to keep the information I access through ATLAS private and accept the <a href="{{ privacy_terms_url }}" target="_blank" rel="noopener">Privacy Policy and Terms &amp; Conditions</a>.</p>
+            <label class="consent-field" for="id_privacy_consent">
+              <input
+                type="checkbox"
+                name="privacy_consent"
+                id="id_privacy_consent"
+                class="consent-checkbox{% if form.privacy_consent.errors %} is-invalid{% endif %}"
+                value="1"
+                {% if form.privacy_consent.value %}checked{% endif %}
+                required
+              >
+              <span><strong>Yes</strong>, I agree and want to continue.</span>
+            </label>
+          </div>
+        </details>
         {% if form.privacy_consent.errors %}<div class="invalid-feedback d-block consent-errors">{% for error in form.privacy_consent.errors %}{{ error }}{% endfor %}</div>{% endif %}
 
         <button class="btn-login reader-btn" type="submit" data-submit-label="Registering…">

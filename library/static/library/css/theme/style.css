@@ -123,6 +123,7 @@ ul {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  overflow: hidden;
   padding: 0.7rem 1rem;
   border-radius: 10px;
   font-weight: 500;
@@ -136,10 +137,17 @@ ul {
 }
 
 .sidebar-nav a i {
+  flex: 0 0 1.4rem;
   width: 1.4rem;
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.5);
   transition: color 0.25s ease;
+}
+
+.sidebar-nav-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .sidebar-nav a:hover {
@@ -255,6 +263,7 @@ ul {
 }
 
 .topbar .user-greeting {
+  flex: 0 0 auto;
   margin-left: auto;
   font-weight: 600;
   color: var(--maroon-800);
