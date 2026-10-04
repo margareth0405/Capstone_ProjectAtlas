@@ -20,7 +20,7 @@ def ensure_configured_site(sender, **kwargs):
 class LibraryConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "library"
-    verbose_name = "ATLAS Digital Sources"
+    verbose_name = "ATLAS"
 
     def ready(self):
         # Import registers ATLAS-specific checks with Django's check framework.

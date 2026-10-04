@@ -145,15 +145,6 @@ body.atlas-sidebar-resizing {
   color: #fff;
 }
 
-.sidebar-brand .brand-text span {
-  font-weight: 300;
-  font-size: 0.7rem;
-  letter-spacing: 1.5px;
-  color: rgba(255, 255, 255, 0.5);
-  display: block;
-  margin-top: 0.05rem;
-}
-
 .sidebar-nav {
   display: flex;
   flex-direction: column;

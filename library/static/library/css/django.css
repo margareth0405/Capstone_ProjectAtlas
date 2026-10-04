@@ -507,13 +507,6 @@ a.role-btn,
   font-size: 1.35rem;
 }
 
-.footer-brand small {
-  display: block;
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-}
-
 .footer-navigation {
   flex-wrap: wrap;
   gap: 0.45rem 1rem;
@@ -2321,8 +2314,7 @@ textarea {
 .card-time,
 .staff-compact-table,
 .user-activity-table,
-.sidebar-footer,
-.footer-brand small {
+.sidebar-footer {
   font-size: 0.8rem;
 }
 
@@ -2338,7 +2330,6 @@ textarea {
   color: #5f5754;
 }
 
-.sidebar-brand .brand-text span,
 .sidebar-footer {
   color: rgba(255, 255, 255, 0.78);
 }

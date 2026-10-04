@@ -166,7 +166,6 @@
 
     "DISCOVER · READ · LEARN": "TUKLASIN · BASAHIN · MATUTO",
     "Welcome to": "Maligayang pagdating sa",
-    "ATLAS DIGITAL SOURCES": "MGA DIGITAL NA SANGGUNIAN NG ATLAS",
     "Digital Sources summary": "Buod ng Mga Digital na Sanggunian",
     "Digital Items": "Mga Digital na Item",
     "Collection Types": "Mga Uri ng Koleksyon",

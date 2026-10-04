@@ -47,7 +47,12 @@ class NavigationAndMetadataTests(LibraryTestCase):
                 content = response.content.decode()
 
                 self.assertEqual(response.status_code, 200)
-                self.assertIn("| ATLAS</title>", content)
+                expected_title = (
+                    "<title>ATLAS</title>"
+                    if route_name == "library:landing"
+                    else "| ATLAS</title>"
+                )
+                self.assertIn(expected_title, content)
                 self.assertIn('<meta\n      name="description"', content)
                 self.assertRegex(
                     content,
@@ -81,6 +86,45 @@ class NavigationAndMetadataTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Open navigation menu"')
         self.assertContains(response, 'id="mobileMenuClose"')
         self.assertContains(response, 'aria-label="Close navigation menu"')
+
+    def test_brand_uses_atlas_across_landing_footer_and_role_dashboards(self):
+        landing = self.client.get(reverse("library:landing"))
+        self.assertContains(landing, '<h1 id="atlasTitle">ATLAS</h1>', html=True)
+        self.assertNotContains(landing, '<p class="eyebrow">Digital Sources</p>')
+
+        self.client.post(reverse("library:guest_login"))
+        accounts = (
+            None,
+            self.create_user(email="brand-student@example.com"),
+            self.create_user(
+                email="brand-teacher@deped.gov.ph", role=Profile.Role.TEACHER
+            ),
+            self.create_user(email="brand-admin@example.com", is_staff=True),
+            self.create_user(
+                email="brand-superuser@example.com",
+                is_staff=True,
+                is_superuser=True,
+            ),
+        )
+        for account in accounts:
+            with self.subTest(role="guest" if account is None else account.email):
+                if account is not None:
+                    self.client.force_login(account)
+                response = self.client.get(reverse("library:dashboard"))
+                self.assertContains(
+                    response,
+                    '<h1>Welcome to <br><span class="highlight">ATLAS</span></h1>',
+                    html=True,
+                )
+                self.assertContains(
+                    response,
+                    '<span class="brand-text">ATLAS</span>',
+                    html=True,
+                )
+                self.assertContains(response, '<span>ATLAS</span>', html=True)
+                self.assertNotContains(response, "ATLAS DIGITAL SOURCES")
+                self.assertNotContains(response, "<small>Digital Sources</small>")
+                self.assertContains(response, "DIGITAL SOURCES")
 
     def test_reader_dashboard_uses_bookmarks_instead_of_unused_recommendations(self):
         user = self.create_user(role=Profile.Role.STUDENT)

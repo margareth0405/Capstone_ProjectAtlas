@@ -15,17 +15,17 @@
     <meta name="color-scheme" content="light dark">
     <meta
       name="description"
-      content="{% block meta_description %}Explore academic resources, protected reading, announcements, and support through ATLAS Digital Sources.{% endblock %}"
+      content="{% block meta_description %}Explore academic resources, protected reading, announcements, and support through ATLAS.{% endblock %}"
     >
     {% block robots %}{% endblock %}
-    <title>{% block title %}ATLAS | Digital Sources{% endblock %}</title>
+    <title>{% block title %}ATLAS{% endblock %}</title>
 
-    <link rel="icon" href="{% static 'library/images/favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'library/images/favicon.svg' %}?v=20261004-atlas-brand" type="image/svg+xml">
 
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261003-resizable-sidebar">
+    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261004-atlas-brand">
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20261003-admin-login-choice">
-    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261003-content-containment">
+    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261004-atlas-brand">
     {% block role_css %}{% endblock %}
     <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261003-superuser-hierarchy">
     <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261003-compact-admin-home">
@@ -121,7 +121,7 @@
     <footer class="site-footer" aria-label="Site footer">
       <a class="footer-brand" href="{{ landing_url }}" aria-label="ATLAS home">
         <i class="fas fa-flask" aria-hidden="true"></i>
-        <span>ATLAS <small>Digital Sources</small></span>
+        <span>ATLAS</span>
       </a>
       <nav class="footer-navigation" aria-label="Footer navigation">
         <a href="{{ landing_url }}">Home</a>
@@ -165,7 +165,7 @@
       </form>
     </section>
 
-    <script src="{% static 'library/js/language.js' %}?v=20261003-filipino" defer></script>
+    <script src="{% static 'library/js/language.js' %}?v=20261004-atlas-brand" defer></script>
     <script src="{% static 'library/js/app.js' %}?v=20261003-resizable-sidebar" defer></script>
     {% block scripts %}{% endblock %}
   </body>
