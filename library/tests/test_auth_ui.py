@@ -92,20 +92,14 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         login_response = self.client.get(reverse("library:login"))
         register_response = self.client.get(reverse("library:register"))
 
-        self.assertContains(
-            login_response, 'class="auth-role-switch login-role-switch"'
-        )
+        self.assertContains(login_response, 'class="auth-role-switch"')
         self.assertContains(login_response, 'data-password-toggle="id_password"')
         self.assertContains(register_response, 'class="auth-role-switch"')
         self.assertContains(register_response, 'data-password-toggle="id_password1"')
         self.assertContains(register_response, 'data-password-toggle="id_password2"')
         self.assertContains(login_response, f'{reverse("library:login")}?role=student')
         self.assertContains(login_response, f'{reverse("library:login")}?role=teacher')
-        self.assertContains(
-            login_response,
-            f'{reverse("admin:login")}?next={reverse("library:staff_portal")}',
-        )
-        self.assertContains(login_response, "Administrator")
+        self.assertNotContains(login_response, reverse("admin:login"))
         self.assertContains(register_response, f'{reverse("library:register")}?role=student')
         self.assertContains(register_response, f'{reverse("library:register")}?role=teacher')
 
@@ -252,6 +246,7 @@ class AtlasAdminLoginTests(LibraryTestCase):
     def test_public_pages_do_not_expose_administrator_entry_points(self):
         public_requests = (
             (reverse("library:landing"), None),
+            (reverse("library:login"), {"role": "administrator"}),
             (reverse("library:register"), {"role": "administrator"}),
             (reverse("library:catalog"), None),
             (reverse("library:announcements"), None),
@@ -265,17 +260,14 @@ class AtlasAdminLoginTests(LibraryTestCase):
                 self.assertNotContains(response, reverse("admin:login"))
                 self.assertNotContains(response, reverse("library:staff_portal"))
 
-    def test_public_login_links_to_administrator_sign_in(self):
+    def test_public_login_cannot_select_administrator_role(self):
         response = self.client.get(
             reverse("library:login"), {"role": "administrator"}
         )
 
         self.assertContains(response, "Student Login")
-        self.assertContains(response, "Administrator")
-        self.assertContains(
-            response,
-            f'{reverse("admin:login")}?next={reverse("library:staff_portal")}',
-        )
+        self.assertContains(response, 'class="auth-role-switch"')
+        self.assertNotContains(response, "Administrator")
         self.assertContains(
             response,
             '<input type="hidden" name="role" value="student">',
@@ -296,6 +288,9 @@ class AtlasAdminLoginTests(LibraryTestCase):
 
     def test_django_admin_uses_configured_private_path(self):
         self.assertEqual(reverse("admin:index"), f"/{settings.ADMIN_URL_PATH}/")
+        self.assertEqual(
+            reverse("admin:login"), f"/{settings.ADMIN_URL_PATH}/login/"
+        )
 
     def test_robots_does_not_disclose_private_admin_path(self):
         response = self.client.get(reverse("library:robots_txt"))

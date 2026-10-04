@@ -377,9 +377,8 @@ record in the attached Render PostgreSQL database during deployment.
 
 ## Administrator setup
 
-The shared sign-in page includes an Administrator choice. It opens Django's
-protected administrator form and returns successful sign-ins to the branded
-ATLAS staff portal.
+The public sign-in page is for Students and Teachers. Administrators and
+Superusers use the private Django administrator URL.
 
 1. Set a private DJANGO_ADMIN_PATH value in .env.
 2. Apply migrations and create a superuser:
@@ -389,8 +388,7 @@ ATLAS staff portal.
    python manage.py createsuperuser
    ```
 
-3. Start Django and either choose **Administrator** from the regular sign-in
-   page or open the administrator URL directly:
+3. Start Django and open the administrator URL directly:
 
    ```text
    http://127.0.0.1:8000/<DJANGO_ADMIN_PATH>/
