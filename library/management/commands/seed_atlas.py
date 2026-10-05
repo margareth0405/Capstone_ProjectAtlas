@@ -1,3 +1,5 @@
+"""Seed idempotent demonstration readers, resources, and announcements."""
+
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -59,6 +61,8 @@ ANNOUNCEMENTS = [
 
 
 class Command(BaseCommand):
+    """Create local demonstration content without granting staff privileges."""
+
     help = "Idempotently seed demo reader accounts, catalog, and announcements."
 
     @transaction.atomic

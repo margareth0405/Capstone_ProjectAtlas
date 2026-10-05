@@ -1,3 +1,5 @@
+"""Stable ATLAS URL namespace composed from focused domain route modules."""
+
 from django.urls import include, path
 
 from . import views

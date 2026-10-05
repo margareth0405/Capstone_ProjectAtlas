@@ -23,17 +23,19 @@
     <link rel="icon" href="{% static 'library/images/favicon.svg' %}?v=20261004-atlas-brand" type="image/svg+xml">
 
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261004-atlas-brand">
+    <link rel="stylesheet" href="{% static 'library/css/theme/style.css' %}?v=20261005-navigation-loader">
     <link rel="stylesheet" href="{% static 'library/css/theme/login.css' %}?v=20261004-reader-login-only">
-    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261004-atlas-brand">
+    <link rel="stylesheet" href="{% static 'library/css/django.css' %}?v=20261005-navigation-loader">
     {% block role_css %}{% endblock %}
-    <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261003-superuser-hierarchy">
-    <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261003-compact-admin-home">
+    <link rel="stylesheet" href="{% static 'library/css/theme/dark.css' %}?v=20261005-navigation-loader">
+    {# Loaded last: shared multi-device safeguards override role styles consistently. #}
+    <link rel="stylesheet" href="{% static 'library/css/theme/responsive.css' %}?v=20261005-multidevice">
     {% block extra_head %}{% endblock %}
   </head>
   <body class="{% block body_class %}atlas-page{% endblock %}">
     <a class="skip-link" href="#mainContent">Skip to main content</a>
 
+    {# Global display preferences remain reachable on every public and signed-in page. #}
     <div class="accessibility-toolbar" data-accessibility-toolbar>
       <button
         class="accessibility-trigger"
@@ -81,23 +83,16 @@
       </section>
     </div>
 
+    {# Delayed spinner provides progress without the rapid flashing of skeleton screens. #}
     <div class="page-loader is-hidden" id="pageLoader" role="status" aria-live="polite" aria-label="Loading ATLAS" aria-hidden="true">
-      <span class="visually-hidden">Loading ATLAS</span>
-      <div class="page-loader-shell" aria-hidden="true">
-        <div class="skeleton-block skeleton-sidebar"></div>
-        <div class="skeleton-main">
-          <div class="skeleton-block skeleton-header"></div>
-          <div class="skeleton-block skeleton-title"></div>
-          <div class="skeleton-card-grid">
-            <div class="skeleton-block skeleton-card"></div>
-            <div class="skeleton-block skeleton-card"></div>
-            <div class="skeleton-block skeleton-card"></div>
-          </div>
-        </div>
+      <div class="page-loader-panel">
+        <span class="page-loader-spinner" aria-hidden="true"></span>
+        <span class="page-loader-label">Loading ATLAS</span>
       </div>
     </div>
     <noscript><style>.page-loader { display: none !important; }</style></noscript>
 
+    {# One accessible dialog handles destructive and state-changing confirmations. #}
     <dialog class="action-confirmation" id="actionConfirmationDialog" aria-labelledby="actionConfirmationTitle" aria-describedby="actionConfirmationMessage">
       <div class="action-confirmation-card">
         <span class="action-confirmation-icon" data-confirm-icon aria-hidden="true"><i class="fas fa-circle-question"></i></span>
@@ -118,6 +113,7 @@
 
     {% block body %}{% endblock %}
 
+    {# Shared footer wraps navigation and contact details at tablet and phone widths. #}
     <footer class="site-footer" aria-label="Site footer">
       <a class="footer-brand" href="{{ landing_url }}" aria-label="ATLAS home">
         <i class="fas fa-flask" aria-hidden="true"></i>
@@ -136,6 +132,7 @@
       </div>
     </footer>
 
+    {# Cookie choices remain usable without JavaScript through the standard POST form. #}
     <section
       class="cookie-consent"
       id="cookieConsent"
@@ -166,7 +163,7 @@
     </section>
 
     <script src="{% static 'library/js/language.js' %}?v=20261004-atlas-brand" defer></script>
-    <script src="{% static 'library/js/app.js' %}?v=20261003-resizable-sidebar" defer></script>
+    <script src="{% static 'library/js/app.js' %}?v=20261005-multidevice" defer></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

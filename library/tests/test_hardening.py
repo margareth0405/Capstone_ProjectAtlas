@@ -128,6 +128,8 @@ class PublicPolicyAndDiscoveryTests(LibraryTestCase):
             r"library/css/django(?:\.[0-9a-f]+)?\.css",
         )
         self.assertContains(landing, 'class="page-loader is-hidden"')
+        self.assertContains(landing, 'class="page-loader-spinner"')
+        self.assertNotContains(landing, "skeleton-block")
 
         self.client.post(reverse("library:guest_login"))
         dashboard = self.client.get(reverse("library:dashboard"))

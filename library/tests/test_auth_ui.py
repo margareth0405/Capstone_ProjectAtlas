@@ -339,6 +339,39 @@ class AtlasAdminLoginTests(LibraryTestCase):
                     int(self.client.session["_auth_user_id"]), superuser.pk
                 )
 
+    def test_administrator_and_superuser_land_on_custom_staff_home(self):
+        accounts = (
+            self.create_user(email="landing-admin@example.com", is_staff=True),
+            self.create_user(
+                email="landing-superuser@example.com",
+                is_staff=True,
+                is_superuser=True,
+            ),
+        )
+
+        for account in accounts:
+            with self.subTest(account=account.email):
+                self.client.logout()
+                response = self.client.post(
+                    reverse("admin:login"),
+                    {
+                        "username": account.get_username(),
+                        "password": TEST_PASSWORD,
+                    },
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("library:staff_portal"),
+                    fetch_redirect_response=False,
+                )
+
+                admin_index = self.client.get(reverse("admin:index"))
+                self.assertRedirects(
+                    admin_index,
+                    reverse("library:staff_portal"),
+                    fetch_redirect_response=False,
+                )
+
     def test_nonstaff_user_is_rejected_by_django_admin_login(self):
         nonstaff = self.create_user(email="reader-login@example.com")
 
@@ -362,7 +395,7 @@ class AtlasAdminLoginTests(LibraryTestCase):
         response = self.client.get(reverse("admin:login"))
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("admin:index"))
+        self.assertEqual(response.url, reverse("library:staff_portal"))
 
 
 class ScrollingStyleTests(LibraryTestCase):

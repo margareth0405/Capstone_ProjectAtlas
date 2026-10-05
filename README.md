@@ -87,10 +87,16 @@ The Clear or Reset link removes the active filters; there is no Apply button.
 
 File controls show the selected or dropped filename and size. The resource and
 AI analysis forms display real browser upload progress followed by a
-separate server-processing state. Page navigation uses a responsive skeleton
-loader, while bookmarks update optimistically and roll back automatically if
+separate server-processing state. Page navigation uses a delayed, reduced-motion
+spinner, while bookmarks update optimistically and roll back automatically if
 the server rejects the request. All three behaviors retain normal non-JavaScript
 form and navigation fallbacks.
+
+The shared layout is designed for desktop PCs, laptops, tablets, portrait and
+landscape phones, touch input, keyboard input, browser zoom, safe-area insets,
+and the Large text preference. See
+[`docs/RESPONSIVE_AND_OOP_ARCHITECTURE.md`](docs/RESPONSIVE_AND_OOP_ARCHITECTURE.md)
+for the breakpoint contract, component ownership, and code-comment policy.
 
 The top-level Display menu provides persistent Large text and High contrast
 options on every page. It is keyboard accessible and keeps these controls out

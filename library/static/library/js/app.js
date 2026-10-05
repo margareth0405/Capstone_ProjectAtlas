@@ -367,16 +367,27 @@
     return document.getElementById("pageLoader");
   }
 
+  var pageLoaderTimer = null;
+
   function showPageLoader() {
     var loader = pageLoader();
-    if (!loader) return;
-    loader.classList.remove("is-hidden");
-    loader.removeAttribute("aria-hidden");
+    if (!loader || pageLoaderTimer !== null) return;
+    // Brief page changes should not flash an overlay. Reveal the calm spinner
+    // only when navigation takes long enough for progress feedback to help.
+    pageLoaderTimer = window.setTimeout(function () {
+      pageLoaderTimer = null;
+      loader.classList.remove("is-hidden");
+      loader.removeAttribute("aria-hidden");
+    }, 180);
   }
 
   function hidePageLoader() {
     var loader = pageLoader();
     if (!loader) return;
+    if (pageLoaderTimer !== null) {
+      window.clearTimeout(pageLoaderTimer);
+      pageLoaderTimer = null;
+    }
     loader.classList.add("is-hidden");
     loader.setAttribute("aria-hidden", "true");
   }
@@ -840,6 +851,9 @@
     var resizeHandle = sidebar && sidebar.querySelector("[data-sidebar-resize]");
     if (!sidebar || !toggle || !overlay) return;
 
+    // Keep this threshold aligned with responsive.css so behavior and layout
+    // switch to the tablet drawer at exactly the same viewport width.
+    var sidebarMobileBreakpoint = 820;
     var sidebarStorageKey = "atlas_sidebar_width";
     var resizing = false;
 
@@ -892,7 +906,7 @@
       syncResizeHandle();
 
       resizeHandle.addEventListener("pointerdown", function (event) {
-        if (window.innerWidth <= 820) return;
+        if (window.innerWidth <= sidebarMobileBreakpoint) return;
         event.preventDefault();
         resizing = true;
         resizeHandle.setPointerCapture(event.pointerId);
@@ -964,14 +978,14 @@
     overlay.addEventListener("click", function () { setOpen(false); });
     sidebar.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () {
-        if (window.innerWidth <= 820) setOpen(false);
+        if (window.innerWidth <= sidebarMobileBreakpoint) setOpen(false);
       });
     });
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape") setOpen(false);
     });
     window.addEventListener("resize", function () {
-      if (window.innerWidth > 820) setOpen(false);
+      if (window.innerWidth > sidebarMobileBreakpoint) setOpen(false);
       syncResizeHandle();
     });
   }

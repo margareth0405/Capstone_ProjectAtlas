@@ -30,6 +30,7 @@
   {% url 'library:staff_account_edit' as staff_account_edit_url %}
   {% url 'admin:index' as django_admin_url %}
 
+  {# Shared responsive shell: persistent desktop sidebar, off-canvas tablet/phone drawer. #}
   <div class="d-flex atlas-shell"{% if request.user.is_authenticated or request.session.guest_mode %} data-usage-heartbeat-url="{{ usage_heartbeat_url }}" data-usage-csrf-token="{{ csrf_token }}" data-usage-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}"{% endif %}>
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
       <div class="sidebar-header">
@@ -144,6 +145,7 @@
 
     <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
 
+    {# Main column owns page content while the browser retains vertical scrolling. #}
     <main class="main-content" id="mainContent" tabindex="-1">
       <header class="topbar">
         <button
@@ -221,6 +223,7 @@
         </div>
       </header>
 
+      {# Breadcrumb identifies the current location and wraps safely on narrow screens. #}
       <div class="breadcrumb-container">
         <nav aria-label="Breadcrumb">
           <ol class="breadcrumb">

@@ -1,9 +1,13 @@
+"""Shared template context for role-aware navigation and support details."""
+
 from django.conf import settings
 
 from library.services import SupportContactPresenter
 
 
 def atlas_navigation(request):
+    """Build navigation, role, permission, and institution context per request."""
+
     profile = None
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:

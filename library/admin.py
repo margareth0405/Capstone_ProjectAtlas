@@ -1,3 +1,5 @@
+"""Django Admin registrations for ATLAS data and read-only audit records."""
+
 from django.contrib import admin
 from django.utils import timezone
 

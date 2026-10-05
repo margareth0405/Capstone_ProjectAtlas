@@ -1,5 +1,6 @@
 """Regression coverage for navigation, metadata, feedback, and mobile UI."""
 
+import ast
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -86,6 +87,119 @@ class NavigationAndMetadataTests(LibraryTestCase):
         self.assertContains(response, 'aria-label="Open navigation menu"')
         self.assertContains(response, 'id="mobileMenuClose"')
         self.assertContains(response, 'aria-label="Close navigation menu"')
+
+    def test_breadcrumb_uses_arrow_separator_and_marks_current_location(self):
+        self.client.post(reverse("library:guest_login"))
+        response = self.client.get(reverse("library:dashboard"))
+
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, 'aria-current="page"')
+        css = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "css"
+            / "theme"
+            / "style.css"
+        ).read_text(encoding="utf-8")
+        self.assertIn(".breadcrumb-item + .breadcrumb-item::before", css)
+        self.assertRegex(css, r"\.breadcrumb\s*\{[^}]*list-style:\s*none", re.DOTALL)
+
+    def test_page_loader_is_delayed_to_avoid_fast_flashes(self):
+        script = (
+            Path(settings.BASE_DIR)
+            / "library"
+            / "static"
+            / "library"
+            / "js"
+            / "app.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("var pageLoaderTimer = null", script)
+        self.assertIn("window.setTimeout(function ()", script)
+        self.assertIn("}, 180);", script)
+
+    def test_responsive_contract_covers_pc_laptop_tablet_and_phone(self):
+        project_root = Path(settings.BASE_DIR)
+        styles = (
+            project_root
+            / "library"
+            / "static"
+            / "library"
+            / "css"
+            / "theme"
+            / "responsive.css"
+        ).read_text(encoding="utf-8")
+        script = (
+            project_root / "library" / "static" / "library" / "js" / "app.js"
+        ).read_text(encoding="utf-8")
+        guide = (
+            project_root / "docs" / "RESPONSIVE_AND_OOP_ARCHITECTURE.md"
+        ).read_text(encoding="utf-8")
+
+        for media_query in (
+            "@media (min-width: 821px) and (max-width: 1280px)",
+            "@media (min-width: 821px) and (max-width: 1024px)",
+            "@media (max-width: 820px)",
+            "@media (max-width: 600px)",
+            "@media (max-width: 380px)",
+            "@media (pointer: coarse)",
+            "@media (max-width: 900px) and (max-height: 520px)",
+        ):
+            with self.subTest(media_query=media_query):
+                self.assertIn(media_query, styles)
+
+        self.assertIn("--atlas-touch-target: 44px", styles)
+        self.assertIn("env(safe-area-inset-bottom)", styles)
+        self.assertIn("var sidebarMobileBreakpoint = 820", script)
+        self.assertIn("Object-oriented responsibility map", guide)
+
+    def test_representative_pages_share_responsive_viewport_and_stylesheet(self):
+        self.client.post(reverse("library:guest_login"))
+        routes = (
+            "library:landing",
+            "library:login",
+            "library:catalog",
+            "library:announcements",
+            "library:contact",
+            "library:dashboard",
+        )
+
+        for route_name in routes:
+            with self.subTest(route=route_name):
+                response = self.client.get(reverse(route_name))
+                self.assertContains(
+                    response,
+                    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+                    html=True,
+                )
+                self.assertRegex(
+                    response.content.decode(),
+                    r"library/css/theme/responsive(?:\.[0-9a-f]+)?\.css",
+                )
+
+    def test_first_party_python_modules_document_their_responsibility(self):
+        project_root = Path(settings.BASE_DIR)
+        source_roots = (
+            project_root / "atlas",
+            project_root / "library",
+            project_root / "accounts",
+            project_root / "repository",
+            project_root / "ai_detection",
+        )
+
+        for source_root in source_roots:
+            for path in source_root.rglob("*.py"):
+                if (
+                    path.name == "__init__.py"
+                    or "migrations" in path.parts
+                    or "tests" in path.parts
+                ):
+                    continue
+                with self.subTest(module=path.relative_to(project_root)):
+                    tree = ast.parse(path.read_text(encoding="utf-8"))
+                    self.assertIsNotNone(ast.get_docstring(tree))
 
     def test_brand_uses_atlas_across_landing_footer_and_role_dashboards(self):
         landing = self.client.get(reverse("library:landing"))

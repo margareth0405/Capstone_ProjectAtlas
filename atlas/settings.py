@@ -73,7 +73,7 @@ if not ADMIN_URL_PATH:
     )
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "atlas.admin_config.AtlasAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

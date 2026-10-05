@@ -1,3 +1,5 @@
+"""Validated input objects for authentication, repository, and staff workflows."""
+
 import re
 from datetime import date
 from io import BytesIO

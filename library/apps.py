@@ -1,3 +1,5 @@
+"""Library application startup hooks and configured-site initialization."""
+
 from django.apps import AppConfig
 from django.conf import settings
 from django.db.models.signals import post_migrate
@@ -18,6 +20,8 @@ def ensure_configured_site(sender, **kwargs):
 
 
 class LibraryConfig(AppConfig):
+    """Register ATLAS checks and post-migration site initialization."""
+
     default_auto_field = "django.db.models.BigAutoField"
     name = "library"
     verbose_name = "ATLAS"

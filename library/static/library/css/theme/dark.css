@@ -288,6 +288,17 @@ html.atlas-dark .page-loader {
   background: #141012;
 }
 
+html.atlas-dark .page-loader-panel {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .page-loader-spinner {
+  border-color: #513b43;
+  border-top-color: #ef9daf;
+}
+
 /*
  * Component contrast pass
  *
@@ -325,11 +336,19 @@ html.atlas-dark .topbar .search-box:focus-within {
 }
 
 html.atlas-dark .breadcrumb-item,
-html.atlas-dark .breadcrumb-item.active,
 html.atlas-dark .staff-record-list small,
 html.atlas-dark .staff-empty-copy,
 html.atlas-dark .resource-byline {
   color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .breadcrumb-item.active {
+  background: #482b34;
+  color: #fff4f6;
+}
+
+html.atlas-dark .breadcrumb-item + .breadcrumb-item::before {
+  border-color: #d98699;
 }
 
 html.atlas-dark .administrator-upload-section,
@@ -646,19 +665,6 @@ html.atlas-dark .action-confirmation-icon {
 html.atlas-dark .action-confirmation.is-danger .action-confirmation-icon {
   background: var(--atlas-dark-danger-bg);
   color: var(--atlas-dark-danger-text);
-}
-
-html.atlas-dark .skeleton-block {
-  background: #30262a;
-}
-
-html.atlas-dark .skeleton-block::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.09),
-    transparent
-  );
 }
 
 html.atlas-dark .invalid-feedback,
