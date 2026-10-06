@@ -10,6 +10,7 @@
       "args": [
         "runserver"
       ],
+      "preLaunchTask": "ATLAS: Prepare Local Database",
       "django": true,
       "justMyCode": true
     }

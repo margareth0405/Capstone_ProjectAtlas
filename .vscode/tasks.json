@@ -30,6 +30,20 @@
       "runOptions": {
         "instanceLimit": 1
       }
+    },
+    {
+      "label": "ATLAS: Prepare Local Database",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "${workspaceFolder}\\manage.py",
+        "migrate",
+        "--noinput"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

@@ -39,24 +39,25 @@ def env_positive_int(name, default):
     return value
 
 
-# Support both the shorter names commonly provided by hosting platforms and
-# the documented DJANGO_* aliases. The shorter names take precedence.
+# Prefer ATLAS's documented, namespaced settings when both forms are present.
+# Generic variables such as DEBUG are commonly injected by developer tools and
+# must not silently override an explicit local DJANGO_* configuration.
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     raise ImproperlyConfigured("SECRET_KEY is required.")
 
-DEBUG = env_bool("DEBUG", env_bool("DJANGO_DEBUG", False))
+DEBUG = env_bool("DJANGO_DEBUG", env_bool("DEBUG", False))
 ALLOWED_HOSTS = env_list(
-    "ALLOWED_HOSTS",
+    "DJANGO_ALLOWED_HOSTS",
     os.getenv(
-        "DJANGO_ALLOWED_HOSTS",
+        "ALLOWED_HOSTS",
         "localhost,127.0.0.1,[::1],testserver",
     ),
 )
 CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", ""),
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    os.getenv("CSRF_TRUSTED_ORIGINS", ""),
 )
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
