@@ -541,6 +541,55 @@ class StaffManagementFeatureTests(LibraryTestCase):
         self.client.post(reverse("library:staff_user_delete", args=[other_admin.pk]))
         self.assertTrue(type(other_admin).objects.filter(pk=other_admin.pk).exists())
 
+    def test_superuser_can_delete_regular_administrator_but_not_root_accounts(self):
+        superuser = self.create_user(
+            email="delete-admin-root@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        administrator = self.create_user(
+            email="delete-this-admin@example.com",
+            is_staff=True,
+        )
+        other_superuser = self.create_user(
+            email="keep-this-root@example.com",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        users_response = self.client.get(reverse("library:staff_users"))
+        self.assertContains(users_response, "You")
+        self.assertNotContains(users_response, "Protected")
+        self.assertContains(
+            users_response,
+            reverse("library:staff_user_delete", args=[administrator.pk]),
+        )
+
+        self.client.post(
+            reverse("library:staff_user_delete", args=[administrator.pk])
+        )
+        self.assertFalse(
+            type(administrator).objects.filter(pk=administrator.pk).exists()
+        )
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                actor=superuser,
+                action=ActivityLog.Action.DELETE,
+                object_type="administrator account",
+                description="delete-this-admin@example.com",
+            ).exists()
+        )
+
+        self.client.post(reverse("library:staff_user_delete", args=[superuser.pk]))
+        self.client.post(
+            reverse("library:staff_user_delete", args=[other_superuser.pk])
+        )
+        self.assertTrue(type(superuser).objects.filter(pk=superuser.pk).exists())
+        self.assertTrue(
+            type(other_superuser).objects.filter(pk=other_superuser.pk).exists()
+        )
+
     def test_account_delete_database_failure_rolls_back_without_500(self):
         reader = self.create_user(email="rollback-delete@example.com")
 

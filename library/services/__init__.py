@@ -18,6 +18,11 @@ from .context import GreetingNameResolver, PageContextBuilder, SupportContactPre
 from .documents import DocumentExtractionError, DocumentTextExtractor
 from .navigation import SafeRedirectService
 from .repository_items import RepositoryItemPersistenceService, ResourceStorageError
+from .resource_review import (
+    ResourceReviewAnalysisService,
+    is_teacher,
+    visible_library_items,
+)
 from .staff_portal import (
     StaffPortalContextService,
     StaffUserDirectory,
@@ -44,6 +49,7 @@ __all__ = (
     "RemoteDesklibDetector",
     "RepositoryItemPersistenceService",
     "ResourceStorageError",
+    "ResourceReviewAnalysisService",
     "SafeRedirectService",
     "StaffPortalContextService",
     "StaffUserDirectory",
@@ -51,4 +57,6 @@ __all__ = (
     "UsageAnalytics",
     "VanguardAIDetector",
     "WebsiteUsageTracker",
+    "is_teacher",
+    "visible_library_items",
 )

@@ -32,7 +32,7 @@
       </h1>
       <p class="sub">Create your secure ATLAS reading account.</p>
 
-      <form action="{{ register_url }}" method="post" novalidate data-single-submit>
+      <form action="{{ register_url }}" method="post" novalidate data-single-submit data-protect-credentials>
         {% csrf_token %}
         <input type="hidden" name="role" value="{{ auth_role }}">
         {% include "library/includes/form_errors.html" with form=form %}
@@ -47,6 +47,7 @@
             value="{{ form.full_name.value|default_if_none:'' }}"
             placeholder="Example: Juan Dela Cruz"
             autocomplete="name"
+            data-sensitive-credential
             required
             autofocus
           >
@@ -63,6 +64,7 @@
             value="{{ form.email.value|default_if_none:'' }}"
             placeholder="{% if auth_role == 'teacher' %}Example: juan.delacruz@deped.gov.ph{% else %}Example: student@example.com{% endif %}"
             autocomplete="email"
+            data-sensitive-credential
             aria-describedby="registerEmailHelp{% if form.email.errors %} registerEmailErrors{% endif %}"
             required
           >
@@ -83,6 +85,7 @@
                 class="form-control{% if form.password1.errors %} is-invalid{% endif %}"
                 minlength="12"
                 autocomplete="new-password"
+                data-sensitive-credential
                 aria-describedby="passwordRequirements{% if form.password1.errors %} password1Errors{% endif %}"
                 required
               >
@@ -102,6 +105,7 @@
               class="form-control{% if form.password2.errors %} is-invalid{% endif %}"
               minlength="12"
               autocomplete="new-password"
+              data-sensitive-credential
               aria-describedby="passwordConfirmationHelp{% if form.password2.errors %} password2Errors{% endif %}"
               required
             >
@@ -113,6 +117,8 @@
             {% if form.password2.errors %}<div class="invalid-feedback d-block" id="password2Errors">{% for error in form.password2.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
           </div>
         </div>
+
+        <p class="credential-clipboard-note" role="note"><i class="fas fa-shield-halved" aria-hidden="true"></i> Copy, cut, paste, and drag-and-drop are disabled for name, email, and password fields on this page.</p>
 
         <div class="password-guidance" id="passwordRequirements" data-password-guidance aria-live="polite">
           <p class="password-guidance-title">Your password must include:</p>

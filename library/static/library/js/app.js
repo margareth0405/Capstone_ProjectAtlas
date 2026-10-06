@@ -222,6 +222,25 @@
     }
   }
 
+  function initializeCredentialClipboardProtection() {
+    document.querySelectorAll("[data-protect-credentials]").forEach(function (form) {
+      form.querySelectorAll("[data-sensitive-credential]").forEach(function (field) {
+        ["copy", "cut", "paste", "drop"].forEach(function (eventName) {
+          field.addEventListener(eventName, function (event) {
+            event.preventDefault();
+            announceOptimisticStatus(
+              "Clipboard and drag-and-drop actions are disabled for credential fields.",
+              true
+            );
+          });
+        });
+        field.addEventListener("contextmenu", function (event) {
+          event.preventDefault();
+        });
+      });
+    });
+  }
+
   function initializePasswordFeedback() {
     document.querySelectorAll("[data-password-guidance]").forEach((guidance) => {
       new PasswordFeedback(guidance).initialize();
@@ -1358,6 +1377,7 @@
     initializeScrollTop();
     initializePasswordToggles();
     initializePasswordFeedback();
+    initializeCredentialClipboardProtection();
     initializeConfirmations();
     initializeCopyAndShare();
     initializeAutomaticFilters();

@@ -34,7 +34,9 @@ class LibraryItemSitemap(Sitemap):
     priority = 0.7
 
     def items(self):
-        return LibraryItem.objects.only("pk", "updated_at").order_by("pk")
+        return LibraryItem.objects.filter(
+            review_status=LibraryItem.ReviewStatus.APPROVED
+        ).only("pk", "updated_at").order_by("pk")
 
     def lastmod(self, item):
         return item.updated_at

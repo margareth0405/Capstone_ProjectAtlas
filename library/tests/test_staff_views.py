@@ -3,6 +3,7 @@
 from io import BytesIO
 from unittest.mock import patch
 
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
@@ -379,6 +380,104 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "Edit")
         self.assertContains(response, "Delete")
 
+    def test_teacher_upload_is_analyzed_then_waits_for_staff_approval(self):
+        teacher = self.create_user(
+            email="submission.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+
+        class SuccessfulReviewService:
+            def analyze(self, item, *, reviewer):
+                item.ai_review_status = LibraryItem.AIReviewStatus.COMPLETED
+                item.ai_review_summary = {
+                    "label": "Likely human-written",
+                    "ai_probability": 12.5,
+                    "human_probability": 87.5,
+                    "confidence": 75.0,
+                    "detector_name": "Test detector",
+                    "chunks_analyzed": 1,
+                }
+                item.save(
+                    update_fields=(
+                        "ai_review_status",
+                        "ai_review_summary",
+                        "updated_at",
+                    )
+                )
+                return True
+
+        self.client.force_login(teacher)
+        with patch.object(
+            StaffItemCreateView,
+            "review_service_class",
+            SuccessfulReviewService,
+        ):
+            response = self.client.post(
+                reverse("library:staff_item_create"),
+                self.item_payload(call_number="TEACHER-PENDING-001"),
+            )
+
+        self.assertRedirects(response, reverse("library:catalog"))
+        item = LibraryItem.objects.get(call_number="TEACHER-PENDING-001")
+        self.assertEqual(item.created_by, teacher)
+        self.assertEqual(item.review_status, LibraryItem.ReviewStatus.PENDING)
+        self.assertEqual(
+            item.ai_review_status,
+            LibraryItem.AIReviewStatus.COMPLETED,
+        )
+        teacher_catalog = self.client.get(reverse("library:catalog"))
+        self.assertContains(teacher_catalog, item.title)
+        self.assertContains(teacher_catalog, "Pending review")
+
+        student = self.create_user(email="pending-reader@example.com")
+        self.client.force_login(student)
+        self.assertNotContains(
+            self.client.get(reverse("library:catalog")),
+            item.title,
+        )
+
+        self.client.force_login(self.staff)
+        review_response = self.client.get(
+            reverse("library:staff_item_review", args=[item.pk])
+        )
+        self.assertContains(review_response, "AI analysis")
+        self.assertContains(review_response, "12.50%")
+        approval_response = self.client.post(
+            reverse("library:staff_item_approve", args=[item.pk]),
+            {"review_notes": "Metadata and abstract reviewed."},
+        )
+        self.assertRedirects(
+            approval_response,
+            reverse("library:staff_item_review", args=[item.pk]),
+        )
+        item.refresh_from_db()
+        self.assertEqual(item.review_status, LibraryItem.ReviewStatus.APPROVED)
+        self.assertEqual(item.reviewed_by, self.staff)
+        self.assertEqual(item.review_notes, "Metadata and abstract reviewed.")
+
+        self.client.force_login(student)
+        self.assertContains(self.client.get(reverse("library:catalog")), item.title)
+
+    def test_teacher_cannot_make_repository_review_decision(self):
+        item = self.create_item(
+            call_number="PENDING-AUTH-001",
+            review_status=LibraryItem.ReviewStatus.PENDING,
+        )
+        teacher = self.create_user(
+            email="no-review.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+
+        self.assertEqual(
+            self.client.post(
+                reverse("library:staff_item_approve", args=[item.pk])
+            ).status_code,
+            403,
+        )
+        item.refresh_from_db()
+        self.assertEqual(item.review_status, LibraryItem.ReviewStatus.PENDING)
+
     def test_resource_storage_failure_returns_clear_error_without_record(self):
         class FailingPersistenceService:
             def save(self, form, *, prepare_instance):
@@ -614,6 +713,14 @@ class StaffCrudTests(LibraryTestCase):
         self.assertEqual(user.profile.role, Profile.Role.TEACHER)
         self.assertIsNone(user.profile.privacy_consent_accepted_at)
         self.assertEqual(user.profile.privacy_consent_version, "")
+        self.assertTrue(
+            EmailAddress.objects.filter(
+                user=user,
+                email=user.email,
+                verified=True,
+                primary=True,
+            ).exists()
+        )
 
     def test_staff_user_create_rejects_administrator_role(self):
         response = self.client.post(

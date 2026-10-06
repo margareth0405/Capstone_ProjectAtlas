@@ -1,0 +1,77 @@
+{% extends "library/dashboard_base.html" %}
+{% load static %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261006-resource-review">{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
+{% block title %}Review {{ item.title }} | ATLAS{% endblock %}
+{% block breadcrumb %}Resource Review{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:staff_portal' as staff_portal_url %}
+  {% url 'library:item_detail' item.pk as item_detail_url %}
+  {% url 'library:resource_abstract_reader' item.pk as abstract_url %}
+  {% url 'library:staff_item_approve' item.pk as approve_url %}
+  {% url 'library:staff_item_reject' item.pk as reject_url %}
+  <div class="admin-form-page resource-review-page">
+    <header class="django-page-header">
+      <div><span class="section-kicker">Repository moderation</span><h1>Review teacher submission</h1></div>
+      <span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>
+    </header>
+
+    <section class="review-workflow" aria-label="Publication workflow">
+      <span class="is-complete">Teacher upload</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span class="is-complete">AI analysis</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span class="{% if item.review_status == 'pending' %}is-current{% else %}is-complete{% endif %}">Pending review</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span class="{% if item.review_status == 'approved' %}is-complete{% endif %}">Approved and published</span>
+    </section>
+
+    <div class="review-layout">
+      <section class="staff-panel" aria-labelledby="submissionHeading">
+        <span class="section-kicker">Submission</span><h2 id="submissionHeading">{{ item.title }}</h2>
+        <dl class="resource-metadata">
+          <div><dt>Teacher</dt><dd>{{ item.created_by.get_full_name|default:item.created_by.email|default:'Unknown' }}</dd></div>
+          <div><dt>Author</dt><dd>{{ item.author }}</dd></div>
+          <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>
+          <div><dt>Collection</dt><dd>{{ item.get_collection_display }}</dd></div>
+        </dl>
+        <p>{{ item.details|default:'No description was provided.'|linebreaksbr }}</p>
+        <div class="resource-actions">
+          <a class="btn-details" href="{{ abstract_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read abstract</a>
+          <a class="btn-edit" href="{% url 'library:staff_item_edit' item.pk %}"><i class="fas fa-pen" aria-hidden="true"></i> Edit metadata</a>
+        </div>
+      </section>
+
+      <section class="staff-panel" aria-labelledby="analysisHeading">
+        <span class="section-kicker">Automatic screening</span><h2 id="analysisHeading">AI analysis</h2>
+        <p><strong>Status:</strong> {{ item.get_ai_review_status_display }}</p>
+        {% if item.ai_review_status == 'completed' %}
+          <dl class="resource-metadata">
+            <div><dt>Result</dt><dd>{{ item.ai_review_summary.label|default:'Not available' }}</dd></div>
+            <div><dt>AI probability</dt><dd>{{ item.ai_review_summary.ai_probability|floatformat:2 }}%</dd></div>
+            <div><dt>Human probability</dt><dd>{{ item.ai_review_summary.human_probability|floatformat:2 }}%</dd></div>
+            <div><dt>Confidence</dt><dd>{{ item.ai_review_summary.confidence|floatformat:2 }}%</dd></div>
+            <div><dt>Detector</dt><dd>{{ item.ai_review_summary.detector_name|default:'Not available' }}</dd></div>
+            <div><dt>Chunks</dt><dd>{{ item.ai_review_summary.chunks_analyzed|default:0 }}</dd></div>
+          </dl>
+          <p class="form-helper">AI screening supports review; the Administrator or Superuser makes the publication decision.</p>
+        {% else %}
+          <div class="resource-form-note" role="note"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{{ item.ai_review_summary.error|default:'Automatic analysis was not completed. Review the abstract manually.' }}</span></div>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="staff-panel review-decision-panel" aria-labelledby="decisionHeading">
+      <span class="section-kicker">Staff decision</span><h2 id="decisionHeading">Approve or request changes</h2>
+      <form action="{{ approve_url }}" method="post">
+        {% csrf_token %}
+        <label for="reviewNotes">Review notes (optional)</label>
+        <textarea class="form-control" id="reviewNotes" name="review_notes" rows="4" maxlength="2000" placeholder="Record the reason for the decision or guidance for the teacher.">{{ item.review_notes }}</textarea>
+        <div class="admin-form-actions">
+          <a class="btn btn-outline-secondary" href="{{ staff_portal_url }}">Back to Administrator Home</a>
+          <button class="btn-delete" type="submit" formaction="{{ reject_url }}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Request changes</button>
+          <button class="btn-create-admin" type="submit"><i class="fas fa-circle-check" aria-hidden="true"></i> Approve and publish</button>
+        </div>
+      </form>
+    </section>
+  </div>
+{% endblock %}

@@ -128,7 +128,7 @@ class SuperuserAdminCreateView(SuperuserRequiredMixin, View):
 
 
 class StaffUserDeleteView(StaffRequiredMixin, View):
-    """Delete a reader account while protecting active staff credentials."""
+    """Delete readers, or let a superuser delete a regular administrator."""
 
     activity_recorder_class = ActivityRecorder
     user_model = get_user_model()
@@ -154,20 +154,28 @@ class StaffUserDeleteView(StaffRequiredMixin, View):
                 request,
                 "You cannot delete the account you are currently using.",
             )
-        elif account.is_staff or account.is_superuser:
+        elif account.is_superuser:
             messages.error(
                 request,
-                "Administrator accounts cannot be deleted from the staff portal.",
+                "Superuser accounts cannot be deleted from the staff portal.",
+            )
+        elif account.is_staff and not request.user.is_superuser:
+            messages.error(
+                request,
+                "Only a Superuser can delete an Administrator account.",
             )
         else:
             email = account.email or account.username
+            object_type = (
+                "administrator account" if account.is_staff else "user account"
+            )
             try:
                 with transaction.atomic():
                     account.delete()
                     self.activity_recorder_class.record(
                         actor=request.user,
                         action=ActivityLog.Action.DELETE,
-                        object_type="user account",
+                        object_type=object_type,
                         object_id=pk,
                         description=email,
                     )

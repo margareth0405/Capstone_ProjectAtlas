@@ -17,6 +17,9 @@ from .staff_crud import (
     StaffItemCreateView,
     StaffItemDeleteView,
     StaffItemEditView,
+    StaffItemApproveView,
+    StaffItemRejectView,
+    StaffItemReviewView,
 )
 from .staff_dashboard import StaffPortalView, StaffReportsView, StaffUsersView
 
@@ -32,6 +35,9 @@ __all__ = (
     "StaffItemCreateView",
     "StaffItemDeleteView",
     "StaffItemEditView",
+    "StaffItemApproveView",
+    "StaffItemRejectView",
+    "StaffItemReviewView",
     "StaffPortalView",
     "StaffReportsView",
     "StaffUserCreateView",

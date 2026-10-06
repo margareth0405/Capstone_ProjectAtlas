@@ -39,6 +39,7 @@
     </div>
 
     {% if announcements %}
+      <div class="announcements-scroll-region" tabindex="0" role="region" aria-label="Announcements; scroll for more entries">
       {% for announcement in announcements %}
         {% url 'library:staff_announcement_edit' announcement.pk as edit_url %}
         {% url 'library:staff_announcement_delete' announcement.pk as delete_url %}
@@ -92,6 +93,7 @@
           </div>
         </article>
       {% endfor %}
+      </div>
     {% else %}
       <div class="django-empty-state"><i class="fas fa-bullhorn" aria-hidden="true"></i><h3>No announcements found</h3><p>{% if request.user.is_staff %}Create an announcement to begin.{% else %}Published updates will appear here.{% endif %}</p></div>
     {% endif %}

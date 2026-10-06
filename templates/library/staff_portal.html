@@ -73,18 +73,21 @@
         {% if items %}
           <div class="table-responsive staff-scroll-region staff-scroll-region-resources" tabindex="0" role="region" aria-label="Recent resources; scroll for more entries">
             <table class="staff-compact-table">
-              <thead><tr><th>Title</th><th>Type</th><th>Hard copy</th><th>Published</th><th>Added</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Title</th><th>Type</th><th>Review</th><th>Hard copy</th><th>Published</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody>
                 {% for item in items|slice:":8" %}
                   {% url 'library:staff_item_edit' item.pk as edit_url %}
                   {% url 'library:staff_item_delete' item.pk as delete_url %}
+                  {% url 'library:staff_item_review' item.pk as review_url %}
                   <tr>
                     <td><strong>{{ item.title }}</strong><small>{{ item.author }}</small></td>
                     <td>{{ item.get_file_type_display|default:item.file_type }}</td>
+                    <td><span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span></td>
                     <td><span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}"><i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i> {% if item.hard_copy_available %}Available{% else %}Unavailable{% endif %}</span></td>
                     <td>{{ item.publication_date_display }}</td>
                     <td>{{ item.created_at|date:'M j, Y' }}</td>
                     <td class="resource-actions">
+                      <a class="btn-edit" href="{{ review_url }}" aria-label="Review {{ item.title }}"><i class="fas fa-clipboard-check" aria-hidden="true"></i></a>
                       <a class="btn-edit" href="{{ edit_url }}" aria-label="Edit {{ item.title }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
                       <form action="{{ delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone." data-confirm-title="Delete resource?" data-confirm-action="Delete resource" data-confirm-cancel="Keep resource" data-confirm-variant="danger">
                         {% csrf_token %}<button class="btn-delete" type="submit" aria-label="Delete {{ item.title }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
@@ -224,15 +227,14 @@
                   <td class="resource-actions">
                     {% if account.pk == request.user.pk %}
                       <a class="btn-edit" href="{% url 'library:staff_account_edit' %}"><i class="fas fa-user-pen" aria-hidden="true"></i> Edit my account</a>
+                      <span class="current-account-badge" aria-label="This is your account">You</span>
                     {% elif request.user.is_superuser and account.is_staff %}
                       <a class="btn-edit" href="{{ admin_edit_url }}"><i class="fas fa-user-pen" aria-hidden="true"></i> Edit administrator</a>
                     {% endif %}
-                    {% if not account.is_staff and not account.is_superuser %}
+                    {% if not account.is_staff and not account.is_superuser or request.user.is_superuser and account.is_staff and not account.is_superuser and account.pk != request.user.pk %}
                       <form action="{{ user_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete the account for {{ account.email|escape }}? This cannot be undone." data-confirm-title="Delete account?" data-confirm-action="Delete account" data-confirm-cancel="Keep account" data-confirm-variant="danger">
                         {% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-user-minus" aria-hidden="true"></i> Delete</button>
                       </form>
-                    {% elif account.pk != request.user.pk and not request.user.is_superuser %}
-                      <span class="protected-account">Protected</span>
                     {% endif %}
                   </td>
                 </tr>

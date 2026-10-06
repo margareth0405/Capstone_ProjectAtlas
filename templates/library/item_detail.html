@@ -23,6 +23,7 @@
         {% endif %}
         <div>
           <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
+          {% if item.review_status != 'approved' %}<span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>{% endif %}
           <h1>{{ item.title }}</h1>
           <p class="resource-byline">by {{ item.author }}</p>
         </div>
@@ -48,11 +49,13 @@
     </section>
 
     <div class="resource-detail-actions">
-      {% if active_role == "student" or active_role == "teacher" %}
-        <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
-          {% csrf_token %}
-          <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Remove bookmark" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if is_favorite %}Remove bookmark{% else %}Bookmark{% endif %}</span></button>
-        </form>
+      {% if item.is_published %}
+        {% if active_role == "student" or active_role == "teacher" %}
+          <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
+            {% csrf_token %}
+            <button class="btn-favorite{% if is_favorite %} active{% endif %}" type="submit" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Remove bookmark" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if is_favorite %}Remove bookmark{% else %}Bookmark{% endif %}</span></button>
+          </form>
+        {% endif %}
       {% endif %}
       {% if can_manage_resources %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
     </div>

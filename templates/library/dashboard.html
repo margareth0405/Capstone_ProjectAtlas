@@ -69,7 +69,7 @@
         </div>
 
         {% if recent_list %}
-          <div class="row g-3">
+          <div class="row g-3 reader-scroll-region" tabindex="0" role="region" aria-label="Recently added resources; scroll for more entries">
             {% for item in recent_list %}
               {% url 'library:item_detail' item.pk as item_url %}
               <div class="col-xl-2 col-md-4 col-sm-6">

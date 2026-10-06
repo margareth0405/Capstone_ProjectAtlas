@@ -4,6 +4,8 @@ from django.db.models import F, Q
 
 from library.models import LibraryItem
 
+from .resource_review import visible_library_items
+
 
 class CatalogQueryService:
     """Validate catalog inputs and build a consistently ordered queryset."""
@@ -20,13 +22,16 @@ class CatalogQueryService:
         "oldest": (F("published_on").asc(nulls_last=True), "title"),
     }
 
-    def __init__(self, parameters):
+    def __init__(self, parameters, *, user=None):
         self.query = parameters.get("q", "").strip()
         self.collection = parameters.get("collection", "").strip()
         self.sort = parameters.get("sort", "title")
+        self.user = user
 
     def build(self):
-        items = LibraryItem.objects.all()
+        items = visible_library_items(self.user) if self.user is not None else (
+            LibraryItem.objects.filter(review_status=LibraryItem.ReviewStatus.APPROVED)
+        )
         if self.query:
             items = items.filter(
                 Q(title__icontains=self.query)

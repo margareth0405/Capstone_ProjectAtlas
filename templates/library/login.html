@@ -34,7 +34,7 @@
       </h1>
       <p class="sub">Access your ATLAS reading dashboard</p>
 
-      <form action="{{ login_url }}" method="post" novalidate>
+      <form action="{{ login_url }}" method="post" novalidate data-protect-credentials>
         {% csrf_token %}
         <input type="hidden" name="role" value="{{ auth_role }}">
         {% include "library/includes/form_errors.html" with form=form %}
@@ -49,6 +49,7 @@
             value="{{ form.email.value|default_if_none:'' }}"
             placeholder="{% if auth_role == 'teacher' %}Example: juan.delacruz@deped.gov.ph{% else %}Example: student@example.com{% endif %}"
             autocomplete="email"
+            data-sensitive-credential
             aria-describedby="{% if auth_role == 'teacher' %}teacherEmailHelp{% endif %}{% if form.email.errors %}{% if auth_role == 'teacher' %} {% endif %}emailErrors{% endif %}"
             required
             autofocus
@@ -71,6 +72,7 @@
               class="form-control{% if form.password.errors %} is-invalid{% endif %}"
               minlength="6"
               autocomplete="current-password"
+              data-sensitive-credential
               aria-describedby="loginPasswordHelp{% if form.password.errors %} passwordErrors{% endif %}"
               required
             >
@@ -85,6 +87,8 @@
             </div>
           {% endif %}
         </div>
+
+        <p class="credential-clipboard-note" role="note"><i class="fas fa-shield-halved" aria-hidden="true"></i> Copy, cut, paste, and drag-and-drop are disabled for email and password fields on this page.</p>
 
         <details class="consent-disclosure"{% if form.privacy_consent.errors %} open{% endif %}>
           <summary>

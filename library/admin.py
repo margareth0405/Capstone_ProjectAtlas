@@ -46,6 +46,12 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "cover_image",
         "resource_abstract",
         "created_by",
+        "review_status",
+        "ai_review_status",
+        "ai_review_summary",
+        "reviewed_by",
+        "reviewed_at",
+        "review_notes",
         "created_at",
         "updated_at",
     )
@@ -58,18 +64,29 @@ class LibraryItemAdmin(admin.ModelAdmin):
         "published_on",
         "cover_image",
         "resource_abstract",
+        "review_status",
+        "ai_review_status",
         "created_at",
     )
     list_filter = (
         "collection",
         "file_type",
         "hard_copy_available",
+        "review_status",
+        "ai_review_status",
         "published_on",
         "created_at",
     )
     search_fields = ("title", "author", "call_number", "details")
     autocomplete_fields = ("created_by",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "ai_review_status",
+        "ai_review_summary",
+        "reviewed_by",
+        "reviewed_at",
+        "created_at",
+        "updated_at",
+    )
     date_hierarchy = "created_at"
     list_select_related = ("created_by",)
 

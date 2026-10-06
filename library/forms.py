@@ -488,6 +488,18 @@ class AdminCreatedUserForm(BaseAccountCreationForm):
             "password1"
         ].help_text = password_validation.password_validators_help_text_html()
 
+    def save(self, commit=True):
+        """Create a live-ready reader account without an email-verification wait."""
+
+        user = super().save(commit=commit)
+        if commit:
+            EmailAddress.objects.update_or_create(
+                user=user,
+                email=user.email,
+                defaults={"verified": True, "primary": True},
+            )
+        return user
+
 
 class SuperuserCreatedAdminForm(StyledFormMixin, UserCreationForm):
     """Create a non-superuser administrator after re-authenticating the owner."""

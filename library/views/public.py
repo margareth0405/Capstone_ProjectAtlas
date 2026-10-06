@@ -19,6 +19,7 @@ from library.forms import ContactForm
 from library.models import Announcement, ContactMessage, LibraryItem
 from library.services.contact import ContactEmailService
 from library.services.deployment import HealthCheckService
+from library.services.resource_review import visible_library_items
 from library.sitemaps import sitemaps
 
 from .mixins import PageContextMixin
@@ -187,7 +188,7 @@ class DashboardView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        recent_items = LibraryItem.objects.order_by("-created_at")[:6]
+        recent_items = visible_library_items(self.request.user).order_by("-created_at")[:12]
         context.update(
             {
                 "recent_items": recent_items,

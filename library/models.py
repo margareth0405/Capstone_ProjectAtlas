@@ -36,6 +36,16 @@ class Profile(models.Model):
 
 
 class LibraryItem(models.Model):
+    class ReviewStatus(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Changes requested"
+
+    class AIReviewStatus(models.TextChoices):
+        NOT_RUN = "not_run", "Not run"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Needs manual review"
+
     class Collection(models.TextChoices):
         BOOK = "book", "Book"
         JOURNAL = "journal", "Journal"
@@ -84,6 +94,27 @@ class LibraryItem(models.Model):
         on_delete=models.SET_NULL,
         related_name="created_library_items",
     )
+    review_status = models.CharField(
+        max_length=20,
+        choices=ReviewStatus.choices,
+        default=ReviewStatus.APPROVED,
+        db_index=True,
+    )
+    ai_review_status = models.CharField(
+        max_length=20,
+        choices=AIReviewStatus.choices,
+        default=AIReviewStatus.NOT_RUN,
+    )
+    ai_review_summary = models.JSONField(default=dict, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_library_items",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -111,6 +142,10 @@ class LibraryItem(models.Model):
             return "Not specified"
         output_format = "F j, Y" if self.publication_day_known else "F Y"
         return date_format(self.published_on, output_format)
+
+    @property
+    def is_published(self):
+        return self.review_status == self.ReviewStatus.APPROVED
 
     def __str__(self):
         return f"{self.title} ({self.call_number})"

@@ -9,7 +9,7 @@
   {% url 'library:staff_users' as staff_users_url %}
   <div class="admin-form-page">
     <header class="django-page-header"><div><span class="section-kicker">Restricted action</span><h1>Create an authorized account</h1></div></header>
-    <div class="usage-count-note" role="note"><i class="fas fa-lock" aria-hidden="true"></i> Only an authenticated staff member can use this page. Every new password requires at least 12 characters, one number, and one special character, and is securely hashed by Django.</div>
+    <div class="usage-count-note" role="note"><i class="fas fa-lock" aria-hidden="true"></i> Only an authenticated staff member can use this page. Every new password requires at least 12 characters, one number, and one special character, and is securely hashed by Django. Staff-created accounts are verified immediately and can sign in on the live website without opening an email link.</div>
     <form method="post" class="admin-object-form" novalidate>
       {% csrf_token %}
       {% include "library/includes/form_errors.html" with form=form %}

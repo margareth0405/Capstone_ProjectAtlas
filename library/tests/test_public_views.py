@@ -10,7 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 from PIL import Image
 
-from library.models import ContactMessage, Favorite, Profile, ResourceViewEvent
+from library.models import ContactMessage, Favorite, LibraryItem, Profile, ResourceViewEvent
 from library.views.catalog import ResourceAbstractReaderView
 
 from .base import LibraryTestCase
@@ -44,6 +44,19 @@ class GuestPageTests(LibraryTestCase):
 
 
 class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
+    def test_recent_resources_and_announcements_use_scroll_regions(self):
+        self.create_item()
+        self.create_announcement()
+        student = self.create_user(email="scroll-reader@example.com")
+        self.client.force_login(student)
+
+        dashboard = self.client.get(reverse("library:dashboard"))
+        announcements = self.client.get(reverse("library:announcements"))
+
+        self.assertContains(dashboard, "reader-scroll-region")
+        self.assertContains(dashboard, "scroll for more entries")
+        self.assertContains(announcements, "announcements-scroll-region")
+
     def test_hard_copy_availability_is_visible_to_guest_student_and_teacher(self):
         item = self.create_item(hard_copy_available=True)
 
@@ -92,15 +105,23 @@ class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
                 self.assertNotContains(response, draft.title)
                 self.client.logout()
 
-    def test_library_page_links_latest_published_announcement(self):
+    def test_library_page_does_not_repeat_latest_announcement_strip(self):
         announcement = self.create_announcement(title="New catalog notice")
         response = self.client.get(reverse("library:catalog"))
 
-        self.assertContains(response, "Latest announcements")
-        self.assertContains(response, announcement.title)
-        self.assertContains(
-            response,
-            f'{reverse("library:announcements")}#announcement-{announcement.pk}',
+        self.assertNotContains(response, "Latest announcements")
+        self.assertNotContains(response, announcement.title)
+
+    def test_pending_teacher_resource_is_hidden_from_public_readers(self):
+        item = self.create_item(
+            call_number="PENDING-PUBLIC-001",
+            review_status=LibraryItem.ReviewStatus.PENDING,
+        )
+
+        self.assertNotContains(self.client.get(reverse("library:catalog")), item.title)
+        self.assertEqual(
+            self.client.get(reverse("library:item_detail", args=[item.pk])).status_code,
+            404,
         )
 
     def test_catalog_sorts_title_author_and_publication_date_both_directions(self):

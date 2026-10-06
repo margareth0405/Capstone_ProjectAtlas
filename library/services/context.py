@@ -127,7 +127,9 @@ class PageContextBuilder:
         stats = cache.get(cls.stats_cache_key)
         if stats is not None:
             return stats
-        stats = LibraryItem.objects.aggregate(
+        stats = LibraryItem.objects.filter(
+            review_status=LibraryItem.ReviewStatus.APPROVED
+        ).aggregate(
             total_items=Count("id"),
             total_pages=Sum("pages"),
             unique_authors=Count("author", distinct=True),

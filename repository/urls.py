@@ -38,4 +38,19 @@ urlpatterns = [
         views.StaffItemDeleteView.as_view(),
         name="staff_item_delete",
     ),
+    path(
+        "staff/repository/<int:pk>/review/",
+        views.StaffItemReviewView.as_view(),
+        name="staff_item_review",
+    ),
+    path(
+        "staff/repository/<int:pk>/approve/",
+        views.StaffItemApproveView.as_view(),
+        name="staff_item_approve",
+    ),
+    path(
+        "staff/repository/<int:pk>/reject/",
+        views.StaffItemRejectView.as_view(),
+        name="staff_item_reject",
+    ),
 ]

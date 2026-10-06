@@ -9,7 +9,6 @@
   {% url 'library:login' as login_url %}
   {% url 'library:register' as register_url %}
   {% url 'library:favorites' as bookmarks_url %}
-  {% url 'library:announcements' as announcements_url %}
   {% url 'library:staff_item_create' as staff_item_create_url %}
 
   <div class="library-view">
@@ -25,23 +24,6 @@
         <a class="btn-add-item" href="{{ staff_item_create_url }}"><i class="fas fa-plus" aria-hidden="true"></i> Add resource</a>
       {% endif %}
     </header>
-
-    {% if recent_announcements %}
-      <section class="catalog-announcement-strip" aria-labelledby="catalogAnnouncementsHeading">
-        <div class="catalog-section-heading">
-          <h2 id="catalogAnnouncementsHeading"><i class="fas fa-bullhorn" aria-hidden="true"></i> Latest announcements</h2>
-          <a href="{{ announcements_url }}">View all</a>
-        </div>
-        <div class="catalog-announcement-grid">
-          {% for announcement in recent_announcements %}
-            <a href="{{ announcements_url }}#announcement-{{ announcement.pk }}">
-              <strong>{{ announcement.title }}</strong>
-              <span>{{ announcement.published_at|date:'M j, Y' }} · {{ announcement.get_category_display }}</span>
-            </a>
-          {% endfor %}
-        </div>
-      </section>
-    {% endif %}
 
     {% if active_role == "guest" %}
       <div class="guest-banner" role="note">
@@ -91,11 +73,13 @@
           {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
           {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
           {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
+          {% url 'library:staff_item_review' item.pk as staff_item_review_url %}
           <article class="catalog-resource-card">
             <div class="catalog-card-topline">
               <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
               <span class="resource-format-badge"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}" aria-hidden="true"></i> {{ item.get_file_type_display|default:item.file_type }}</span>
             </div>
+            {% if item.review_status != 'approved' %}<span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>{% endif %}
             <span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}">
               <i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i>
               {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}
@@ -121,14 +105,17 @@
             <div class="catalog-card-actions">
               <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
               {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
-              {% if active_role == "student" or active_role == "teacher" %}
-                <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
-                  {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit" aria-pressed="{% if item.pk in favorite_ids %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Bookmarked" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</span></button>
-                </form>
+              {% if item.is_published %}
+                {% if active_role == "student" or active_role == "teacher" %}
+                  <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>
+                    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn-favorite{% if item.pk in favorite_ids %} active{% endif %}" type="submit" aria-pressed="{% if item.pk in favorite_ids %}true{% else %}false{% endif %}" data-bookmark-button data-label-on="Bookmarked" data-label-off="Bookmark"><i class="fas fa-bookmark" aria-hidden="true"></i> <span data-bookmark-label>{% if item.pk in favorite_ids %}Bookmarked{% else %}Bookmark{% endif %}</span></button>
+                  </form>
+                {% endif %}
               {% endif %}
               {% if can_manage_resources %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
+                {% if request.user.is_staff %}<a class="btn-details" href="{{ staff_item_review_url }}"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Review</a>{% endif %}
                 <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone." data-confirm-title="Delete resource?" data-confirm-action="Delete resource" data-confirm-cancel="Keep resource" data-confirm-variant="danger">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
               {% endif %}
             </div>

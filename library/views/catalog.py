@@ -13,17 +13,17 @@ from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
 from django.utils.http import content_disposition_header
 from django.views import View
 from django.views.generic import TemplateView
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from library.models import Announcement, Favorite, LibraryItem
+from library.models import Favorite, LibraryItem
 from library.services import (
     CatalogQueryService,
     PageContextBuilder,
     SafeRedirectService,
+    visible_library_items,
 )
 from library.services.documents import DocumentExtractionError, DocumentTextExtractor
 from library.services.resource_views import ResourceViewTracker
@@ -41,7 +41,7 @@ class CatalogView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        query_service = CatalogQueryService(self.request.GET)
+        query_service = CatalogQueryService(self.request.GET, user=self.request.user)
         items = query_service.build()
         favorite_ids = set()
         if self.request.user.is_authenticated and not self.request.user.is_staff:
@@ -60,10 +60,6 @@ class CatalogView(PageContextMixin, TemplateView):
                 "selected_collection": query_service.collection,
                 "selected_sort": query_service.sort,
                 "collection_choices": LibraryItem.Collection.choices,
-                "recent_announcements": Announcement.objects.filter(
-                    is_published=True,
-                    published_at__lte=timezone.now(),
-                )[:3],
             }
         )
         return context
@@ -75,7 +71,9 @@ class ItemDetailView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        item = get_object_or_404(LibraryItem, pk=self.kwargs["pk"])
+        item = get_object_or_404(
+            visible_library_items(self.request.user), pk=self.kwargs["pk"]
+        )
         context["item"] = item
         context["is_favorite"] = (
             self.request.user.is_authenticated
@@ -99,7 +97,9 @@ class ProtectedDocumentReaderView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        item = get_object_or_404(LibraryItem, pk=self.kwargs["pk"])
+        item = get_object_or_404(
+            visible_library_items(self.request.user), pk=self.kwargs["pk"]
+        )
         document = getattr(item, self.document_field)
         content = ""
         reader_error = ""
@@ -168,7 +168,7 @@ class ResourceCoverView(View):
     maximum_dimensions = (800, 1200)
 
     def get(self, request, pk):
-        item = get_object_or_404(LibraryItem, pk=pk)
+        item = get_object_or_404(visible_library_items(request.user), pk=pk)
         cover = item.cover_image
         if not cover:
             raise Http404("Cover image not found.")
@@ -237,7 +237,10 @@ class FavoritesView(PageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        links = Favorite.objects.filter(user=self.request.user).select_related("item")
+        links = Favorite.objects.filter(
+            user=self.request.user,
+            item__review_status=LibraryItem.ReviewStatus.APPROVED,
+        ).select_related("item")
         context.update({"favorites": links, "items": [link.item for link in links]})
         return context
 
@@ -248,7 +251,12 @@ class FavoriteToggleView(View):
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
         if request.user.is_staff:
             raise PermissionDenied
-        item = get_object_or_404(LibraryItem, pk=pk)
+        item = get_object_or_404(
+            LibraryItem.objects.filter(
+                review_status=LibraryItem.ReviewStatus.APPROVED
+            ),
+            pk=pk,
+        )
         favorite, created = Favorite.objects.get_or_create(user=request.user, item=item)
         if created:
             message = f"Bookmarked {item.title}."
