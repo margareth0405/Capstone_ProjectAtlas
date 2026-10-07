@@ -34,11 +34,13 @@
     {
       "label": "ATLAS: Prepare Local Database",
       "type": "process",
-      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "command": "powershell.exe",
       "args": [
-        "${workspaceFolder}\\manage.py",
-        "migrate",
-        "--noinput"
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& '${workspaceFolder}\\.venv\\Scripts\\python.exe' '${workspaceFolder}\\manage.py' check_local; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; & '${workspaceFolder}\\.venv\\Scripts\\python.exe' '${workspaceFolder}\\manage.py' migrate --noinput; exit $LASTEXITCODE"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

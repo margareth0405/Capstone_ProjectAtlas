@@ -187,6 +187,31 @@ python manage.py runserver
 Open http://127.0.0.1:8000/. PostgreSQL must be running and DATABASE_URL must
 point to an existing database before running Django commands.
 
+### Offline local use
+
+After the first dependency and AI-model download, ATLAS can run without an
+internet connection. Keep the local `.env` on local services:
+
+```dotenv
+DATABASE_URL=postgresql://atlas_user:strong-password@localhost:5432/atlas
+DB_SSL_REQUIRE=False
+R2_STORAGE_ENABLED=False
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+AI_DETECTION_ENGINE=onnx
+AI_DETECTION_MODEL_DIR=models/ai_detector
+```
+
+Run `python manage.py check_local` to verify the database, media folder, email
+backend, and packaged ONNX files before disconnecting. The VS Code local launch
+task and `scripts/start_atlas.ps1` run this check automatically.
+
+Local and hosted installations use separate PostgreSQL databases and separate
+media stores. Local uploads are saved under `media/`; Render uploads are saved
+to R2. They do not synchronize automatically. Copy or import data and media
+before going offline if the local installation must contain cloud records.
+Registration and password-recovery messages use the terminal in offline mode;
+real delivery still requires the configured cloud or SMTP email service.
+
 The model download command fetches only the pinned deployment files:
 `model_int8.onnx`, `tokenizer.json`, `tokenizer_config.json`, and
 `label_order.json`. Run it on the development computer, then include the

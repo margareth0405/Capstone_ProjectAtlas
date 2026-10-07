@@ -65,6 +65,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Django's configuration check failed."
 }
 
+Write-Host "Checking offline local services..." -ForegroundColor Cyan
+& $venvPython manage.py check_local
+if ($LASTEXITCODE -ne 0) {
+    throw "Offline local checks failed. Correct the local .env values shown above."
+}
+
 Write-Host "Starting ATLAS at http://$Address/" -ForegroundColor Green
 Write-Host "Applying database migrations..." -ForegroundColor Cyan
 & $venvPython manage.py migrate --noinput
