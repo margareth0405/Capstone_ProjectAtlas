@@ -747,6 +747,46 @@ Password, private administrator path, business/privacy details, HTTPS flags,
 and AI cache path as private environment variables. Never upload `.env` or
 paste secrets into the Git repository.
 
+#### Demonstration accounts without Render Shell access
+
+`build.sh` runs `python manage.py provision_demo_accounts` after migrations.
+The command does nothing unless `ATLAS_PROVISION_DEMO_ACCOUNTS=True`, so the
+normal production build does not create demonstration users accidentally.
+
+To provision the four accounts without Shell access, add these private values
+in **Render Dashboard -> Web Service -> Environment** and save the changes:
+
+```dotenv
+ATLAS_PROVISION_DEMO_ACCOUNTS=True
+ATLAS_DEMO_STUDENT_EMAIL=student@atlas.edu
+ATLAS_DEMO_STUDENT_NAME=Demo Student
+ATLAS_DEMO_STUDENT_PASSWORD=choose-a-strong-unique-password
+ATLAS_DEMO_TEACHER_EMAIL=teacher@deped.gov.ph
+ATLAS_DEMO_TEACHER_NAME=Demo Teacher
+ATLAS_DEMO_TEACHER_PASSWORD=choose-a-different-strong-password
+ATLAS_DEMO_ADMIN_USERNAME=atlas_demo_admin
+ATLAS_DEMO_ADMIN_EMAIL=demo.administrator@example.com
+ATLAS_DEMO_ADMIN_NAME=Demo Administrator
+ATLAS_DEMO_ADMIN_PASSWORD=choose-a-different-strong-password
+ATLAS_DEMO_SUPERUSER_USERNAME=atlas_demo_superuser
+ATLAS_DEMO_SUPERUSER_EMAIL=demo.superuser@example.com
+ATLAS_DEMO_SUPERUSER_NAME=Demo Superuser
+ATLAS_DEMO_SUPERUSER_PASSWORD=choose-a-different-strong-password
+```
+
+Render deploys again after the environment changes. The build creates missing
+accounts or updates the same accounts, verifies their email identities, assigns
+Student/Teacher profiles and staff permissions, and resets their passwords to
+the private environment values. It never writes passwords to the build log.
+Weak passwords or conflicting identities stop the build instead of partially
+provisioning the account set.
+
+Students and Teachers sign in at `/login/`. Administrators and Superusers sign
+in at `/<DJANGO_ADMIN_PATH>/login/`. After the demonstration, set
+`ATLAS_PROVISION_DEMO_ACCOUNTS=False` and remove the four password variables.
+Disabling provisioning does not delete the accounts; deactivate or remove them
+from ATLAS separately when they are no longer needed.
+
 `R2_STORAGE_ENABLED=True` is mandatory on Render. Its local filesystem is
 ephemeral: PostgreSQL retains an uploaded file's object name, but a restart or
 redeploy removes a file saved under local `media/`. ATLAS now treats that
