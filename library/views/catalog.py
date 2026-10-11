@@ -95,6 +95,21 @@ class ProtectedDocumentReaderView(PageContextMixin, TemplateView):
     reader_badge = "Protected document"
     missing_message = "This document is not available."
 
+    def get(self, request, *args, **kwargs):
+        """Keep protected reading responses out of browser and shared caches."""
+        response = super().get(request, *args, **kwargs)
+        response["Cache-Control"] = (
+            "private, no-store, no-cache, must-revalidate, max-age=0"
+        )
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        response["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        response["Cross-Origin-Resource-Policy"] = "same-origin"
+        response["Permissions-Policy"] = (
+            "clipboard-read=(), clipboard-write=(), display-capture=()"
+        )
+        return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         item = get_object_or_404(

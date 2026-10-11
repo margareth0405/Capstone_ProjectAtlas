@@ -1936,6 +1936,24 @@ textarea {
   font-size: 1.03rem;
   line-height: 1.75;
   white-space: normal;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media print {
+  body.atlas-protected-reader > * {
+    display: none !important;
+  }
+
+  body.atlas-protected-reader::before {
+    content: "Printing is disabled for this protected ATLAS document.";
+    display: block;
+    margin: 2rem;
+    color: #000;
+    font: 700 16pt/1.4 sans-serif;
+  }
 }
 
 /* Calm navigation spinner, file upload progress, and optimistic feedback. */

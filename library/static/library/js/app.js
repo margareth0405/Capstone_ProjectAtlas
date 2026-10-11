@@ -241,6 +241,57 @@
     });
   }
 
+  function initializeProtectedDocumentReader() {
+    var reader = document.querySelector("[data-protected-document-reader]");
+    if (!reader) return;
+
+    var content = reader.querySelector("[data-protected-document-content]");
+    var protectedActions = ["copy", "cut", "paste", "dragstart"];
+    var blockedShortcuts = new Set(["a", "c", "p", "s", "u", "v", "x"]);
+
+    function announceBlockedAction(message) {
+      announceOptimisticStatus(message, true);
+    }
+
+    protectedActions.forEach(function (eventName) {
+      reader.addEventListener(eventName, function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        announceBlockedAction(
+          "This document is view only. Copying, editing, dragging, saving, and printing are disabled."
+        );
+      });
+    });
+
+    reader.addEventListener("contextmenu", function (event) {
+      event.preventDefault();
+      announceBlockedAction("The document menu is disabled in this view-only reader.");
+    });
+
+    if (content) {
+      content.addEventListener("selectstart", function (event) {
+        event.preventDefault();
+      });
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      var key = String(event.key || "").toLowerCase();
+      if (!blockedShortcuts.has(key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      announceBlockedAction(
+        key === "p"
+          ? "Printing is disabled for protected documents."
+          : "That command is disabled in this view-only document reader."
+      );
+    }, true);
+
+    window.addEventListener("beforeprint", function () {
+      announceBlockedAction("Printing is disabled for protected documents.");
+    });
+  }
+
   function initializePasswordFeedback() {
     document.querySelectorAll("[data-password-guidance]").forEach((guidance) => {
       new PasswordFeedback(guidance).initialize();
@@ -1378,6 +1429,7 @@
     initializePasswordToggles();
     initializePasswordFeedback();
     initializeCredentialClipboardProtection();
+    initializeProtectedDocumentReader();
     initializeConfirmations();
     initializeCopyAndShare();
     initializeAutomaticFilters();

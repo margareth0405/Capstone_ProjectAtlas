@@ -3,10 +3,11 @@
 {% block title %}{{ reader_heading|default:'Read document' }}: {{ item.title }} | ATLAS{% endblock %}
 {% block meta_description %}Read the protected resource abstract for {{ item.title }} inside ATLAS.{% endblock %}
 {% block breadcrumb %}{{ reader_heading|default:'Protected document reader' }}{% endblock %}
+{% block body_class %}{{ block.super }} atlas-protected-reader{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:item_detail' item.pk as item_detail_url %}
-  <article class="resource-reader-card">
+  <article class="resource-reader-card" data-protected-document-reader>
     <header class="resource-reader-header">
       <div>
         <a class="btn-back inline-back" href="{{ item_detail_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to resource details</a>
@@ -19,11 +20,17 @@
 
     <div class="reader-privacy-note" role="note">
       <i class="fas fa-lock" aria-hidden="true"></i>
-      <span>The original file is not offered for download. ATLAS displays extractable text inside this protected reading page.</span>
+      <span id="protectedReaderNotice">View only: the original file is never sent to this page and cannot be edited here. Standard copy, selection, drag, save, and print actions are disabled. Screen capture or photography cannot be completely prevented by any website.</span>
     </div>
 
     {% if resource_content %}
-      <section class="resource-reader-content" aria-label="Text of {{ item.title }}">{{ resource_content|linebreaksbr }}</section>
+      <section
+        class="resource-reader-content"
+        aria-label="View-only text of {{ item.title }}"
+        aria-describedby="protectedReaderNotice"
+        data-protected-document-content
+        draggable="false"
+      >{{ resource_content|linebreaksbr }}</section>
     {% else %}
       <section class="django-empty-state"><i class="fas fa-file-circle-exclamation" aria-hidden="true"></i><h2>Preview unavailable</h2><p>{{ reader_error }}</p></section>
     {% endif %}

@@ -378,6 +378,28 @@ class ResourceAbstractReaderTests(LibraryTestCase):
         self.assertEqual(event.item, self.item)
         self.assertEqual(event.role, Profile.Role.TEACHER)
 
+    def test_reader_is_view_only_and_not_cached(self):
+        with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
+            response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-protected-document-reader")
+        self.assertContains(response, "data-protected-document-content")
+        self.assertContains(response, "View only:")
+        self.assertContains(response, "Screen capture or photography cannot be completely prevented")
+        self.assertEqual(
+            response["Cache-Control"],
+            "private, no-store, no-cache, must-revalidate, max-age=0",
+        )
+        self.assertEqual(response["Pragma"], "no-cache")
+        self.assertEqual(response["Expires"], "0")
+        self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow, noarchive")
+        self.assertEqual(response["Cross-Origin-Resource-Policy"], "same-origin")
+        self.assertEqual(
+            response["Permissions-Policy"],
+            "clipboard-read=(), clipboard-write=(), display-capture=()",
+        )
+
     def test_guest_can_read_and_is_recorded_as_guest(self):
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             response = self.client.get(self.url)

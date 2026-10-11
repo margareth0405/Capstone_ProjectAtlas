@@ -509,6 +509,18 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn('action === "Delete" ? "Delete " + subject : action', script)
         self.assertIn('action === "Delete" ? "Keep " + subject : "Cancel"', script)
 
+    def test_protected_reader_blocks_common_copy_save_and_print_actions(self):
+        static_root = Path(settings.BASE_DIR) / "library" / "static" / "library"
+        script = (static_root / "js" / "app.js").read_text(encoding="utf-8")
+        styles = (static_root / "css" / "django.css").read_text(encoding="utf-8")
+
+        self.assertIn("initializeProtectedDocumentReader", script)
+        self.assertIn('["a", "c", "p", "s", "u", "v", "x"]', script)
+        self.assertIn('reader.addEventListener("contextmenu"', script)
+        self.assertIn('window.addEventListener("beforeprint"', script)
+        self.assertIn("body.atlas-protected-reader > *", styles)
+        self.assertIn("user-select: none;", styles)
+
     def test_support_contact_presenter_normalizes_click_to_call_uri(self):
         context = SupportContactPresenter(
             email="library@example.edu",
