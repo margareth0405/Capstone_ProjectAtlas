@@ -549,11 +549,34 @@ html.atlas-dark .upload-progress-icon {
   color: var(--atlas-dark-accent);
 }
 
-html.atlas-dark .reader-role-toggle,
-html.atlas-dark .administrator-account,
-html.atlas-dark .reader-account {
+html.atlas-dark .reader-role-toggle {
+  background: var(--atlas-dark-raised) !important;
   border-color: var(--atlas-dark-border);
   color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .login-card .account-type-badge.reader-account {
+  background: #3a301d !important;
+  border: 1px solid #806d3c;
+  color: #ffe4a3 !important;
+}
+
+html.atlas-dark .login-card .account-type-badge.administrator-account {
+  background: #482b34 !important;
+  border: 1px solid #8d5362;
+  color: #ffe8ed !important;
+}
+
+html.atlas-dark .login-card .brand-icon.reader-icon {
+  background: #332817 !important;
+  border: 1px solid #806d3c;
+  color: #f4cf7c !important;
+}
+
+html.atlas-dark .login-card .brand-icon.administrator-icon {
+  background: #482b34 !important;
+  border: 1px solid #8d5362;
+  color: #f2bac7 !important;
 }
 
 html.atlas-dark .user-activity-table thead th,

@@ -502,6 +502,15 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("background: var(--atlas-note-bg) !important;", dark_styles)
         self.assertIn("color: #cdbfc3 !important;", dark_styles)
         self.assertIn("stroke='%23f4edef'", dark_styles)
+        self.assertIn(
+            "html.atlas-dark .login-card .account-type-badge.reader-account",
+            dark_styles,
+        )
+        self.assertIn("background: #3a301d !important;", dark_styles)
+        self.assertIn(
+            "html.atlas-dark .login-card .brand-icon.reader-icon",
+            dark_styles,
+        )
         for selector in (
             "html.atlas-dark .review-status-badge.status-pending",
             "html.atlas-dark .badge-collection.book",
