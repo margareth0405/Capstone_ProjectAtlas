@@ -1568,6 +1568,10 @@
     min-width: 0;
 }
 
+.ai-metrics-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .ai-metrics div {
     background: #fcfaf9;
     border: 1px solid #eee6e1;
@@ -1598,15 +1602,169 @@
     overflow-wrap: anywhere;
 }
 
-.ai-metrics .ai-metric-version {
-    grid-column: span 3;
-}
-
 .ai-metric-version dd {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: clamp(0.72rem, 1.5vw, 0.9rem);
     letter-spacing: -0.02em;
     word-break: break-all;
+}
+
+.ai-result-details {
+    background: #fcfaf9;
+    border: 1px solid #e5d9d4;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.ai-result-details summary {
+    align-items: center;
+    color: var(--maroon-800);
+    cursor: pointer;
+    display: flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 1rem;
+    justify-content: space-between;
+    list-style: none;
+    min-height: 44px;
+    padding: 0.7rem 0.85rem;
+}
+
+.ai-result-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.ai-result-details summary:focus-visible {
+    border-radius: 10px;
+    outline: 3px solid rgba(128, 0, 32, 0.24);
+    outline-offset: -3px;
+}
+
+.ai-result-details summary > span:first-child {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+.ai-result-details-action {
+    align-items: center;
+    color: #706965;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    gap: 0.4rem;
+}
+
+.ai-result-details-action i {
+    transition: transform 180ms ease;
+}
+
+.ai-result-details-hide {
+    display: none;
+}
+
+.ai-result-details[open] .ai-result-details-show {
+    display: none;
+}
+
+.ai-result-details[open] .ai-result-details-hide {
+    display: inline;
+}
+
+.ai-result-details[open] .ai-result-details-action i {
+    transform: rotate(180deg);
+}
+
+.ai-result-details-body {
+    border-top: 1px solid #e5d9d4;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.ai-result-details:not([open]) > .ai-result-details-body {
+    display: none;
+}
+
+.ai-result-details-body section {
+    min-width: 0;
+}
+
+.ai-result-details-body section + section {
+    border-top: 1px solid #eee6e1;
+    padding-top: 1rem;
+}
+
+.ai-result-details-body h3 {
+    color: var(--maroon-800);
+    font-size: 0.95rem;
+    margin: 0 0 0.45rem;
+}
+
+.ai-result-details-body p {
+    color: #625a56;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.ai-score-explanations,
+.ai-technical-metadata {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0.8rem 0 0;
+}
+
+.ai-score-explanations div,
+.ai-technical-metadata div {
+    background: #fff;
+    border: 1px solid #eee6e1;
+    border-radius: 10px;
+    min-width: 0;
+    padding: 0.7rem;
+}
+
+.ai-score-explanations dt,
+.ai-technical-metadata dt {
+    color: var(--maroon-800);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.ai-score-explanations dd,
+.ai-technical-metadata dd {
+    color: #625a56;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    margin: 0.35rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.ai-processing-summary {
+    color: #625a56;
+    display: grid;
+    font-size: 0.8rem;
+    gap: 0.4rem;
+    line-height: 1.5;
+    margin: 0.65rem 0 0;
+    padding-left: 1.15rem;
+}
+
+.ai-technical-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-technical-metadata .ai-metric-version {
+    grid-column: 1 / -1;
+}
+
+.ai-result-details-body .ai-revision-help {
+    font-size: 0.74rem;
+    margin-top: 0.55rem;
 }
 
 .ai-comparison {
@@ -1774,6 +1932,10 @@
     .ai-model-comparison-grid {
         grid-template-columns: 1fr;
     }
+
+    .ai-score-explanations {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 620px) {
@@ -1805,14 +1967,17 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .ai-metrics .ai-metric-detector,
-    .ai-metrics .ai-metric-version {
-        grid-column: 1 / -1;
-    }
-
     .ai-result-source {
         max-width: 100%;
         text-align: left;
+    }
+
+    .ai-technical-metadata {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-result-details summary {
+        align-items: flex-start;
     }
 }
 
@@ -1823,6 +1988,15 @@
 
     .ai-score strong {
         font-size: 1.85rem;
+    }
+
+    .ai-result-details-action {
+        font-size: 0;
+    }
+
+    .ai-result-details-action i {
+        font-size: 0.75rem;
+        margin-top: 0.2rem;
     }
 }
 

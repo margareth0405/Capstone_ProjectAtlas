@@ -1,7 +1,7 @@
 {% extends "library/dashboard_base.html" %}
 {% load static %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261003-teacher-tools">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261011-ai-result-help">{% endblock %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}AI Detection | ATLAS{% endblock %}
@@ -103,21 +103,67 @@
                 <strong>{{ detection_result.score }}%</strong>
                 <span>{{ detection_result.label }}</span>
               </div>
-              <dl class="ai-metrics">
+              <dl class="ai-metrics ai-metrics-summary">
                 <div><dt>AI-pattern score</dt><dd>{{ detection_result.ai_probability }}%</dd></div>
                 <div><dt>Human-pattern score</dt><dd>{{ detection_result.human_probability }}%</dd></div>
                 <div><dt>Model certainty score</dt><dd>{{ detection_result.confidence }}%</dd></div>
-                <div><dt>Text sections</dt><dd>{{ detection_result.chunks_analyzed }}</dd></div>
-                {% if detection_result.aggregation_method %}
-                  <div><dt>Sections with strong AI indicators</dt><dd>{{ detection_result.strong_ai_sections }} / {{ detection_result.chunks_analyzed }}</dd></div>
-                  <div><dt>Highest indicator</dt><dd>Section {{ detection_result.highest_ai_section }} — {{ detection_result.highest_ai_probability }}%</dd></div>
-                  <div><dt>Lowest indicator</dt><dd>Section {{ detection_result.lowest_ai_section }} — {{ detection_result.lowest_ai_probability }}%</dd></div>
-                  <div><dt>Aggregation</dt><dd>{{ detection_result.aggregation_method }}</dd></div>
-                {% endif %}
-                <div class="ai-metric-detector"><dt>Detector</dt><dd>{{ detection_result.detector_name }}</dd></div>
-                <div class="ai-metric-version"><dt>Model version</dt><dd title="{{ detection_result.model_version }}">{{ detection_result.model_version }}</dd></div>
               </dl>
             </div>
+
+            <details class="ai-result-details">
+              <summary>
+                <span><i class="fas fa-circle-info" aria-hidden="true"></i> View additional information</span>
+                <span class="ai-result-details-action" aria-hidden="true"><span class="ai-result-details-show">Show details</span><span class="ai-result-details-hide">Hide details</span> <i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="ai-result-details-body">
+                <section aria-labelledby="aiResultExplanationHeading">
+                  <h3 id="aiResultExplanationHeading">How to read this result</h3>
+                  {% if detection_result.tone == "low" %}
+                    <p>The model found few writing patterns that resemble its AI-generated training examples. This supports a low AI-pattern screening result, but it does not prove who wrote the document.</p>
+                  {% elif detection_result.tone == "high" %}
+                    <p>The model found many writing patterns that resemble its AI-generated training examples. This result needs human review and does not prove that AI wrote the document.</p>
+                  {% else %}
+                    <p>The model found a mixture of human-like and AI-like writing patterns. Treat the result as uncertain and review the document yourself.</p>
+                  {% endif %}
+                  <dl class="ai-score-explanations">
+                    <div>
+                      <dt>AI-pattern score — {{ detection_result.ai_probability }}%</dt>
+                      <dd>How strongly the writing matched the model's learned AI-like patterns. It is not an authorship probability.</dd>
+                    </div>
+                    <div>
+                      <dt>Human-pattern score — {{ detection_result.human_probability }}%</dt>
+                      <dd>The complementary score calculated as 100% minus the AI-pattern score. It is not proof of human authorship.</dd>
+                    </div>
+                    <div>
+                      <dt>Model certainty score — {{ detection_result.confidence }}%</dt>
+                      <dd>The larger of the two pattern scores. It describes how strongly the model leaned in one direction, not how accurate the model is.</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                {% if detection_result.aggregation_method %}
+                  <section aria-labelledby="aiProcessingExplanationHeading">
+                    <h3 id="aiProcessingExplanationHeading">How ATLAS processed the document</h3>
+                    <p>ATLAS divided the text into {{ detection_result.chunks_analyzed }} model-sized processing part{{ detection_result.chunks_analyzed|pluralize }} in their original order. These parts are created for the detector and do not represent the document's headings, paragraphs, or pages.</p>
+                    <ul class="ai-processing-summary">
+                      <li><strong>{{ detection_result.strong_ai_sections }} of {{ detection_result.chunks_analyzed }}</strong> processing part{{ detection_result.chunks_analyzed|pluralize }} reached the detector's 70% strong AI-pattern threshold.</li>
+                      <li>The strongest AI-pattern match was processing part {{ detection_result.highest_ai_section }} at {{ detection_result.highest_ai_probability }}%.</li>
+                      <li>The weakest AI-pattern match was processing part {{ detection_result.lowest_ai_section }} at {{ detection_result.lowest_ai_probability }}%.</li>
+                    </ul>
+                  </section>
+                {% endif %}
+
+                <section aria-labelledby="aiTechnicalInformationHeading">
+                  <h3 id="aiTechnicalInformationHeading">Technical information</h3>
+                  <dl class="ai-technical-metadata">
+                    {% if detection_result.aggregation_method %}<div><dt>Score calculation</dt><dd>{{ detection_result.aggregation_method }}</dd></div>{% endif %}
+                    <div><dt>Detector used</dt><dd>{{ detection_result.detector_name }}</dd></div>
+                    <div class="ai-metric-version"><dt>Model revision ID</dt><dd title="{{ detection_result.model_version }}">{{ detection_result.model_version }}</dd></div>
+                  </dl>
+                  <p class="ai-revision-help">The model revision ID identifies the exact detector version used. It is a technical reference, not part of the score.</p>
+                </section>
+              </div>
+            </details>
           {% endif %}
         {% else %}
           <div class="ai-empty-result"><i class="fas fa-file-circle-question" aria-hidden="true"></i><p>Upload a PDF or Word document, or paste at least 100 characters.</p></div>

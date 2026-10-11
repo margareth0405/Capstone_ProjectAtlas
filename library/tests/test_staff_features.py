@@ -837,6 +837,12 @@ class AIDetectionServiceTests(LibraryTestCase):
                 "human_probability": 23.5,
                 "confidence": 76.5,
                 "chunks_analyzed": 2,
+                "strong_ai_sections": 2,
+                "highest_ai_section": 1,
+                "highest_ai_probability": 80.0,
+                "lowest_ai_section": 2,
+                "lowest_ai_probability": 73.0,
+                "aggregation_method": "Token-weighted section average",
                 "detector_name": "Desklib Academic AI Text Detector",
                 "model_name": "desklib/ai-text-detector-academic-v1.01",
                 "model_version": "test-commit-123",
@@ -898,9 +904,16 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertIn("font-size: clamp(1.65rem, 7vw, 2.2rem);", stylesheet)
         self.assertIn("font-variant-numeric: tabular-nums;", stylesheet)
         self.assertIn("overflow-wrap: anywhere;", stylesheet)
-        self.assertIn(".ai-metrics .ai-metric-version", stylesheet)
-        self.assertIn("grid-column: span 3;", stylesheet)
+        self.assertIn(".ai-technical-metadata .ai-metric-version", stylesheet)
+        self.assertIn("grid-column: 1 / -1;", stylesheet)
         self.assertIn("word-break: break-all;", stylesheet)
+        self.assertIn(".ai-result-details", stylesheet)
+        self.assertIn(
+            ".ai-result-details:not([open]) > .ai-result-details-body",
+            stylesheet,
+        )
+        self.assertIn("min-height: 44px;", stylesheet)
+        self.assertIn(".ai-score-explanations", stylesheet)
         self.assertIn("@media (max-width: 520px)", stylesheet)
 
     def test_staff_can_analyze_pasted_text(self):
@@ -930,6 +943,16 @@ class AIDetectionServiceTests(LibraryTestCase):
         self.assertContains(response, "Desklib Academic AI Text Detector")
         self.assertContains(response, 'class="ai-metric-version"')
         self.assertContains(response, 'title="test-commit-123"')
+        self.assertContains(response, "View additional information")
+        self.assertContains(response, "How to read this result")
+        self.assertContains(response, "How ATLAS processed the document")
+        self.assertContains(response, "2 of 2")
+        self.assertContains(response, "processing part 1 at 80.0%")
+        self.assertContains(response, "not how accurate the model is")
+        self.assertNotContains(response, "Text sections")
+        self.assertNotContains(response, "Sections with strong AI indicators")
+        self.assertNotContains(response, "Highest indicator")
+        self.assertNotContains(response, "Lowest indicator")
         self.assertContains(response, "not proof")
         analysis = AIAnalysis.objects.get(reviewer=self.staff)
         self.assertEqual(analysis.source_name, "Pasted text")

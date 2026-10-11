@@ -674,7 +674,12 @@ html.atlas-dark .ai-metrics div,
 html.atlas-dark .ai-model-metrics div,
 html.atlas-dark .ai-comparison-summary,
 html.atlas-dark .ai-model-result,
-html.atlas-dark .ai-empty-result {
+html.atlas-dark .ai-empty-result,
+html.atlas-dark .ai-result-details,
+html.atlas-dark .ai-result-details-body,
+html.atlas-dark .ai-result-details-body section + section,
+html.atlas-dark .ai-score-explanations div,
+html.atlas-dark .ai-technical-metadata div {
   border-color: var(--atlas-dark-border);
 }
 
@@ -682,14 +687,32 @@ html.atlas-dark .ai-metrics dt,
 html.atlas-dark .ai-model-metrics dt,
 html.atlas-dark .ai-empty-result,
 html.atlas-dark .ai-supported-inputs,
-html.atlas-dark .file-selection-status {
+html.atlas-dark .file-selection-status,
+html.atlas-dark .ai-result-details-action,
+html.atlas-dark .ai-result-details-body p,
+html.atlas-dark .ai-score-explanations dd,
+html.atlas-dark .ai-technical-metadata dd,
+html.atlas-dark .ai-processing-summary {
   color: var(--atlas-dark-muted);
 }
 
 html.atlas-dark .ai-metrics dd,
-html.atlas-dark .ai-model-metrics dd {
+html.atlas-dark .ai-model-metrics dd,
+html.atlas-dark .ai-result-details summary,
+html.atlas-dark .ai-result-details-body h3,
+html.atlas-dark .ai-score-explanations dt,
+html.atlas-dark .ai-technical-metadata dt {
   color: var(--atlas-dark-text);
   overflow-wrap: anywhere;
+}
+
+html.atlas-dark .ai-result-details {
+  background: var(--atlas-dark-surface);
+}
+
+html.atlas-dark .ai-score-explanations div,
+html.atlas-dark .ai-technical-metadata div {
+  background: var(--atlas-dark-raised);
 }
 
 html.atlas-dark .resource-format-toggle label {
