@@ -729,7 +729,7 @@
 
 .form-group .form-control:not(:placeholder-shown):invalid {
   border-color: #dc3545;
-  background: #fff9f9;
+  background: var(--atlas-field-bg-invalid, #fff9f9);
 }
 
 .form-group .form-control:not(:placeholder-shown):valid {

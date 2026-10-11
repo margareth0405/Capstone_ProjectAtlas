@@ -65,7 +65,7 @@
     </form>
 
     {% if items %}
-      <div class="catalog-resource-grid">
+      <div class="catalog-resource-grid content-scroll-region" tabindex="0" role="region" aria-label="Digital Sources results; scroll for more resources">
         {% for item in items %}
           {% url 'library:item_detail' item.pk as item_detail_url %}
           {% url 'library:resource_abstract_reader' item.pk as resource_abstract_reader_url %}

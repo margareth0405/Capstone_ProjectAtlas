@@ -470,6 +470,8 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
             / "theme"
         )
         dark_styles = (theme_root / "dark.css").read_text(encoding="utf-8")
+        shared_styles = (theme_root.parent / "django.css").read_text(encoding="utf-8")
+        login_styles = (theme_root / "login.css").read_text(encoding="utf-8")
         responsive_styles = (theme_root / "responsive.css").read_text(
             encoding="utf-8"
         )
@@ -482,12 +484,53 @@ class AccessibilityAndArchitectureTests(LibraryTestCase):
         self.assertIn("html.atlas-dark .user-activity-table thead th", dark_styles)
         self.assertIn("html.atlas-dark .ai-score.high", dark_styles)
         self.assertIn("html.atlas-dark .resource-availability-badge.is-available", dark_styles)
+        self.assertIn(
+            "html.atlas-dark .form-group .form-control:not(:placeholder-shown):invalid",
+            dark_styles,
+        )
+        self.assertIn(
+            'html.atlas-dark .admin-object-form input:not([type="checkbox"])',
+            dark_styles,
+        )
+        self.assertIn(
+            "-webkit-text-fill-color: var(--atlas-dark-text) !important;",
+            dark_styles,
+        )
+        self.assertIn("caret-color: var(--atlas-dark-text);", dark_styles)
+        self.assertIn("--atlas-field-bg-invalid: #3a2025;", dark_styles)
+        self.assertIn("Last-resort browser-state guard", dark_styles)
+        self.assertIn("background: var(--atlas-note-bg) !important;", dark_styles)
+        self.assertIn("color: #cdbfc3 !important;", dark_styles)
+        self.assertIn("stroke='%23f4edef'", dark_styles)
+        for selector in (
+            "html.atlas-dark .review-status-badge.status-pending",
+            "html.atlas-dark .badge-collection.book",
+            "html.atlas-dark .rate-limit-countdown",
+            "html.atlas-dark .password-checklist li.is-unmet",
+            "html.atlas-dark .account-type-student .account-type-counter-icon",
+            "html.atlas-dark .staff-scroll-region table thead th",
+        ):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, dark_styles)
         self.assertIn("--atlas-dark-text: #f4edef;", dark_styles)
         self.assertIn("--atlas-dark-muted: #cdbfc3;", dark_styles)
         self.assertIn("@media (max-width: 600px)", responsive_styles)
         self.assertIn("font-size: 16px;", responsive_styles)
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important;", responsive_styles)
         self.assertIn("grid-template-columns: 1fr !important;", reader_styles)
+        self.assertIn(".content-scroll-region,", shared_styles)
+        self.assertIn("max-height: 36rem;", shared_styles)
+        self.assertIn(
+            "background: var(--atlas-field-bg-invalid, #fff9f9);",
+            login_styles,
+        )
+
+        template_root = Path(settings.BASE_DIR) / "templates" / "library"
+        for template_name in ("catalog.html", "favorites.html", "dashboard.html"):
+            with self.subTest(template=template_name):
+                template = (template_root / template_name).read_text(encoding="utf-8")
+                self.assertIn("content-scroll-region", template)
+                self.assertIn('tabindex="0"', template)
 
     def test_confirmations_use_action_specific_dialog_and_cancel_loader_safely(self):
         response = self.client.get(reverse("library:landing"))

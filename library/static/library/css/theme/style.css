@@ -735,7 +735,7 @@ body.atlas-sidebar-resizing {
   padding: 0.6rem 1rem;
   border-radius: 10px;
   border: 1px solid #e0dcd8;
-  background: #fff;
+  background: var(--atlas-field-bg, #fff);
   font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   transition: 0.2s ease;

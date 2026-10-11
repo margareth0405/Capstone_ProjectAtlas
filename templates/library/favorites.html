@@ -17,7 +17,7 @@
     </header>
 
     {% if favorites %}
-      <div class="favorites-grid django-favorites-grid">
+      <div class="favorites-grid django-favorites-grid content-scroll-region" tabindex="0" role="region" aria-label="Bookmarked resources; scroll for more bookmarks">
         {% for favorite in favorites %}
           {% with item=favorite.item %}
             {% url 'library:item_detail' item.pk as item_detail_url %}

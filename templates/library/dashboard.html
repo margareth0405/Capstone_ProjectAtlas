@@ -102,7 +102,7 @@
           <h2 id="updatesHeading"><i class="fas fa-bell" aria-hidden="true"></i> Latest Digital Sources Updates</h2>
           <span>Administrator activity</span>
         </div>
-        <div class="library-updates-list">
+        <div class="library-updates-list content-scroll-region" tabindex="0" role="region" aria-label="Latest Digital Sources updates; scroll for more entries">
           {% for entry in library_activity %}
             <article class="library-update-item {{ entry.action|default:'added' }}">
               <span class="library-update-action">{{ entry.action|default:'Added'|title }}</span>

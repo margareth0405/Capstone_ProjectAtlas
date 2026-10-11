@@ -20,6 +20,14 @@ html.atlas-dark {
   --atlas-dark-info-bg: #1c2c40;
   --atlas-dark-info-border: #3f668b;
   --atlas-dark-info-text: #b9ddff;
+  --atlas-field-bg: #181315;
+  --atlas-field-bg-focus: #1d1719;
+  --atlas-field-bg-invalid: #3a2025;
+  --atlas-field-border: #6b565d;
+  --atlas-field-text: #fff7f8;
+  --atlas-note-bg: #2a2225;
+  --atlas-note-border: #57464c;
+  --atlas-note-text: #eee5e8;
 }
 
 html.atlas-dark body,
@@ -196,21 +204,107 @@ html.atlas-dark :where(
 }
 
 html.atlas-dark :where(input, select, textarea, .form-control, .form-select) {
-  background-color: #181315;
-  border-color: #6b565d;
-  color: #fff7f8;
+  background-color: var(--atlas-field-bg);
+  border-color: var(--atlas-field-border);
+  color: var(--atlas-field-text);
 }
 
 html.atlas-dark :where(input, textarea)::placeholder {
-  color: #a9969c;
+  color: #cdbfc3 !important;
   opacity: 1;
 }
 
 html.atlas-dark :where(input, select, textarea):focus {
-  background-color: #1d1719;
+  background-color: var(--atlas-field-bg-focus);
   border-color: #dc8fa0;
   box-shadow: 0 0 0 3px rgba(220, 143, 160, 0.2);
   color: #fff;
+}
+
+/*
+ * Page-level form rules use more specific selectors than the shared fields
+ * above. Keep typed text and every field state on the dark palette instead of
+ * allowing a light background to appear while a value is being entered.
+ */
+html.atlas-dark .admin-object-form input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+html.atlas-dark :is(
+  .form-group,
+  .filter-group,
+  .contact-form-card,
+  .administrator-upload-section,
+  .admin-object-form,
+  .atlas-admin-login-card
+) :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea,
+  .form-control,
+  .form-select
+) {
+  background-color: var(--atlas-field-bg);
+  border-color: var(--atlas-field-border);
+  color: var(--atlas-field-text);
+}
+
+html.atlas-dark .form-group .form-control:not(:placeholder-shown):invalid {
+  background: var(--atlas-field-bg-invalid) !important;
+  border-color: var(--atlas-dark-danger-border);
+  color: var(--atlas-dark-text) !important;
+  -webkit-text-fill-color: var(--atlas-dark-text) !important;
+  caret-color: var(--atlas-dark-text);
+}
+
+/* Last-resort browser-state guard: no text-entry control may turn light. */
+html.atlas-dark body :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea,
+  .form-control,
+  .form-select
+) {
+  background: var(--atlas-field-bg) !important;
+  color: var(--atlas-field-text) !important;
+  -webkit-text-fill-color: var(--atlas-field-text) !important;
+  caret-color: var(--atlas-field-text);
+}
+
+html.atlas-dark body :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea,
+  .form-control,
+  .form-select
+):focus {
+  background: var(--atlas-field-bg-focus) !important;
+}
+
+html.atlas-dark body :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea,
+  .form-control,
+  .form-select
+):is(.is-invalid, :not(:placeholder-shown):invalid) {
+  background: var(--atlas-field-bg-invalid) !important;
+  color: var(--atlas-dark-danger-text) !important;
+  -webkit-text-fill-color: var(--atlas-dark-danger-text) !important;
+}
+
+html.atlas-dark :where(input, textarea):-webkit-autofill,
+html.atlas-dark :where(input, textarea):-webkit-autofill:hover,
+html.atlas-dark :where(input, textarea):-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--atlas-dark-text) !important;
+  caret-color: var(--atlas-dark-text);
+  box-shadow: 0 0 0 1000px var(--atlas-field-bg) inset !important;
+}
+
+html.atlas-dark select option {
+  background-color: #181315;
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark :where(select, .form-select) {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f4edef' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 html.atlas-dark :where(.accessibility-trigger, .accessibility-options button) {
@@ -312,7 +406,8 @@ html.atlas-dark ::selection {
 }
 
 html.atlas-dark :focus-visible {
-  outline-color: #f0b7c2;
+  outline-color: #f0b7c2 !important;
+  box-shadow: 0 0 0 2px #141012 !important;
 }
 
 html.atlas-dark .topbar .search-box,
@@ -527,9 +622,9 @@ html.atlas-dark .ai-score.high,
 html.atlas-dark .form-control.is-invalid,
 html.atlas-dark .form-select.is-invalid,
 html.atlas-dark .upload-progress-panel.has-error {
-  background: var(--atlas-dark-danger-bg);
+  background: var(--atlas-dark-danger-bg) !important;
   border-color: var(--atlas-dark-danger-border);
-  color: var(--atlas-dark-danger-text);
+  color: var(--atlas-dark-danger-text) !important;
 }
 
 html.atlas-dark .activity-action.download,
@@ -679,9 +774,9 @@ html.atlas-dark .password-requirement.is-met {
 
 html.atlas-dark .form-control.is-valid,
 html.atlas-dark .form-select.is-valid {
-  background-color: #15271e;
+  background-color: #15271e !important;
   border-color: var(--atlas-dark-success-border);
-  color: var(--atlas-dark-text);
+  color: var(--atlas-dark-text) !important;
 }
 
 html.atlas-dark .account-status-card,
@@ -759,6 +854,441 @@ html.atlas-dark .account-type-counter small {
 html.atlas-dark .account-type-counter-icon {
   background: #332b2e;
   color: #f2bac7;
+}
+
+/*
+ * System-wide component contrast pass.
+ *
+ * Many components set colors on their own children, so changing a card's
+ * inherited text color is not enough. These rules keep every portal on the
+ * same dark palette while preserving success, warning, danger, and role cues.
+ */
+html.atlas-dark :is(
+  .credential-clipboard-note,
+  .review-workflow,
+  .administrator-view-only,
+  .audit-filter-summary,
+  .protected-reader-badge
+) {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark .credential-clipboard-note {
+  background: var(--atlas-note-bg) !important;
+  border-color: var(--atlas-note-border) !important;
+  color: var(--atlas-note-text) !important;
+}
+
+html.atlas-dark :is(
+  .hero-tag,
+  .atlas-pale-badge,
+  .call-number,
+  .sort-hint,
+  .current-account-badge,
+  .announcements-header .total-badge
+) {
+  background: #482b34;
+  border-color: #7d4d59;
+  color: #ffe8ed;
+}
+
+html.atlas-dark :is(
+  .category-filter,
+  .btn-light,
+  .btn-copy,
+  .announcement-card .btn-share,
+  .password-toggle,
+  .btn-back
+) {
+  background: transparent;
+  border-color: #8d747c;
+  color: #f0e5e8;
+}
+
+html.atlas-dark :is(
+  .category-filter:hover,
+  .btn-light:hover,
+  .btn-light:focus-visible,
+  .btn-copy:hover,
+  .announcement-card .btn-share:hover,
+  .password-toggle:hover,
+  .btn-back:hover
+) {
+  background: #3a2d31;
+  border-color: #f0b7c2;
+  color: #fff;
+}
+
+html.atlas-dark .category-filter.active,
+html.atlas-dark .toggle-btn.active {
+  background: #522431;
+  border-color: #dc8fa0;
+  color: #fff;
+}
+
+html.atlas-dark :is(
+  .recent-items-section .section-header h4,
+  .library-update-copy strong,
+  .library-header h2,
+  .announcement-card .announcement-title,
+  .featured-announcement .featured-title,
+  .announcements-empty h5,
+  .empty-state h5,
+  .favorites-page-empty h2,
+  .catalog-section-heading h2,
+  .catalog-card-copy h2 a,
+  .section-header h2,
+  .django-page-header h1,
+  .staff-panel h2,
+  .contact-form-card h2,
+  .resource-description h2,
+  .resource-reader-header h1,
+  .action-confirmation-copy h2,
+  .user-monitoring-header h3,
+  .admin-registration-heading h4,
+  .user-table-heading h4,
+  .announcements-header .toggle-btn
+) {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark :is(
+  .login-card .tagline,
+  .login-card .sub,
+  .account-status-label,
+  .account-status-card span:last-child,
+  .admin-registration-policy,
+  .register-options p,
+  .auth-switch,
+  .password-guidance-title,
+  .password-checklist li,
+  .password-checklist li i,
+  .password-strength-label,
+  .privacy-summary,
+  .verification-note,
+  .quick-stats .stat-item .label,
+  .library-update-copy p,
+  .library-header p,
+  .favorite-card .card-copies,
+  .announcement-card .announcement-date,
+  .announcement-card .announcement-content,
+  .featured-announcement .featured-content,
+  .action-confirmation-copy p,
+  .resource-detail-cover figcaption,
+  .user-monitoring-header p,
+  .user-table-heading p,
+  .admin-registration-heading p,
+  .admin-registration-grid label,
+  .admin-registration-footer p,
+  .activity-history-list small,
+  .ai-result-source,
+  .empty-user-row,
+  .staff-guidance span,
+  .account-menu-heading span
+) {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark :is(
+  .empty-state,
+  .empty-state p,
+  .favorites-empty,
+  .no-results,
+  .announcements-empty p
+) {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark :is(
+  .empty-state i,
+  .favorites-empty i,
+  .no-results i,
+  .announcements-empty i
+) {
+  color: #8d747c;
+}
+
+html.atlas-dark :is(
+  .login-card .sub,
+  .privacy-summary,
+  .verification-note,
+  .quick-stats,
+  .recent-items-section,
+  .admin-registration-footer,
+  .user-table-heading,
+  .activity-history-list article
+) {
+  border-color: var(--atlas-dark-border);
+}
+
+html.atlas-dark :is(
+  .hero h1 .highlight,
+  .quick-stats .stat-item .number,
+  .recent-items-section .section-header h4 i,
+  .catalog-section-heading a,
+  .staff-panel-footer-link,
+  .credential-clipboard-note i,
+  .admin-registration-footer p i,
+  .admin-function-icon,
+  .eyebrow,
+  .section-kicker,
+  .text-maroon
+) {
+  color: var(--atlas-dark-accent);
+}
+
+html.atlas-dark .admin-function-icon {
+  background: #482b34;
+}
+
+html.atlas-dark .review-status-badge {
+  background: #332b2e;
+  border-color: #6c5a60;
+  color: #eadde1;
+}
+
+html.atlas-dark .review-status-badge.status-pending,
+html.atlas-dark .review-workflow .is-current {
+  background: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-border);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .review-status-badge.status-approved,
+html.atlas-dark .review-workflow .is-complete {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .review-status-badge.status-rejected {
+  background: var(--atlas-dark-danger-bg);
+  border-color: var(--atlas-dark-danger-border);
+  color: var(--atlas-dark-danger-text);
+}
+
+html.atlas-dark .review-workflow span {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark .badge-collection {
+  background: #332b2e;
+  border: 1px solid #6c5a60;
+  color: #eadde1;
+}
+
+html.atlas-dark .badge-collection.book {
+  background: var(--atlas-dark-info-bg);
+  border-color: var(--atlas-dark-info-border);
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .badge-collection.research {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .badge-collection.guide {
+  background: #3a2923;
+  border-color: #79594a;
+  color: #f2cbbb;
+}
+
+html.atlas-dark .badge-collection.sheets {
+  background: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-border);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .badge-collection.journal {
+  background: #30243e;
+  border-color: #6d4c8c;
+  color: #e3c7ff;
+}
+
+html.atlas-dark .reader-favorites-section .favorite-count,
+html.atlas-dark .reader-badge,
+html.atlas-dark .btn-favorite:hover,
+html.atlas-dark .btn-favorite.active {
+  background: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-border);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .btn-copy.copied,
+html.atlas-dark .file-drop-target.has-file .file-selection-status {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .library-update-item.removed .library-update-action {
+  background: var(--atlas-dark-danger-bg);
+  color: var(--atlas-dark-danger-text);
+}
+
+html.atlas-dark .rate-limit-countdown {
+  background: var(--atlas-dark-danger-bg);
+  border-color: var(--atlas-dark-danger-border);
+  color: var(--atlas-dark-danger-text);
+}
+
+html.atlas-dark .rate-limit-countdown.is-ready {
+  background: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-border);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .password-checklist li.is-met,
+html.atlas-dark .password-checklist li.is-met i,
+html.atlas-dark .password-strength[data-level="strong"] strong {
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .password-checklist li.is-unmet,
+html.atlas-dark .password-checklist li.is-unmet i,
+html.atlas-dark .password-strength[data-level="weak"] strong {
+  color: #ffb8c3;
+}
+
+html.atlas-dark .password-strength[data-level="fair"] strong {
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .account-type-student .account-type-counter-icon {
+  background: var(--atlas-dark-info-bg);
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .account-type-teacher .account-type-counter-icon {
+  background: var(--atlas-dark-success-bg);
+  color: var(--atlas-dark-success-text);
+}
+
+html.atlas-dark .account-type-administrator .account-type-counter-icon {
+  background: #482b34;
+  color: #f2bac7;
+}
+
+html.atlas-dark .account-type-superuser .account-type-counter-icon {
+  background: var(--atlas-dark-warning-bg);
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark .staff-scroll-region table thead th {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-border);
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark :is(
+  .recent-item-card h6,
+  .library-updates-section .section-header h4,
+  .contact-card h5,
+  .contact-form-card h4,
+  .django-resource-card h3,
+  .announcement-title-line h3,
+  .django-featured-announcement h2,
+  .announcement-item .item-title,
+  .catalog-announcement-grid strong
+) {
+  color: var(--atlas-dark-text);
+}
+
+html.atlas-dark :is(
+  .recent-item-card .card-author,
+  .recent-item-card .card-time,
+  .library-updates-section .section-header > span,
+  .announcement-item .item-meta small,
+  .announcement-item .item-content,
+  .card-time,
+  .usage-summary-grid span,
+  .usage-percentage-note,
+  .usage-empty-note,
+  .usage-chart-legend li > span:last-child,
+  .staff-compact-table caption
+) {
+  color: var(--atlas-dark-muted);
+}
+
+html.atlas-dark :is(
+  .btn-filter-outline,
+  .announcement-item .btn-action,
+  .atlas-pagination .page-link
+) {
+  background: transparent;
+  border-color: #8d747c;
+  color: #f0e5e8;
+}
+
+html.atlas-dark :is(
+  .btn-filter-outline:hover,
+  .announcement-item .btn-action:hover,
+  .atlas-pagination .page-link:hover,
+  .atlas-pagination .page-link:focus-visible
+) {
+  background: #3a2d31;
+  border-color: #f0b7c2;
+  color: #fff;
+}
+
+html.atlas-dark :is(
+  .contact-card .icon-wrapper,
+  .usage-summary-grid article > i,
+  .usage-empty-note > i,
+  .usage-percentage-note > i,
+  .ai-empty-result i,
+  .resource-form-note i,
+  .resource-format-icon,
+  .error-icon
+) {
+  color: var(--atlas-dark-accent);
+}
+
+html.atlas-dark .contact-card .icon-wrapper,
+html.atlas-dark .usage-summary-grid article > i {
+  background-color: #482b34;
+}
+
+html.atlas-dark :is(
+  .cookie-consent-close,
+  .cookie-consent .cookie-consent-current,
+  .guest-banner .login-prompt,
+  .guest-banner .login-prompt:hover
+) {
+  color: var(--atlas-dark-accent);
+}
+
+html.atlas-dark .cookie-consent-close:hover,
+html.atlas-dark .cookie-consent-close:focus-visible {
+  background: #3a2d31;
+}
+
+html.atlas-dark :is(
+  .guest-banner i,
+  .guest-banner p,
+  .guest-view-only,
+  .guest-view-only i,
+  .reader-view-only,
+  .reader-view-only i
+) {
+  color: var(--atlas-dark-info-text);
+}
+
+html.atlas-dark .reader-favorites-section h5 {
+  color: var(--atlas-dark-warning-text);
+}
+
+html.atlas-dark :where(
+  .content-scroll-region,
+  .reader-scroll-region,
+  .announcements-scroll-region,
+  .staff-scroll-region
+) {
+  scrollbar-color: #7d4d59 var(--atlas-dark-surface);
 }
 
 /* High contrast remains meaningful when it is combined with dark mode. */
