@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count, Sum
 
-from library.models import Favorite, LibraryItem, Profile
+from library.models import Favorite, LibraryItem, Profile, ResourceChangeRequest
 
 
 class SupportContactPresenter:
@@ -88,6 +88,9 @@ class PageContextBuilder:
             "collection_count": stats["unique_types"],
             "author_count": stats["unique_authors"],
             "stats": stats,
+            "pending_resource_request_count": self._pending_resource_request_count(
+                active_role
+            ),
         }
 
     def _active_role(self):
@@ -116,6 +119,30 @@ class PageContextBuilder:
                 count = Favorite.objects.filter(user=user).count()
                 cache.set(cache_key, count, timeout=self.cache_timeout)
             return count
+        return 0
+
+    def _pending_resource_request_count(self, active_role):
+        if active_role in {"administrator", "superuser"}:
+            return (
+                LibraryItem.objects.filter(
+                    review_status=LibraryItem.ReviewStatus.PENDING,
+                    created_by__profile__role=Profile.Role.TEACHER,
+                ).count()
+                + ResourceChangeRequest.objects.filter(
+                    status=ResourceChangeRequest.Status.PENDING
+                ).count()
+            )
+        if active_role == Profile.Role.TEACHER:
+            return (
+                LibraryItem.objects.filter(
+                    review_status=LibraryItem.ReviewStatus.PENDING,
+                    created_by=self.request.user,
+                ).count()
+                + ResourceChangeRequest.objects.filter(
+                    status=ResourceChangeRequest.Status.PENDING,
+                    requested_by=self.request.user,
+                ).count()
+            )
         return 0
 
     @classmethod

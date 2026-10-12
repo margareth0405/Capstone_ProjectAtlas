@@ -26,9 +26,13 @@
     </header>
 
     {% if active_role == "guest" %}
-      <div class="guest-banner" role="note">
-        <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <p>You are browsing as a guest. You can read protected resources in ATLAS. <a class="login-prompt" href="{{ login_url }}">Sign in</a> as a student or teacher to use bookmarks.</p>
+      <div class="guest-banner guest-resource-gate" role="note">
+        <i class="fas fa-lock" aria-hidden="true"></i>
+        <div>
+          <h2>Browse the resource list as a guest</h2>
+          <p>You can search and see which resources are available. Create a student or teacher account to open resource details or read an abstract.</p>
+          <div class="resource-actions"><a class="btn-details" href="{{ register_url }}?next={{ request.path|urlencode }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Create account</a><a class="login-prompt" href="{{ login_url }}?next={{ request.path|urlencode }}">Already registered? Sign in</a></div>
+        </div>
       </div>
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
@@ -86,26 +90,31 @@
               {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}
             </span>
             {% if item.cover_image %}
-              <a class="catalog-cover-link" href="{{ item_detail_url }}" aria-label="View details for {{ item.title }}">
+              {% if active_role == 'guest' %}<div class="catalog-cover-link guest-catalog-cover" aria-label="Cover preview for {{ item.title }}">{% else %}<a class="catalog-cover-link" href="{{ item_detail_url }}" aria-label="View details for {{ item.title }}">{% endif %}
                 <img class="catalog-cover-image" src="{{ resource_cover_url }}" alt="Cover of {{ item.title }}" width="320" height="416" loading="lazy" decoding="async">
-              </a>
+              {% if active_role == 'guest' %}</div>{% else %}</a>{% endif %}
             {% else %}
               <div class="catalog-cover-placeholder" aria-label="No cover image available">
                 <i class="fas fa-book-open" aria-hidden="true"></i><span>No cover</span>
               </div>
             {% endif %}
             <div class="catalog-card-copy">
-              <h2><a href="{{ item_detail_url }}">{{ item.title }}</a></h2>
+              <h2>{% if active_role == 'guest' %}{{ item.title }}{% else %}<a href="{{ item_detail_url }}">{{ item.title }}</a>{% endif %}</h2>
               <p class="catalog-card-author"><i class="fas fa-user-pen" aria-hidden="true"></i> {{ item.author }}</p>
-              <p class="catalog-card-abstract">{{ item.details|default:'No abstract has been provided.'|truncatechars:170 }}</p>
+              <p class="catalog-card-abstract">{% if active_role == 'guest' %}<i class="fas fa-lock" aria-hidden="true"></i> Sign up or sign in to view this resource's details and abstract.{% else %}{{ item.details|default:'No abstract has been provided.'|truncatechars:170 }}{% endif %}</p>
             </div>
             <dl class="catalog-card-dates">
               <div><dt>Published</dt><dd>{{ item.publication_date_display }}</dd></div>
               <div><dt>Added to ATLAS</dt><dd>{{ item.created_at|date:'M j, Y' }}</dd></div>
             </dl>
             <div class="catalog-card-actions">
-              <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
-              {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
+              {% if active_role == 'guest' %}
+                <a class="btn-details" href="{{ register_url }}?next={{ item_detail_url|urlencode }}"><i class="fas fa-user-plus" aria-hidden="true"></i> Sign up to view</a>
+                <a class="login-prompt" href="{{ login_url }}?next={{ item_detail_url|urlencode }}">Sign in</a>
+              {% else %}
+                <a class="btn-details" href="{{ item_detail_url }}"><i class="fas fa-book-open" aria-hidden="true"></i> View abstract</a>
+                {% if item.resource_abstract %}<a class="btn-details" href="{{ resource_abstract_reader_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read resource abstract</a>{% endif %}
+              {% endif %}
               {% if item.is_published %}
                 {% if active_role == "student" or active_role == "teacher" %}
                   <form action="{{ favorite_toggle_url }}" method="post" class="inline-action-form" data-optimistic-bookmark>

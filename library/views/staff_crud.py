@@ -238,7 +238,7 @@ class StaffItemReviewView(StaffRequiredMixin, View):
 
     def get(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
-        context = PageContextBuilder(request).build("catalog")
+        context = PageContextBuilder(request).build("resource_requests")
         context["item"] = item
         context["change_request"] = item.change_requests.filter(
             status=ResourceChangeRequest.Status.PENDING
@@ -271,11 +271,12 @@ class StaffItemChangeAbstractView(StaffRequiredMixin, View):
                 document.close()
             except (BotoCoreError, ClientError, OSError):
                 logger.warning("Could not close proposed abstract %s", pk, exc_info=True)
-        context = PageContextBuilder(request).build("catalog")
+        context = PageContextBuilder(request).build("resource_requests")
         context.update({
             "item": change.item, "resource_content": content,
             "reader_error": error, "reader_heading": "Read proposed abstract",
             "reader_badge": "Staff review only",
+            "staff_review_reader": True,
             "document_display_type": change.proposed_values.get("file_type", "PDF"),
         })
         response = render(request, "library/resource_abstract_reader.html", context)

@@ -30,6 +30,8 @@ class ResourceChangeService:
         request = ResourceChangeRequest(
             item=item, requested_by=requester,
             action=ResourceChangeRequest.Action.EDIT,
+            item_title=item.title,
+            item_call_number=item.call_number,
             proposed_values=values,
             clear_cover=(
                 "cover_image" in form.changed_data
@@ -66,15 +68,15 @@ class ResourceChangeService:
         return ResourceChangeRequest.objects.create(
             item=item, requested_by=requester,
             action=ResourceChangeRequest.Action.DELETE,
+            item_title=item.title,
+            item_call_number=item.call_number,
         )
 
     def decide(self, *, change, reviewer, approve, notes):
         old_files = {}
         persistence = self.persistence_service_class()
         with transaction.atomic():
-            change = ResourceChangeRequest.objects.select_for_update().select_related(
-                "item"
-            ).get(pk=change.pk)
+            change = ResourceChangeRequest.objects.select_for_update().get(pk=change.pk)
             if change.status != ResourceChangeRequest.Status.PENDING:
                 return None
             item = LibraryItem.objects.select_for_update().get(pk=change.item_id)
@@ -102,6 +104,7 @@ class ResourceChangeService:
             if approve and change.action == ResourceChangeRequest.Action.DELETE:
                 old_files = persistence._file_snapshots(item)
                 item.delete()
+                change.item_id = None
         if approve and change.action == ResourceChangeRequest.Action.DELETE:
             for storage, name in old_files.values():
                 persistence._safe_delete(storage, name)

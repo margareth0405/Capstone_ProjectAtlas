@@ -1379,7 +1379,67 @@ textarea {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 0.45rem;
-  scrollbar-gutter: stable;
+}
+
+/* Resource access and review history */
+.guest-resource-gate {
+  align-items: flex-start;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.guest-resource-gate h2 {
+  color: var(--maroon-800);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  margin: 0 0 0.45rem;
+}
+
+.guest-resource-gate .resource-actions {
+  margin-top: 1rem;
+}
+
+.resource-requests-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.resource-requests-page .library-header {
+  margin-bottom: 0;
+}
+
+.request-history-section {
+  background: #fff;
+  border: 1px solid #e6dfda;
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(74, 17, 28, 0.05);
+}
+
+.request-history-table {
+  overflow: auto;
+}
+
+.request-history-table .library-table {
+  min-width: 64rem;
+}
+
+.request-history-table td > strong,
+.request-history-table td > small,
+.request-history-table td > span:not(.review-status-badge) {
+  display: block;
+}
+
+.request-history-table td > small {
+  color: #6c625e;
+  margin-top: 0.2rem;
+}
+
+.request-history-table td > span:not(.review-status-badge) {
+  margin-top: 0.3rem;
+}
+
+.request-complete-label {
+  color: #246a3a;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .content-scroll-region:focus-visible,
@@ -1387,6 +1447,13 @@ textarea {
 .announcements-scroll-region:focus-visible {
   outline: 3px solid rgba(114, 28, 47, 0.28);
   outline-offset: 4px;
+}
+
+/* Keep the dashboard compact while leaving every recent resource reachable. */
+.reader-scroll-region.recent-items-scroll-region {
+  max-height: clamp(18rem, 52vh, 28rem);
+  max-height: clamp(18rem, 52dvh, 28rem);
+  scrollbar-width: thin;
 }
 
 .announcements-scroll-region {

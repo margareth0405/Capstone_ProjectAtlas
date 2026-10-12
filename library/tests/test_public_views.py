@@ -23,13 +23,18 @@ class GuestPageTests(LibraryTestCase):
                 response = self.client.get(reverse(f"library:{route_name}"))
                 self.assertEqual(response.status_code, 200)
 
-    def test_guest_can_browse_catalog_data(self):
+    def test_guest_can_browse_list_but_cannot_open_resource_content(self):
         item = self.create_item()
 
         response = self.client.get(reverse("library:catalog"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Browse the resource list as a guest")
         self.assertContains(response, item.title)
+        self.assertContains(response, item.author)
+        self.assertContains(response, "Sign up to view")
+        self.assertNotContains(response, "Read resource abstract")
+        self.assertNotContains(response, item.details)
 
     def test_only_published_announcements_are_visible_to_guests(self):
         published = self.create_announcement(title="Visible announcement")
@@ -57,13 +62,14 @@ class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
         self.assertContains(dashboard, "scroll for more entries")
         self.assertContains(announcements, "announcements-scroll-region")
 
-    def test_hard_copy_availability_is_visible_to_guest_student_and_teacher(self):
+    def test_hard_copy_availability_is_visible_to_student_and_teacher_only(self):
         item = self.create_item(hard_copy_available=True)
 
         guest_catalog = self.client.get(reverse("library:catalog"))
         guest_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
         self.assertContains(guest_catalog, "Hard copy available")
-        self.assertContains(guest_detail, "Hard copy available")
+        self.assertEqual(guest_detail.status_code, 302)
+        self.assertTrue(guest_detail.url.startswith(reverse("library:register")))
 
         for role in (Profile.Role.STUDENT, Profile.Role.TEACHER):
             with self.subTest(role=role):
@@ -78,6 +84,7 @@ class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
 
     def test_unavailable_hard_copy_is_labeled_clearly(self):
         self.create_item(hard_copy_available=False)
+        self.client.force_login(self.create_user(email="availability-reader@example.com"))
 
         response = self.client.get(reverse("library:catalog"))
 
@@ -119,10 +126,12 @@ class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
         )
 
         self.assertNotContains(self.client.get(reverse("library:catalog")), item.title)
-        self.assertEqual(
-            self.client.get(reverse("library:item_detail", args=[item.pk])).status_code,
-            404,
-        )
+        guest_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertEqual(guest_detail.status_code, 302)
+        self.client.force_login(self.create_user(email="pending-public-reader@example.com"))
+        self.assertEqual(self.client.get(
+            reverse("library:item_detail", args=[item.pk])
+        ).status_code, 404)
 
     def test_catalog_sorts_title_author_and_publication_date_both_directions(self):
         alpha = self.create_item(
@@ -137,6 +146,7 @@ class AnnouncementAndCatalogVisibilityTests(LibraryTestCase):
             author="Alpha Author",
             published_on=date(2025, 6, 1),
         )
+        self.client.force_login(self.create_user(email="catalog-sorter@example.com"))
 
         cases = (
             ("title", [alpha, beta]),
@@ -350,12 +360,18 @@ class ResourceAbstractReaderTests(LibraryTestCase):
     def test_catalog_has_read_action_and_no_download_action_for_every_role(self):
         for role in ("guest", Profile.Role.STUDENT, Profile.Role.TEACHER):
             with self.subTest(role=role):
-                if role != "guest":
+                if role == "guest":
+                    self.client.logout()
+                else:
                     self.client.force_login(
                         self.create_user(email=f"reader-{role}@example.com", role=role)
                     )
                 response = self.client.get(reverse("library:catalog"))
-                self.assertContains(response, "Read resource abstract")
+                if role == "guest":
+                    self.assertContains(response, "Browse the resource list as a guest")
+                    self.assertNotContains(response, "Read resource abstract")
+                else:
+                    self.assertContains(response, "Read resource abstract")
                 self.assertNotContains(response, ">Download<")
                 self.assertNotContains(response, "fa-book-reader")
                 self.client.logout()
@@ -379,6 +395,7 @@ class ResourceAbstractReaderTests(LibraryTestCase):
         self.assertEqual(event.role, Profile.Role.TEACHER)
 
     def test_reader_is_view_only_and_not_cached(self):
+        self.client.force_login(self.create_user(email="view-only-reader@example.com"))
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             response = self.client.get(self.url)
 
@@ -400,14 +417,13 @@ class ResourceAbstractReaderTests(LibraryTestCase):
             "clipboard-read=(), clipboard-write=(), display-capture=()",
         )
 
-    def test_guest_can_read_and_is_recorded_as_guest(self):
+    def test_guest_is_sent_to_registration_and_no_view_is_recorded(self):
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             response = self.client.get(self.url)
 
-        self.assertEqual(response.status_code, 200)
-        event = ResourceViewEvent.objects.get()
-        self.assertIsNone(event.user)
-        self.assertEqual(event.role, "guest")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("library:register")))
+        self.assertFalse(ResourceViewEvent.objects.exists())
 
     def test_original_media_file_is_not_publicly_routed(self):
         response = self.client.get(f"/media/{self.item.resource_abstract.name}")
@@ -417,6 +433,7 @@ class ResourceAbstractReaderTests(LibraryTestCase):
     def test_missing_stored_document_has_safe_recovery_message(self):
         document = self.item.resource_abstract
         document.storage.delete(document.name)
+        self.client.force_login(self.create_user(email="missing-document-reader@example.com"))
 
         response = self.client.get(self.url)
 
@@ -459,6 +476,8 @@ class ResourceAttachmentsTests(LibraryTestCase):
                 content_type="application/pdf",
             ),
         )
+        self.reader = self.create_user(email="cover-reader@example.com")
+        self.client.force_login(self.reader)
 
     def test_catalog_and_detail_show_cover_and_abstract_reader(self):
         catalog_response = self.client.get(reverse("library:catalog"))
@@ -504,19 +523,16 @@ class ResourceAttachmentsTests(LibraryTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_guest_can_read_uploaded_abstract_inside_atlas(self):
+    def test_guest_cannot_read_uploaded_abstract_inside_atlas(self):
+        self.client.logout()
         with patch.object(ResourceAbstractReaderView, "extractor_class", self.StubExtractor):
             response = self.client.get(
                 reverse("library:resource_abstract_reader", args=[self.item.pk])
             )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
-            "The uploaded abstract text is displayed inside ATLAS.",
-        )
-        self.assertContains(response, "Protected resource abstract")
-        self.assertEqual(ResourceViewEvent.objects.get().role, "guest")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("library:register")))
+        self.assertFalse(ResourceViewEvent.objects.exists())
 
     def test_attachment_media_paths_are_not_public(self):
         for field_name in ("cover_image", "resource_abstract"):

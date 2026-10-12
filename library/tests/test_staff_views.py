@@ -29,6 +29,7 @@ class StaffAuthorizationTests(LibraryTestCase):
             ("get", reverse("library:staff_portal")),
             ("get", reverse("library:staff_users")),
             ("get", reverse("library:staff_reports")),
+            ("get", reverse("library:resource_requests")),
             ("get", reverse("library:staff_item_create")),
             ("get", reverse("library:staff_item_edit", args=[self.item.pk])),
             ("post", reverse("library:staff_item_delete", args=[self.item.pk])),
@@ -56,6 +57,7 @@ class StaffAuthorizationTests(LibraryTestCase):
             reverse("library:staff_portal"),
             reverse("library:staff_users"),
             reverse("library:staff_reports"),
+            reverse("library:resource_requests"),
             reverse("library:catalog"),
             reverse("library:staff_item_create"),
             reverse("library:staff_item_edit", args=[self.item.pk]),
@@ -75,7 +77,7 @@ class StaffAuthorizationTests(LibraryTestCase):
                 self.assertEqual(response.status_code, 302)
                 expected_login = (
                     reverse("library:login")
-                    if "/staff/repository/" in url
+                    if "/staff/repository/" in url or url == reverse("library:resource_requests")
                     else reverse("admin:login")
                 )
                 self.assertIn(expected_login, response.url)
@@ -97,9 +99,10 @@ class StaffAuthorizationTests(LibraryTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Administrator Home")
         self.assertContains(response, "Administration functions")
-        self.assertContains(response, 'class="admin-function-card"', count=6)
+        self.assertContains(response, 'class="admin-function-card"', count=7)
         for destination in (
             reverse("library:catalog"),
+            reverse("library:resource_requests"),
             reverse("library:staff_users"),
             reverse("library:staff_ai_detection"),
             reverse("library:announcements"),
@@ -383,6 +386,7 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "Bookmark")
         self.assertContains(response, "Edit")
         self.assertContains(response, "Request delete")
+        self.assertContains(response, "RESOURCE REQUESTS")
 
     def test_teacher_upload_is_analyzed_then_waits_for_staff_approval(self):
         teacher = self.create_user(
@@ -458,6 +462,11 @@ class StaffCrudTests(LibraryTestCase):
         self.assertEqual(item.review_status, LibraryItem.ReviewStatus.APPROVED)
         self.assertEqual(item.reviewed_by, self.staff)
         self.assertEqual(item.review_notes, "Metadata and abstract reviewed.")
+
+        self.client.force_login(teacher)
+        decision = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(decision, "Metadata and abstract reviewed.")
+        self.assertContains(decision, "approved")
 
         self.client.force_login(student)
         self.assertContains(self.client.get(reverse("library:catalog")), item.title)
@@ -537,8 +546,27 @@ class StaffCrudTests(LibraryTestCase):
         self.client.force_login(teacher)
         self.client.post(url)
         self.client.force_login(self.staff)
-        self.client.post(reverse("library:staff_item_approve", args=[item.pk]))
+        self.client.post(
+            reverse("library:staff_item_approve", args=[item.pk]),
+            {"review_notes": "Approved because the teacher confirmed removal."},
+        )
         self.assertFalse(LibraryItem.objects.filter(pk=item.pk).exists())
+        approved_delete = ResourceChangeRequest.objects.get(
+            requested_by=teacher,
+            action=ResourceChangeRequest.Action.DELETE,
+            status=ResourceChangeRequest.Status.APPROVED,
+        )
+        self.assertIsNone(approved_delete.item_id)
+        self.assertEqual(approved_delete.item_title, "Django Testing Handbook")
+
+        staff_history = self.client.get(reverse("library:resource_requests"))
+        self.assertContains(staff_history, "Approved because the teacher confirmed removal.")
+        self.assertContains(staff_history, "Removed after approved deletion")
+
+        self.client.force_login(teacher)
+        teacher_history = self.client.get(reverse("library:resource_requests"))
+        self.assertContains(teacher_history, "Approved because the teacher confirmed removal.")
+        self.assertContains(teacher_history, "Django Testing Handbook")
 
     def test_teacher_cannot_change_another_teachers_resource(self):
         owner = self.create_user(email="owner@deped.gov.ph", role=Profile.Role.TEACHER)

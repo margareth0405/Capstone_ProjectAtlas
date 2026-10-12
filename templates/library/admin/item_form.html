@@ -6,6 +6,7 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Resource | ATLAS{% endblock %}
 {% block meta_description %}Add or update an ATLAS resource and its protected abstract.{% endblock %}
+{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li>{% endblock %}
 {% block breadcrumb %}{% if form.instance.pk %}Edit Resource{% else %}Add Resource{% endif %}{% endblock %}
 
 {% block dashboard_content %}
@@ -33,7 +34,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. Hard-copy availability is shown to administrators, students, teachers, and guests. The date added to ATLAS is generated automatically.</span></div>
+      <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. Hard-copy availability is shown in the resource list to administrators, students, teachers, and guests. The date added to ATLAS is generated automatically.</span></div>
       <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> {% if active_role == 'teacher' %}{% if form.instance.pk %}Request edit{% else %}Submit for review{% endif %}{% else %}Save resource{% endif %}</button></div>
     </form>
   </div>

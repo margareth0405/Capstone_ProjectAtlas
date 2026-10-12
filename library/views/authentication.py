@@ -185,7 +185,9 @@ class RegisterView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):
                         request,
                         user,
                         email_verification=allauth_account_settings.EMAIL_VERIFICATION,
-                        success_url=reverse("library:dashboard"),
+                        success_url=SafeRedirectService.resolve(
+                            request, "library:dashboard"
+                        ),
                     )
             except self.email_exceptions:
                 self.handle_email_error(request, form)
@@ -211,7 +213,12 @@ class RegisterView(EmailDeliveryErrorMixin, RoleSelectionMixin, View):
         return render(
             request,
             self.template_name,
-            {"form": form, "active_role": "guest", "selected_role": selected_role},
+            {
+                "form": form,
+                "active_role": "guest",
+                "selected_role": selected_role,
+                "next": request.POST.get("next") or request.GET.get("next", ""),
+            },
         )
 
 

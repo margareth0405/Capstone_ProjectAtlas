@@ -485,6 +485,7 @@ class SecurityRegressionTests(LibraryTestCase):
 
     def test_sql_injection_text_is_treated_as_a_literal_search(self):
         self.create_item(title="Visible research title")
+        self.client.force_login(self.create_user(email="sql-search-reader@example.com"))
 
         response = self.client.get(
             reverse("library:catalog"),
@@ -496,6 +497,7 @@ class SecurityRegressionTests(LibraryTestCase):
 
     def test_xss_search_payload_is_escaped(self):
         payload = '<script>alert("atlas")</script>'
+        self.client.force_login(self.create_user(email="xss-search-reader@example.com"))
 
         response = self.client.get(reverse("library:catalog"), {"q": payload})
 

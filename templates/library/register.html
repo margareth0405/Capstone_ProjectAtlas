@@ -13,7 +13,7 @@
 
   <main class="login-container register-container" id="mainContent" tabindex="-1">
     <section class="login-card register-card" aria-labelledby="registerTitle">
-      <a class="btn-back" href="{{ login_url }}?role={{ auth_role }}">
+      <a class="btn-back" href="{{ login_url }}?role={{ auth_role }}{% if next %}&next={{ next|urlencode }}{% endif %}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to login
       </a>
 
@@ -21,8 +21,8 @@
         <i class="fas fa-user-plus" aria-hidden="true"></i>
       </a>
       <nav class="auth-role-switch" aria-label="Choose account type">
-        <a class="{% if auth_role == 'student' %}active{% endif %}" href="{{ register_url }}?role=student"><i class="fas fa-user-graduate" aria-hidden="true"></i> Student</a>
-        <a class="{% if auth_role == 'teacher' %}active{% endif %}" href="{{ register_url }}?role=teacher"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Teacher</a>
+        <a class="{% if auth_role == 'student' %}active{% endif %}" href="{{ register_url }}?role=student{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-user-graduate" aria-hidden="true"></i> Student</a>
+        <a class="{% if auth_role == 'teacher' %}active{% endif %}" href="{{ register_url }}?role=teacher{% if next %}&next={{ next|urlencode }}{% endif %}"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Teacher</a>
       </nav>
       <span class="account-type-badge reader-account">
         {% if auth_role == "teacher" %}Teacher{% else %}Student{% endif %} account
@@ -35,6 +35,7 @@
       <form action="{{ register_url }}" method="post" novalidate data-single-submit data-protect-credentials>
         {% csrf_token %}
         <input type="hidden" name="role" value="{{ auth_role }}">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
         {% include "library/includes/form_errors.html" with form=form %}
 
         <div class="form-group">

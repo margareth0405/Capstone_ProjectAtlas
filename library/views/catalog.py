@@ -4,6 +4,7 @@ import logging
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
@@ -13,6 +14,7 @@ from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.utils.http import content_disposition_header
 from django.views import View
 from django.views.generic import TemplateView
@@ -34,6 +36,16 @@ from .mixins import PageContextMixin
 logger = logging.getLogger(__name__)
 
 STORAGE_READ_EXCEPTIONS = (BotoCoreError, ClientError, OSError)
+
+
+class RegisteredResourceAccessMixin:
+    """Send anonymous visitors to account creation before showing a resource."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            query = urlencode({"next": request.get_full_path()})
+            return redirect(f"{reverse('library:register')}?{query}")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CatalogView(PageContextMixin, TemplateView):
@@ -77,7 +89,7 @@ class CatalogView(PageContextMixin, TemplateView):
         return context
 
 
-class ItemDetailView(PageContextMixin, TemplateView):
+class ItemDetailView(RegisteredResourceAccessMixin, PageContextMixin, TemplateView):
     template_name = "library/item_detail.html"
     active_page = "catalog"
 
@@ -90,8 +102,17 @@ class ItemDetailView(PageContextMixin, TemplateView):
         can_review_change = self.request.user.is_authenticated and (
             self.request.user.is_staff or item.created_by_id == self.request.user.pk
         )
-        context["latest_change"] = (
+        latest_change = (
             item.change_requests.first() if can_review_change else None
+        )
+        context["latest_change"] = latest_change
+        context["show_submission_decision"] = bool(
+            item.reviewed_at
+            and latest_change is None
+            and (
+                self.request.user.is_staff
+                or item.created_by_id == self.request.user.pk
+            )
         )
         context["is_favorite"] = (
             self.request.user.is_authenticated
@@ -101,7 +122,9 @@ class ItemDetailView(PageContextMixin, TemplateView):
         return context
 
 
-class ProtectedDocumentReaderView(PageContextMixin, TemplateView):
+class ProtectedDocumentReaderView(
+    RegisteredResourceAccessMixin, PageContextMixin, TemplateView
+):
     """Base reader for extracting text without exposing an uploaded file."""
 
     template_name = "library/resource_abstract_reader.html"

@@ -180,7 +180,6 @@ body {
 :where(.table-responsive, .legal-table-wrap) {
   max-width: 100%;
   overscroll-behavior-inline: contain;
-  scrollbar-gutter: stable;
 }
 
 /* Compact, keyboard-scrollable administrator lists. */
@@ -217,7 +216,6 @@ body {
   max-height: min(25rem, 58vh);
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
 .staff-scroll-region-resources,

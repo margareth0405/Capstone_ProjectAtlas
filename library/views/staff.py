@@ -22,7 +22,12 @@ from .staff_crud import (
     StaffItemReviewView,
     StaffItemChangeAbstractView,
 )
-from .staff_dashboard import StaffPortalView, StaffReportsView, StaffUsersView
+from .staff_dashboard import (
+    ResourceRequestsView,
+    StaffPortalView,
+    StaffReportsView,
+    StaffUsersView,
+)
 
 __all__ = (
     "StaffAIDetectionView",
@@ -41,6 +46,7 @@ __all__ = (
     "StaffItemReviewView",
     "StaffItemChangeAbstractView",
     "StaffPortalView",
+    "ResourceRequestsView",
     "StaffReportsView",
     "StaffUserCreateView",
     "StaffUserDeleteView",

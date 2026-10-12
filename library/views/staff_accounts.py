@@ -297,7 +297,9 @@ class StaffAccountEditView(StaffRequiredMixin, View):
 
     def _render(self, account, username_form=None, password_form=None):
         editing_self = account == self.request.user
-        context = PageContextBuilder(self.request).build("users")
+        context = PageContextBuilder(self.request).build(
+            "account" if editing_self else "users"
+        )
         context.update(
             {
                 "account": account,

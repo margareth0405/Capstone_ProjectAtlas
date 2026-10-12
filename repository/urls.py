@@ -6,6 +6,11 @@ from library import views
 
 urlpatterns = [
     path("repository/", views.CatalogView.as_view(), name="catalog"),
+    path(
+        "repository/requests/",
+        views.ResourceRequestsView.as_view(),
+        name="resource_requests",
+    ),
     path("repository/<int:pk>/", views.ItemDetailView.as_view(), name="item_detail"),
     path(
         "repository/<int:pk>/cover/",

@@ -16,6 +16,7 @@
   {% url 'library:staff_user_create' as staff_user_create_url %}
   {% url 'library:superuser_admin_create' as superuser_admin_create_url %}
   {% url 'library:staff_announcement_create' as staff_announcement_create_url %}
+  {% url 'library:resource_requests' as resource_requests_url %}
 
   <div class="staff-portal staff-home">
     <header class="staff-portal-header django-page-header">
@@ -37,7 +38,7 @@
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open messages</span></article>
     </section>
     <section class="staff-panel" aria-labelledby="pendingResourceHeading">
-      <div class="staff-panel-heading"><div><span class="section-kicker">Repository moderation</span><h2 id="pendingResourceHeading">Pending resource requests</h2></div></div>
+      <div class="staff-panel-heading"><div><span class="section-kicker">Repository moderation</span><h2 id="pendingResourceHeading">Pending resource requests</h2></div><a href="{{ resource_requests_url }}">View all requests and decisions</a></div>
       {% if pending_additions or pending_changes %}
         <div class="resource-actions">
           {% for item in pending_additions %}<a class="btn-details" href="{% url 'library:staff_item_review' item.pk %}">Add: {{ item.title }}</a>{% endfor %}
@@ -59,6 +60,11 @@
         <a class="admin-function-card" href="{{ catalog_url }}">
           <span class="admin-function-icon"><i class="fas fa-book" aria-hidden="true"></i></span>
           <span class="admin-function-copy"><strong>Digital Sources</strong><small>Browse and manage repository resources.</small></span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="admin-function-card" href="{{ resource_requests_url }}">
+          <span class="admin-function-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
+          <span class="admin-function-copy"><strong>Resource Requests</strong><small>Review teacher submissions, edits, deletions, and past decisions.</small></span>
           <i class="fas fa-arrow-right" aria-hidden="true"></i>
         </a>
         <a class="admin-function-card" href="{{ staff_users_url }}">

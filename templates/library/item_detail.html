@@ -2,7 +2,8 @@
 
 {% block title %}{{ item.title }} | ATLAS{% endblock %}
 {% block meta_description %}View the abstract, author, publication details, and protected reading options for {{ item.title }} in ATLAS.{% endblock %}
-{% block breadcrumb %}Resource abstract{% endblock %}
+{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li>{% endblock %}
+{% block breadcrumb %}Resource Details{% endblock %}
 
 {% block dashboard_content %}
   {% url 'library:catalog' as catalog_url %}
@@ -32,6 +33,7 @@
       <div class="resource-format-icon" aria-hidden="true"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}"></i></div>
     </header>
     {% if latest_change %}<div class="resource-form-note" role="status"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{% if request.user.is_staff %}The{% else %}Your{% endif %} {{ latest_change.get_action_display|lower }} request is {{ latest_change.get_status_display|lower }}.{% if latest_change.review_notes %} Staff note: {{ latest_change.review_notes }}{% endif %}{% if latest_change.status == 'pending' %} The approved resource remains available until staff decide.{% endif %}</span></div>{% endif %}
+    {% if show_submission_decision %}<div class="resource-form-note" role="status"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{% if request.user.is_staff %}The{% else %}Your{% endif %} resource submission was <strong>{{ item.get_review_status_display|lower }}</strong> by {{ item.reviewed_by.get_full_name|default:item.reviewed_by.email|default:'a staff member' }} on {{ item.reviewed_at|date:'M j, Y g:i A' }}.{% if item.review_notes %} Staff note: {{ item.review_notes }}{% endif %}</span></div>{% endif %}
 
     <dl class="resource-metadata">
       <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>

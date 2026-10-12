@@ -3,6 +3,7 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}Create Administrator | ATLAS{% endblock %}
 {% block meta_description %}Create a protected ATLAS administrator account.{% endblock %}
+{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:staff_users' %}">Website Users</a></li>{% endblock %}
 {% block breadcrumb %}Create Administrator{% endblock %}
 
 {% block dashboard_content %}

@@ -164,8 +164,14 @@ class ResourceChangeRequest(models.Model):
         REJECTED = "rejected", "Changes requested"
 
     item = models.ForeignKey(
-        LibraryItem, on_delete=models.CASCADE, related_name="change_requests"
+        LibraryItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="change_requests",
     )
+    item_title = models.CharField(max_length=255, blank=True)
+    item_call_number = models.CharField(max_length=80, blank=True)
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="resource_change_requests",
@@ -207,10 +213,26 @@ class ResourceChangeRequest(models.Model):
 
     @property
     def resource_abstract(self):
-        return self.abstract_upload or self.item.resource_abstract
+        if self.abstract_upload:
+            return self.abstract_upload
+        return self.item.resource_abstract if self.item_id else None
+
+    @property
+    def resource_title(self):
+        if self.action == self.Action.EDIT and self.proposed_values.get("title"):
+            return self.proposed_values["title"]
+        return self.item_title or (self.item.title if self.item_id else "Deleted resource")
+
+    @property
+    def resource_call_number(self):
+        if self.action == self.Action.EDIT and self.proposed_values.get("call_number"):
+            return self.proposed_values["call_number"]
+        return self.item_call_number or (
+            self.item.call_number if self.item_id else "Not available"
+        )
 
     def __str__(self):
-        return f"{self.get_action_display()} request for {self.item}"
+        return f"{self.get_action_display()} request for {self.resource_title}"
 
 
 class Favorite(models.Model):

@@ -439,6 +439,20 @@ class ScrollingStyleTests(LibraryTestCase):
                 self.assertRegex(rule, r"(?m)^\s*overflow\s*:\s*visible\s*;")
                 self.assertNotRegex(rule, r"(?m)^\s*overflow\s*:\s*hidden\s*;")
 
+    def test_recent_items_have_a_compact_internal_scroll_region(self):
+        project_root = Path(settings.BASE_DIR)
+        css = (
+            project_root / "library/static/library/css/django.css"
+        ).read_text(encoding="utf-8")
+        template = (
+            project_root / "templates/library/dashboard.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("recent-items-scroll-region", template)
+        rule = self._last_rule(css, ".reader-scroll-region.recent-items-scroll-region")
+        self.assertRegex(rule, r"(?m)^\s*max-height\s*:\s*clamp\(")
+        self.assertIn("reader-scroll-region", template)
+
     def test_dashboard_sidebar_can_resize_without_splitting_words(self):
         project_root = Path(settings.BASE_DIR)
         template = (project_root / "templates/library/dashboard_base.html").read_text(

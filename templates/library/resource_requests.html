@@ -1,0 +1,104 @@
+{% extends "library/dashboard_base.html" %}
+
+{% block title %}{% if staff_request_view %}Resource Requests{% else %}My Resource Requests{% endif %} | ATLAS{% endblock %}
+{% block meta_description %}Track teacher resource submissions, edit requests, deletion requests, and staff decisions in ATLAS.{% endblock %}
+{% block breadcrumb %}{% if staff_request_view %}Resource Requests{% else %}My Resource Requests{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+  {% url 'library:catalog' as catalog_url %}
+  <div class="library-view resource-requests-page">
+    <header class="library-header django-page-header">
+      <div>
+        <span class="section-kicker">Repository moderation</span>
+        <h1>{% if staff_request_view %}Teacher Resource Requests{% else %}My Resource Requests{% endif %}</h1>
+        <p>{% if staff_request_view %}Review teacher submissions and keep a record of edit or deletion decisions.{% else %}See the current status, staff decision, and staff note for each resource you submitted or asked to change.{% endif %}</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ catalog_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Digital Sources</a>
+    </header>
+
+    <section class="staff-panel request-history-section" aria-labelledby="changeRequestsHeading">
+      <div class="staff-panel-heading">
+        <div><span class="section-kicker">Edit and deletion workflow</span><h2 id="changeRequestsHeading">Edit and deletion requests</h2></div>
+      </div>
+      {% if resource_changes %}
+        <div class="table-responsive request-history-table" tabindex="0" role="region" aria-label="Resource edit and deletion request history">
+          <table class="library-table">
+            <thead><tr><th>Resource</th>{% if staff_request_view %}<th>Teacher</th>{% endif %}<th>Request</th><th>Status</th><th>Sent</th><th>Staff decision</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for change in resource_changes %}
+                <tr>
+                  <td><strong>{{ change.resource_title }}</strong><small>{{ change.resource_call_number }}</small>{% if not change.item_id %}<small>Removed after approved deletion</small>{% endif %}</td>
+                  {% if staff_request_view %}<td>{{ change.requested_by.get_full_name|default:change.requested_by.email }}</td>{% endif %}
+                  <td>{{ change.get_action_display }}</td>
+                  <td><span class="review-status-badge status-{{ change.status }}">{{ change.get_status_display }}</span></td>
+                  <td>{{ change.created_at|date:'M j, Y g:i A' }}</td>
+                  <td>
+                    {% if change.reviewed_at %}
+                      <strong>{{ change.reviewed_by.get_full_name|default:change.reviewed_by.email|default:'Staff account' }}</strong>
+                      <small>{{ change.reviewed_at|date:'M j, Y g:i A' }}</small>
+                      <span>{{ change.review_notes|default:'No staff note was added.' }}</span>
+                    {% else %}
+                      <span>Waiting for an Administrator or Superuser.</span>
+                    {% endif %}
+                  </td>
+                  <td class="resource-actions">
+                    {% if staff_request_view and change.status == 'pending' and change.item_id %}
+                      <a class="btn-details" href="{% url 'library:staff_item_review' change.item_id %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Review</a>
+                    {% elif change.item_id %}
+                      <a class="btn-details" href="{% url 'library:item_detail' change.item_id %}"><i class="fas fa-eye" aria-hidden="true"></i> View resource</a>
+                    {% else %}
+                      <span class="request-complete-label"><i class="fas fa-circle-check" aria-hidden="true"></i> Complete</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="staff-empty-copy">No edit or deletion requests have been sent.</p>
+      {% endif %}
+    </section>
+
+    <section class="staff-panel request-history-section" aria-labelledby="submissionRequestsHeading">
+      <div class="staff-panel-heading">
+        <div><span class="section-kicker">New resources</span><h2 id="submissionRequestsHeading">Resource submissions</h2></div>
+      </div>
+      {% if resource_submissions %}
+        <div class="table-responsive request-history-table" tabindex="0" role="region" aria-label="New resource submission history">
+          <table class="library-table">
+            <thead><tr><th>Resource</th>{% if staff_request_view %}<th>Teacher</th>{% endif %}<th>Status</th><th>Submitted</th><th>Staff decision</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for item in resource_submissions %}
+                <tr>
+                  <td><strong>{{ item.title }}</strong><small>{{ item.call_number }}</small></td>
+                  {% if staff_request_view %}<td>{{ item.created_by.get_full_name|default:item.created_by.email }}</td>{% endif %}
+                  <td><span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span></td>
+                  <td>{{ item.created_at|date:'M j, Y g:i A' }}</td>
+                  <td>
+                    {% if item.reviewed_at %}
+                      <strong>{{ item.reviewed_by.get_full_name|default:item.reviewed_by.email|default:'Staff account' }}</strong>
+                      <small>{{ item.reviewed_at|date:'M j, Y g:i A' }}</small>
+                      <span>{{ item.review_notes|default:'No staff note was added.' }}</span>
+                    {% else %}
+                      <span>Waiting for an Administrator or Superuser.</span>
+                    {% endif %}
+                  </td>
+                  <td class="resource-actions">
+                    {% if staff_request_view and item.review_status == 'pending' %}
+                      <a class="btn-details" href="{% url 'library:staff_item_review' item.pk %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Review</a>
+                    {% else %}
+                      <a class="btn-details" href="{% url 'library:item_detail' item.pk %}"><i class="fas fa-eye" aria-hidden="true"></i> View resource</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="staff-empty-copy">No resource submissions are available.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

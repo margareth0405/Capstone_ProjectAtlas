@@ -56,6 +56,13 @@ ATLAS follows Django's object-oriented request flow:
 - `templates/library/dashboard_base.html`: shared role-aware application shell,
   navigation drawer, account menu, breadcrumb, and page-content slot.
 
+The shared breadcrumb treats each role's dashboard as `Home`. Top-level pages
+link back to that role-aware Home, while deeper templates add their logical
+parent pages through `breadcrumb_parents`. Parent links describe the stable
+information hierarchy; browser Back and Forward retain the user's actual visit
+history. A child form or review page must return to its logical parent rather
+than skipping directly to Home.
+
 Inheritance is used where behavior is genuinely shared. For example,
 `StaffPortalBaseView` builds staff context for focused child pages,
 `StaffFormView` owns the common validated form workflow, and permission mixins

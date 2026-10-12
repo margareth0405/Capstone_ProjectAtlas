@@ -41,6 +41,13 @@ class NavigationAndMetadataTests(LibraryTestCase):
         "library:privacy_terms",
     )
 
+    @staticmethod
+    def breadcrumb_markup(response):
+        content = response.content.decode()
+        start = content.index('<nav aria-label="Breadcrumb">')
+        end = content.index("</nav>", start)
+        return content[start:end]
+
     def test_public_pages_have_titles_descriptions_favicon_and_real_links(self):
         for route_name in self.public_pages:
             with self.subTest(route=route_name):
@@ -105,6 +112,68 @@ class NavigationAndMetadataTests(LibraryTestCase):
         ).read_text(encoding="utf-8")
         self.assertIn(".breadcrumb-item + .breadcrumb-item::before", css)
         self.assertRegex(css, r"\.breadcrumb\s*\{[^}]*list-style:\s*none", re.DOTALL)
+
+    def test_home_breadcrumb_is_current_without_a_duplicate_dashboard_step(self):
+        self.client.post(reverse("library:guest_login"))
+
+        response = self.client.get(reverse("library:dashboard"))
+        breadcrumb = self.breadcrumb_markup(response)
+
+        self.assertIn('class="breadcrumb-item active" aria-current="page">Home', breadcrumb)
+        self.assertEqual(breadcrumb.count('class="breadcrumb-item'), 1)
+        self.assertNotIn("Dashboard", breadcrumb)
+
+    def test_child_pages_include_their_logical_parent_in_the_breadcrumb(self):
+        administrator = self.create_user(
+            email="breadcrumb-admin@example.com",
+            is_staff=True,
+        )
+        self.client.force_login(administrator)
+
+        users_page = self.client.get(reverse("library:staff_users"))
+        users_breadcrumb = self.breadcrumb_markup(users_page)
+        self.assertIn(f'href="{reverse("library:staff_portal")}">Home</a>', users_breadcrumb)
+        self.assertIn("Website Users", users_breadcrumb)
+
+        create_page = self.client.get(reverse("library:staff_user_create"))
+        create_breadcrumb = self.breadcrumb_markup(create_page)
+        parent = f'href="{reverse("library:staff_users")}">Website Users</a>'
+        self.assertIn(parent, create_breadcrumb)
+        self.assertIn("Create Account", create_breadcrumb)
+        self.assertLess(create_breadcrumb.index(parent), create_breadcrumb.index("Create Account"))
+
+        own_account_page = self.client.get(reverse("library:staff_account_edit"))
+        own_account_breadcrumb = self.breadcrumb_markup(own_account_page)
+        self.assertIn("Administrator Account", own_account_breadcrumb)
+        self.assertNotIn("Website Users", own_account_breadcrumb)
+
+        own_account_content = own_account_page.content.decode()
+        users_link = f'href="{reverse("library:staff_users")}"'
+        users_link_start = own_account_content.index(users_link)
+        users_link_end = own_account_content.index(">", users_link_start)
+        self.assertNotIn(
+            'aria-current="page"',
+            own_account_content[users_link_start:users_link_end],
+        )
+
+    def test_resource_reader_breadcrumb_keeps_each_repository_level(self):
+        student = self.create_user(email="breadcrumb-reader@example.com")
+        item = self.create_item()
+        self.client.force_login(student)
+
+        response = self.client.get(
+            reverse("library:resource_abstract_reader", args=[item.pk])
+        )
+        breadcrumb = self.breadcrumb_markup(response)
+
+        expected_steps = (
+            f'href="{reverse("library:dashboard")}">Home</a>',
+            f'href="{reverse("library:catalog")}">Digital Sources</a>',
+            f'href="{reverse("library:item_detail", args=[item.pk])}">Resource Details</a>',
+            "Read resource abstract",
+        )
+        positions = [breadcrumb.index(step) for step in expected_steps]
+        self.assertEqual(positions, sorted(positions))
 
     def test_page_loader_is_delayed_to_avoid_fast_flashes(self):
         script = (
