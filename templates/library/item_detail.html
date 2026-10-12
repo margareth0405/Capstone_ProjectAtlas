@@ -24,12 +24,14 @@
         <div>
           <span class="badge-collection {{ item.collection|slugify }}">{{ item.get_collection_display }}</span>
           {% if item.review_status != 'approved' %}<span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>{% endif %}
+          {% if latest_change %}<span class="review-status-badge status-{{ latest_change.status }}">{{ latest_change.get_action_display }}: {{ latest_change.get_status_display }}</span>{% endif %}
           <h1>{{ item.title }}</h1>
           <p class="resource-byline">by {{ item.author }}</p>
         </div>
       </div>
       <div class="resource-format-icon" aria-hidden="true"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}"></i></div>
     </header>
+    {% if latest_change %}<div class="resource-form-note" role="status"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{% if request.user.is_staff %}The{% else %}Your{% endif %} {{ latest_change.get_action_display|lower }} request is {{ latest_change.get_status_display|lower }}.{% if latest_change.review_notes %} Staff note: {{ latest_change.review_notes }}{% endif %}{% if latest_change.status == 'pending' %} The approved resource remains available until staff decide.{% endif %}</span></div>{% endif %}
 
     <dl class="resource-metadata">
       <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>
@@ -57,7 +59,7 @@
           </form>
         {% endif %}
       {% endif %}
-      {% if can_manage_resources %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
+      {% if can_manage_resources and request.user.is_staff or can_manage_resources and item.created_by_id == request.user.pk %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
     </div>
   </article>
 {% endblock %}

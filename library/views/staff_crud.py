@@ -2,15 +2,18 @@
 
 import logging
 
+from botocore.exceptions import BotoCoreError, ClientError
 from django.contrib import messages
-from django.db import DatabaseError, transaction
+from django.core.exceptions import PermissionDenied
+from django.db import DatabaseError, IntegrityError, transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 
 from library.forms import AnnouncementForm, LibraryItemForm
-from library.models import ActivityLog, Announcement, LibraryItem
+from library.models import ActivityLog, Announcement, LibraryItem, ResourceChangeRequest
 from library.services import (
     PageContextBuilder,
     RepositoryItemPersistenceService,
@@ -19,6 +22,8 @@ from library.services import (
     is_teacher,
 )
 from library.services.activity import ActivityRecorder
+from library.services.resource_changes import ResourceChangeService
+from library.services.documents import DocumentExtractionError, DocumentTextExtractor
 
 from .mixins import ResourceManagerRequiredMixin, StaffRequiredMixin
 
@@ -176,13 +181,46 @@ class StaffItemEditView(StaffItemCreateView):
 
     form_title = "Edit Digital Sources item"
     submit_label = "Save changes"
+    change_service_class = ResourceChangeService
 
     def get_instance(self):
-        return get_object_or_404(LibraryItem, pk=self.kwargs["pk"])
+        item = get_object_or_404(LibraryItem, pk=self.kwargs["pk"])
+        if is_teacher(self.request.user) and item.created_by_id != self.request.user.pk:
+            raise PermissionDenied
+        return item
+
+    def post(self, request, *args, **kwargs):
+        if not is_teacher(request.user) or self.get_instance().review_status != LibraryItem.ReviewStatus.APPROVED:
+            return super().post(request, *args, **kwargs)
+        item = self.get_instance()
+        if item.change_requests.filter(status=ResourceChangeRequest.Status.PENDING).exists():
+            messages.error(request, "This resource already has a change awaiting review.")
+            return redirect("library:item_detail", pk=item.pk)
+        form = self.get_form()
+        if not form.is_valid():
+            messages.error(request, "The request was not saved. Review the highlighted fields.")
+            return self.render_form(form)
+        if not form.has_changed():
+            form.add_error(None, "Make a change before submitting an edit request.")
+            return self.render_form(form)
+        try:
+            change = self.change_service_class().submit_edit(
+                form=form, item=item, requester=request.user
+            )
+        except (ResourceStorageError, IntegrityError):
+            form.add_error(None, "The proposed change could not be saved. Please try again.")
+            return self.render_form(form)
+        self.review_service_class().analyze(change, reviewer=request.user)
+        self.activity_recorder_class.record(
+            actor=request.user, action=ActivityLog.Action.CREATE,
+            object_type="repository resource edit request", object_id=item.pk,
+            description=item.title,
+        )
+        messages.success(request, f"Your edit to {item.title} is pending Administrator review.")
+        return redirect("library:item_detail", pk=item.pk)
 
     def prepare_instance(self, instance):
         if is_teacher(self.request.user):
-            instance.created_by = self.request.user
             instance.review_status = LibraryItem.ReviewStatus.PENDING
             instance.ai_review_status = LibraryItem.AIReviewStatus.NOT_RUN
             instance.ai_review_summary = {}
@@ -202,7 +240,47 @@ class StaffItemReviewView(StaffRequiredMixin, View):
         item = get_object_or_404(LibraryItem, pk=pk)
         context = PageContextBuilder(request).build("catalog")
         context["item"] = item
+        context["change_request"] = item.change_requests.filter(
+            status=ResourceChangeRequest.Status.PENDING
+        ).first()
         return render(request, self.template_name, context)
+
+
+class StaffItemChangeAbstractView(StaffRequiredMixin, View):
+    """Show a proposed abstract to staff without exposing the stored file."""
+
+    def get(self, request, pk):
+        change = get_object_or_404(
+            ResourceChangeRequest.objects.select_related("item"), pk=pk,
+            status=ResourceChangeRequest.Status.PENDING,
+            action=ResourceChangeRequest.Action.EDIT,
+        )
+        if not change.abstract_upload:
+            raise Http404
+        document = change.abstract_upload
+        content = ""
+        error = ""
+        try:
+            document.open("rb")
+            content = DocumentTextExtractor().extract_for_reading(document)
+        except (DocumentExtractionError, BotoCoreError, ClientError, OSError):
+            logger.exception("Proposed abstract preview failed for change %s", pk)
+            error = "This proposed abstract could not be read."
+        finally:
+            try:
+                document.close()
+            except (BotoCoreError, ClientError, OSError):
+                logger.warning("Could not close proposed abstract %s", pk, exc_info=True)
+        context = PageContextBuilder(request).build("catalog")
+        context.update({
+            "item": change.item, "resource_content": content,
+            "reader_error": error, "reader_heading": "Read proposed abstract",
+            "reader_badge": "Staff review only",
+            "document_display_type": change.proposed_values.get("file_type", "PDF"),
+        })
+        response = render(request, "library/resource_abstract_reader.html", context)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
 
 class StaffItemReviewDecisionView(StaffRequiredMixin, View):
@@ -214,6 +292,42 @@ class StaffItemReviewDecisionView(StaffRequiredMixin, View):
 
     def post(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
+        change = item.change_requests.filter(
+            status=ResourceChangeRequest.Status.PENDING
+        ).first()
+        if change and (
+            item.review_status == LibraryItem.ReviewStatus.APPROVED
+            or change.action == ResourceChangeRequest.Action.DELETE
+        ):
+            try:
+                result = ResourceChangeService().decide(
+                    change=change, reviewer=request.user,
+                    approve=self.review_status == LibraryItem.ReviewStatus.APPROVED,
+                    notes=request.POST.get("review_notes", "").strip()[:2000],
+                )
+            except DatabaseError:
+                logger.exception("Resource change decision failed for item %s", pk)
+                messages.error(request, "The review decision could not be saved.")
+                return redirect("library:staff_item_review", pk=pk)
+            if result is None:
+                messages.error(request, "This request has already been reviewed.")
+            else:
+                self.activity_recorder_class.record(
+                    actor=request.user, action=ActivityLog.Action.UPDATE,
+                    object_type="repository resource change", object_id=pk,
+                    description=f"{change.get_action_display()}: {result.get_status_display()}",
+                )
+                messages.success(request, f"The {change.get_action_display().lower()} request was {result.get_status_display().lower()}.")
+            if (
+                change.action == ResourceChangeRequest.Action.DELETE
+                and result
+                and result.status == ResourceChangeRequest.Status.APPROVED
+            ):
+                return redirect("library:catalog")
+            return redirect("library:staff_item_review", pk=pk)
+        if item.review_status != LibraryItem.ReviewStatus.PENDING:
+            messages.error(request, "There is no pending request to review.")
+            return redirect("library:staff_item_review", pk=pk)
         try:
             with transaction.atomic():
                 item.review_status = self.review_status
@@ -262,9 +376,28 @@ class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
 
     activity_recorder_class = ActivityRecorder
     persistence_service_class = RepositoryItemPersistenceService
+    change_service_class = ResourceChangeService
 
     def post(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
+        if is_teacher(request.user):
+            if item.created_by_id != request.user.pk:
+                raise PermissionDenied
+            if item.change_requests.filter(status=ResourceChangeRequest.Status.PENDING).exists():
+                messages.error(request, "This resource already has a change awaiting review.")
+                return redirect("library:item_detail", pk=pk)
+            try:
+                self.change_service_class().submit_delete(item=item, requester=request.user)
+            except IntegrityError:
+                messages.error(request, "This resource already has a change awaiting review.")
+                return redirect("library:item_detail", pk=pk)
+            self.activity_recorder_class.record(
+                actor=request.user, action=ActivityLog.Action.CREATE,
+                object_type="repository resource delete request", object_id=pk,
+                description=item.title,
+            )
+            messages.info(request, f"Deletion of {item.title} is pending Administrator review.")
+            return redirect("library:item_detail", pk=pk)
         title = item.title
         self.persistence_service_class().delete(item)
         self.activity_recorder_class.record(

@@ -195,7 +195,7 @@ html.atlas-dark .accessibility-language-setting {
 }
 
 html.atlas-dark :where(
-  a:not(.btn):not(.btn-details):not(.btn-edit):not(.sidebar-brand),
+  a:not(.btn):not([class*="btn-"]):not(.role-btn):not(.sidebar-brand),
   .breadcrumb-item a,
   .footer-navigation a,
   .footer-contact a
@@ -1368,8 +1368,32 @@ html.atlas-dark.atlas-high-contrast :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt
   color: #fff;
 }
 
-html.atlas-dark.atlas-high-contrast a:not(.btn) {
+html.atlas-dark.atlas-high-contrast a:not(.btn):not([class*="btn-"]):not(.role-btn) {
   color: #ffe08a;
+}
+
+html.atlas-dark.atlas-high-contrast .btn-favorite {
+  background: #000;
+  border-color: #ffdc62;
+  color: #ffdc62;
+}
+
+html.atlas-dark.atlas-high-contrast .btn-favorite:is(:hover, .active) {
+  background: #ffdc62;
+  border-color: #ffdc62;
+  color: #281c00;
+}
+
+html.atlas-dark.atlas-high-contrast .announcement-item .btn-action {
+  background: #000;
+  border-color: #fff;
+  color: #fff;
+}
+
+html.atlas-dark.atlas-high-contrast .announcement-item .btn-action:hover {
+  background: #ffdc62;
+  border-color: #ffdc62;
+  color: #281c00;
 }
 
 html.atlas-dark.atlas-high-contrast :where(

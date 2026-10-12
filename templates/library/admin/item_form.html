@@ -12,7 +12,7 @@
   {% url 'library:catalog' as catalog_url %}
   <div class="admin-form-page">
     <header class="django-page-header"><div><span class="section-kicker">Digital Sources management</span><h1>{% if form.instance.pk %}Edit resource{% else %}Add a new resource{% endif %}</h1></div></header>
-    <div class="resource-form-note resource-form-instructions" role="note"><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>How to add a resource:</strong> complete the details, choose PDF or Word, attach the matching resource abstract, then select Save resource. Fields marked * are required.{% if active_role == 'teacher' %} ATLAS will run AI analysis and place your submission in Pending Review; it is published only after an Administrator or Superuser approves it.{% endif %}</span></div>
+    <div class="resource-form-note resource-form-instructions" role="note"><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>{% if form.instance.pk %}How to edit a resource:{% else %}How to add a resource:{% endif %}</strong> complete the details, choose PDF or Word, {% if form.instance.pk %}replace the resource abstract if needed{% else %}attach the matching resource abstract{% endif %}, then submit the form. Fields marked * are required.{% if active_role == 'teacher' %} ATLAS will run AI analysis and place your {% if form.instance.pk %}proposed edit{% else %}submission{% endif %} in Pending Review. An Administrator or Superuser must approve it before it takes effect.{% endif %}</span></div>
     <form method="post" enctype="multipart/form-data" class="admin-object-form" novalidate data-async-upload data-processing-label="Upload complete. ATLAS is validating and optimizing the resource…">
       {% csrf_token %}
       {% include "library/includes/form_errors.html" with form=form %}
@@ -25,7 +25,7 @@
                 <label for="{{ field.id_for_label }}"><span>{{ field.label }}</span><small>Readers will see “Hard copy available” in Digital Sources.</small></label>
               </div>
             {% else %}
-            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required or field.name == 'resource_abstract' %} <span aria-hidden="true">*</span>{% endif %}</label>
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
             {{ field }}
             {% endif %}
             {% if field.help_text %}<small class="form-helper">{{ field.help_text|safe }}</small>{% endif %}
@@ -34,7 +34,7 @@
         {% endfor %}
       </div>
       <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Cover is optional. Resource abstract is required and accepts PDF or Word (.docx); the description can still contain a short text summary. Hard-copy availability is shown to administrators, students, teachers, and guests. The date added to ATLAS is generated automatically.</span></div>
-      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save resource</button></div>
+      <div class="admin-form-actions"><a class="btn btn-outline-secondary" href="{{ catalog_url }}">Cancel</a><button class="btn-create-admin" type="submit"><i class="fas fa-floppy-disk" aria-hidden="true"></i> {% if active_role == 'teacher' %}{% if form.instance.pk %}Request edit{% else %}Submit for review{% endif %}{% else %}Save resource{% endif %}</button></div>
     </form>
   </div>
 {% endblock %}

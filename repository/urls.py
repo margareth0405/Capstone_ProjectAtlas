@@ -44,6 +44,11 @@ urlpatterns = [
         name="staff_item_review",
     ),
     path(
+        "staff/repository/changes/<int:pk>/abstract/",
+        views.StaffItemChangeAbstractView.as_view(),
+        name="staff_item_change_abstract",
+    ),
+    path(
         "staff/repository/<int:pk>/approve/",
         views.StaffItemApproveView.as_view(),
         name="staff_item_approve",

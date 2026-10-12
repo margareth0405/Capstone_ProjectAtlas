@@ -18,7 +18,10 @@ def is_teacher(user):
     """Return whether an authenticated account has the reader-facing teacher role."""
 
     profile = getattr(user, "profile", None) if user.is_authenticated else None
-    return profile is not None and profile.role == Profile.Role.TEACHER
+    return (
+        profile is not None and profile.role == Profile.Role.TEACHER
+        and user.is_active and not user.is_staff
+    )
 
 
 def visible_library_items(user):

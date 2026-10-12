@@ -151,6 +151,68 @@ class LibraryItem(models.Model):
         return f"{self.title} ({self.call_number})"
 
 
+class ResourceChangeRequest(models.Model):
+    """A teacher's proposed edit or deletion, separate from the live resource."""
+
+    class Action(models.TextChoices):
+        EDIT = "edit", "Edit"
+        DELETE = "delete", "Delete"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Changes requested"
+
+    item = models.ForeignKey(
+        LibraryItem, on_delete=models.CASCADE, related_name="change_requests"
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="resource_change_requests",
+    )
+    action = models.CharField(max_length=10, choices=Action.choices)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True
+    )
+    proposed_values = models.JSONField(default=dict, blank=True)
+    cover_upload = models.ImageField(
+        upload_to="library/pending/covers/%Y/%m/", blank=True
+    )
+    abstract_upload = models.FileField(
+        upload_to="library/pending/abstracts/%Y/%m/", blank=True
+    )
+    clear_cover = models.BooleanField(default=False)
+    ai_review_status = models.CharField(
+        max_length=20, choices=LibraryItem.AIReviewStatus.choices,
+        default=LibraryItem.AIReviewStatus.NOT_RUN,
+    )
+    ai_review_summary = models.JSONField(default=dict, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="reviewed_resource_changes",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("item",), condition=Q(status="pending"),
+                name="one_pending_resource_change_per_item",
+            )
+        ]
+
+    @property
+    def resource_abstract(self):
+        return self.abstract_upload or self.item.resource_abstract
+
+    def __str__(self):
+        return f"{self.get_action_display()} request for {self.item}"
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -2,6 +2,7 @@
 
 from django.views.generic import TemplateView
 
+from library.models import LibraryItem, ResourceChangeRequest
 from library.services.staff_portal import StaffPortalContextService
 
 from .mixins import PageContextMixin, StaffRequiredMixin
@@ -27,6 +28,16 @@ class StaffPortalView(StaffPortalBaseView):
 
     template_name = "library/staff_home.html"
     active_page = "home"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["pending_additions"] = LibraryItem.objects.filter(
+            review_status=LibraryItem.ReviewStatus.PENDING
+        ).select_related("created_by").order_by("-created_at")[:8]
+        context["pending_changes"] = ResourceChangeRequest.objects.filter(
+            status=ResourceChangeRequest.Status.PENDING
+        ).select_related("item", "requested_by").order_by("-created_at")[:8]
+        return context
 
 
 class StaffUsersView(StaffPortalBaseView):

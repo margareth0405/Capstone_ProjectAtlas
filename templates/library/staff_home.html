@@ -36,6 +36,15 @@
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-book-reader" aria-hidden="true"></i></span><strong>{{ resource_view_count|default:0 }}</strong><span>Resource views</span></article>
       <article class="user-stat-card"><span class="user-stat-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span><strong>{{ message_count|default:0 }}</strong><span>Open messages</span></article>
     </section>
+    <section class="staff-panel" aria-labelledby="pendingResourceHeading">
+      <div class="staff-panel-heading"><div><span class="section-kicker">Repository moderation</span><h2 id="pendingResourceHeading">Pending resource requests</h2></div></div>
+      {% if pending_additions or pending_changes %}
+        <div class="resource-actions">
+          {% for item in pending_additions %}<a class="btn-details" href="{% url 'library:staff_item_review' item.pk %}">Add: {{ item.title }}</a>{% endfor %}
+          {% for change in pending_changes %}<a class="btn-details" href="{% url 'library:staff_item_review' change.item_id %}">{{ change.get_action_display }}: {{ change.item.title }}</a>{% endfor %}
+        </div>
+      {% else %}<p>No resource requests are waiting for review.</p>{% endif %}
+    </section>
 
     <section class="admin-function-section" aria-labelledby="adminFunctionsHeading">
       <div class="admin-function-heading">

@@ -33,7 +33,7 @@
     {% elif active_role == "student" or active_role == "teacher" %}
       <div class="reader-view-only">
         <i class="fas fa-eye" aria-hidden="true"></i>
-        <span>{% if active_role == "teacher" %}Teacher access: read, bookmark, add, edit, or remove resources, and use AI Detection.{% else %}Student access: protected reading and bookmarks.{% endif %}</span>
+        <span>{% if active_role == "teacher" %}Teacher access: read, bookmark, submit resources, request edits or deletions of your own resources, and use AI Detection. Changes require Administrator or Superuser approval.{% else %}Student access: protected reading and bookmarks.{% endif %}</span>
         <a href="{{ bookmarks_url }}">View bookmarks</a>
       </div>
     {% endif %}
@@ -80,6 +80,7 @@
               <span class="resource-format-badge"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}" aria-hidden="true"></i> {{ item.get_file_type_display|default:item.file_type }}</span>
             </div>
             {% if item.review_status != 'approved' %}<span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>{% endif %}
+            {% if item.pk in pending_change_ids %}<span class="review-status-badge status-pending">Change pending review</span>{% endif %}
             <span class="resource-availability-badge {% if item.hard_copy_available %}is-available{% else %}is-unavailable{% endif %}">
               <i class="fas {% if item.hard_copy_available %}fa-circle-check{% else %}fa-circle-xmark{% endif %}" aria-hidden="true"></i>
               {% if item.hard_copy_available %}Hard copy available{% else %}Hard copy unavailable{% endif %}
@@ -113,10 +114,10 @@
                   </form>
                 {% endif %}
               {% endif %}
-              {% if can_manage_resources %}
+              {% if can_manage_resources and request.user.is_staff or can_manage_resources and item.created_by_id == request.user.pk %}
                 <a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
                 {% if request.user.is_staff %}<a class="btn-details" href="{{ staff_item_review_url }}"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Review</a>{% endif %}
-                <form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="Delete ‘{{ item.title|escape }}’? This cannot be undone." data-confirm-title="Delete resource?" data-confirm-action="Delete resource" data-confirm-cancel="Keep resource" data-confirm-variant="danger">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button></form>
+                {% if item.pk not in pending_change_ids or request.user.is_staff %}<form action="{{ staff_item_delete_url }}" method="post" class="inline-action-form" data-confirm-form="{% if request.user.is_staff %}Delete ‘{{ item.title|escape }}’? This cannot be undone.{% else %}Request deletion of ‘{{ item.title|escape }}’? It stays available until Administrator approval.{% endif %}" data-confirm-title="{% if request.user.is_staff %}Delete resource?{% else %}Request deletion?{% endif %}" data-confirm-action="{% if request.user.is_staff %}Delete resource{% else %}Request deletion{% endif %}" data-confirm-cancel="Keep resource" data-confirm-variant="danger">{% csrf_token %}<button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> {% if request.user.is_staff %}Delete{% else %}Request delete{% endif %}</button></form>{% endif %}
               {% endif %}
             </div>
           </article>

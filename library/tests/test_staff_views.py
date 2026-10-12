@@ -11,9 +11,9 @@ from django.urls import reverse
 from docx import Document
 from PIL import Image
 
-from library.models import Announcement, LibraryItem, Profile
+from library.models import Announcement, LibraryItem, Profile, ResourceChangeRequest
 from library.services import RepositoryItemPersistenceService, ResourceStorageError
-from library.views.staff_crud import StaffItemCreateView
+from library.views.staff_crud import StaffItemCreateView, StaffItemEditView
 
 from .base import TEST_PASSWORD, LibraryTestCase
 
@@ -324,11 +324,11 @@ class StaffCrudTests(LibraryTestCase):
         )
 
     def test_teacher_can_manage_resources_but_not_open_admin_management(self):
-        item = self.create_item(call_number="TEACHER-MANAGE-001")
         teacher = self.create_user(
             email="teacher@deped.gov.ph",
             role=Profile.Role.TEACHER,
         )
+        item = self.create_item(call_number="TEACHER-MANAGE-001", created_by=teacher)
         self.client.force_login(teacher)
 
         self.assertEqual(
@@ -362,14 +362,18 @@ class StaffCrudTests(LibraryTestCase):
             reverse("library:staff_item_delete", args=[item.pk])
         )
         self.assertEqual(delete_response.status_code, 302)
-        self.assertFalse(LibraryItem.objects.filter(pk=item.pk).exists())
+        self.assertTrue(LibraryItem.objects.filter(pk=item.pk).exists())
+        self.assertTrue(ResourceChangeRequest.objects.filter(
+            item=item, action=ResourceChangeRequest.Action.DELETE,
+            status=ResourceChangeRequest.Status.PENDING,
+        ).exists())
 
     def test_teacher_resource_controls_keep_reader_bookmark_access(self):
-        self.create_item(call_number="TEACHER-CATALOG-001")
         teacher = self.create_user(
             email="catalog.teacher@deped.gov.ph",
             role=Profile.Role.TEACHER,
         )
+        self.create_item(call_number="TEACHER-CATALOG-001", created_by=teacher)
         self.client.force_login(teacher)
 
         response = self.client.get(reverse("library:catalog"))
@@ -378,7 +382,7 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "AI DETECTION")
         self.assertContains(response, "Bookmark")
         self.assertContains(response, "Edit")
-        self.assertContains(response, "Delete")
+        self.assertContains(response, "Request delete")
 
     def test_teacher_upload_is_analyzed_then_waits_for_staff_approval(self):
         teacher = self.create_user(
@@ -477,6 +481,110 @@ class StaffCrudTests(LibraryTestCase):
         )
         item.refresh_from_db()
         self.assertEqual(item.review_status, LibraryItem.ReviewStatus.PENDING)
+
+    def test_teacher_edit_waits_for_approval_and_keeps_public_version(self):
+        teacher = self.create_user(email="edit.teacher@deped.gov.ph", role=Profile.Role.TEACHER)
+        item = self.create_item(
+            call_number="EDIT-APPROVAL-001", created_by=teacher, external_url="",
+        )
+        self.client.force_login(teacher)
+        with patch.object(StaffItemEditView, "review_service_class"):
+            response = self.client.post(
+                reverse("library:staff_item_edit", args=[item.pk]),
+                self.item_payload(call_number=item.call_number, title="Proposed teacher title"),
+            )
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Django Testing Handbook")
+        change = ResourceChangeRequest.objects.get(item=item, status="pending")
+        self.assertEqual(change.proposed_values["title"], "Proposed teacher title")
+        self.assertEqual(
+            self.client.get(reverse("library:staff_item_change_abstract", args=[change.pk])).status_code,
+            403,
+        )
+        self.assertContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "pending review")
+
+        student = self.create_user(email="edit.reader@example.com")
+        self.client.force_login(student)
+        self.assertContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "Django Testing Handbook")
+        self.assertNotContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "Proposed teacher title")
+
+        self.client.force_login(self.staff)
+        review = self.client.get(reverse("library:staff_item_review", args=[item.pk]))
+        self.assertContains(review, "Proposed teacher title")
+        self.assertEqual(self.client.post(
+            reverse("library:staff_item_approve", args=[item.pk]),
+            {"review_notes": "Approved edited metadata."},
+        ).status_code, 302)
+        item.refresh_from_db()
+        change.refresh_from_db()
+        self.assertEqual(item.title, "Proposed teacher title")
+        self.assertEqual(item.review_status, LibraryItem.ReviewStatus.APPROVED)
+        self.assertEqual(change.status, ResourceChangeRequest.Status.APPROVED)
+        self.assertEqual(change.reviewed_by, self.staff)
+
+    def test_teacher_delete_waits_for_approval_and_rejection_preserves_item(self):
+        teacher = self.create_user(email="delete.teacher@deped.gov.ph", role=Profile.Role.TEACHER)
+        item = self.create_item(call_number="DELETE-APPROVAL-001", created_by=teacher)
+        self.client.force_login(teacher)
+        url = reverse("library:staff_item_delete", args=[item.pk])
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertTrue(LibraryItem.objects.filter(pk=item.pk).exists())
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse("library:staff_portal")), "Delete: Django Testing Handbook")
+        self.client.post(reverse("library:staff_item_reject", args=[item.pk]))
+        self.assertTrue(LibraryItem.objects.filter(pk=item.pk).exists())
+        self.client.force_login(teacher)
+        self.client.post(url)
+        self.client.force_login(self.staff)
+        self.client.post(reverse("library:staff_item_approve", args=[item.pk]))
+        self.assertFalse(LibraryItem.objects.filter(pk=item.pk).exists())
+
+    def test_teacher_cannot_change_another_teachers_resource(self):
+        owner = self.create_user(email="owner@deped.gov.ph", role=Profile.Role.TEACHER)
+        other = self.create_user(email="other@deped.gov.ph", role=Profile.Role.TEACHER)
+        item = self.create_item(call_number="OWNER-ONLY-001", created_by=owner)
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("library:staff_item_edit", args=[item.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse("library:staff_item_delete", args=[item.pk])).status_code, 403)
+        self.assertFalse(ResourceChangeRequest.objects.filter(item=item).exists())
+
+    def test_teacher_cannot_delete_pending_submission_without_review(self):
+        teacher = self.create_user(email="pending.delete@deped.gov.ph", role=Profile.Role.TEACHER)
+        item = self.create_item(
+            call_number="PENDING-DELETE-001", created_by=teacher,
+            review_status=LibraryItem.ReviewStatus.PENDING,
+        )
+        self.client.force_login(teacher)
+        self.client.post(reverse("library:staff_item_delete", args=[item.pk]))
+        self.assertTrue(LibraryItem.objects.filter(pk=item.pk).exists())
+        self.client.force_login(self.staff)
+        self.client.post(reverse("library:staff_item_approve", args=[item.pk]))
+        self.assertFalse(LibraryItem.objects.filter(pk=item.pk).exists())
+
+    def test_teacher_edit_without_new_abstract_keeps_live_file_on_rejection(self):
+        teacher = self.create_user(email="file.teacher@deped.gov.ph", role=Profile.Role.TEACHER)
+        item = self.create_item(
+            call_number="EDIT-FILE-001", created_by=teacher, external_url="",
+            resource_abstract=SimpleUploadedFile(
+                "existing.pdf", b"%PDF-1.4 existing abstract", content_type="application/pdf"
+            ),
+        )
+        original_name = item.resource_abstract.name
+        self.client.force_login(teacher)
+        payload = self.item_payload(call_number=item.call_number, title="Rejected edit")
+        payload.pop("resource_abstract")
+        with patch.object(StaffItemEditView, "review_service_class"):
+            response = self.client.post(reverse("library:staff_item_edit", args=[item.pk]), payload)
+        self.assertEqual(response.status_code, 302)
+        change = ResourceChangeRequest.objects.get(item=item, status="pending")
+        self.assertFalse(change.abstract_upload)
+        self.client.force_login(self.staff)
+        self.client.post(reverse("library:staff_item_reject", args=[item.pk]))
+        item.refresh_from_db()
+        self.assertEqual(item.resource_abstract.name, original_name)
+        self.assertTrue(item.resource_abstract.storage.exists(original_name))
+        self.assertEqual(item.title, "Django Testing Handbook")
 
     def test_resource_storage_failure_returns_clear_error_without_record(self):
         class FailingPersistenceService:

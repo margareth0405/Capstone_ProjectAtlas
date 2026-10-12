@@ -14,15 +14,15 @@
   {% url 'library:staff_item_reject' item.pk as reject_url %}
   <div class="admin-form-page resource-review-page">
     <header class="django-page-header">
-      <div><span class="section-kicker">Repository moderation</span><h1>Review teacher submission</h1></div>
-      <span class="review-status-badge status-{{ item.review_status }}">{{ item.get_review_status_display }}</span>
+      <div><span class="section-kicker">Repository moderation</span><h1>Review teacher {% if change_request %}{{ change_request.get_action_display|lower }} request{% else %}submission{% endif %}</h1></div>
+      <span class="review-status-badge status-{% if change_request %}{{ change_request.status }}{% else %}{{ item.review_status }}{% endif %}">{% if change_request %}{{ change_request.get_status_display }}{% else %}{{ item.get_review_status_display }}{% endif %}</span>
     </header>
 
     <section class="review-workflow" aria-label="Publication workflow">
-      <span class="is-complete">Teacher upload</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-      <span class="is-complete">AI analysis</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-      <span class="{% if item.review_status == 'pending' %}is-current{% else %}is-complete{% endif %}">Pending review</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-      <span class="{% if item.review_status == 'approved' %}is-complete{% endif %}">Approved and published</span>
+      <span class="is-complete">Teacher {% if change_request %}request{% else %}upload{% endif %}</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span class="is-complete">{% if change_request and change_request.action == 'delete' %}Resource retained{% else %}AI analysis{% endif %}</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span class="is-current">Pending review</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+      <span>Staff decision</span>
     </section>
 
     <div class="review-layout">
@@ -35,6 +35,25 @@
           <div><dt>Collection</dt><dd>{{ item.get_collection_display }}</dd></div>
         </dl>
         <p>{{ item.details|default:'No description was provided.'|linebreaksbr }}</p>
+        {% if change_request %}
+          <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>The current approved resource remains available until this request is approved.</span></div>
+          {% if change_request.action == 'edit' %}
+            <h3>Proposed changes</h3>
+            <dl class="resource-metadata">
+              <div><dt>Title</dt><dd>{{ change_request.proposed_values.title }}</dd></div>
+              <div><dt>Call number</dt><dd>{{ change_request.proposed_values.call_number }}</dd></div>
+              <div><dt>Author</dt><dd>{{ change_request.proposed_values.author }}</dd></div>
+              <div><dt>Collection</dt><dd>{{ change_request.proposed_values.collection }}</dd></div>
+              <div><dt>Format</dt><dd>{{ change_request.proposed_values.file_type }}</dd></div>
+              <div><dt>Pages</dt><dd>{{ change_request.proposed_values.pages }}</dd></div>
+              <div><dt>Published</dt><dd>{{ change_request.proposed_values.published_on }}</dd></div>
+              <div><dt>Hard copy available</dt><dd>{{ change_request.proposed_values.hard_copy_available|yesno:'Yes,No' }}</dd></div>
+              <div><dt>Cover</dt><dd>{% if change_request.cover_upload %}Replacement uploaded{% elif change_request.clear_cover %}Remove cover{% else %}Keep current cover{% endif %}</dd></div>
+            </dl>
+            <p><strong>Proposed description:</strong> {{ change_request.proposed_values.details|default:'No description provided.'|linebreaksbr }}</p>
+            {% if change_request.abstract_upload %}<a class="btn-details" href="{% url 'library:staff_item_change_abstract' change_request.pk %}">Read proposed abstract</a>{% else %}<p>Abstract: keep current file.</p>{% endif %}
+          {% else %}<p><strong>Requested action:</strong> Delete this resource after staff approval.</p>{% endif %}
+        {% endif %}
         <div class="resource-actions">
           <a class="btn-details" href="{{ abstract_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i> Read abstract</a>
           <a class="btn-edit" href="{% url 'library:staff_item_edit' item.pk %}"><i class="fas fa-pen" aria-hidden="true"></i> Edit metadata</a>
@@ -43,25 +62,28 @@
 
       <section class="staff-panel" aria-labelledby="analysisHeading">
         <span class="section-kicker">Automatic screening</span><h2 id="analysisHeading">AI analysis</h2>
-        <p><strong>Status:</strong> {{ item.get_ai_review_status_display }}</p>
-        {% if item.ai_review_status == 'completed' %}
+        {% if change_request and change_request.action == 'delete' %}<p>No document analysis is needed for a deletion request.</p>{% else %}
+        <p><strong>Status:</strong> {% if change_request %}{{ change_request.get_ai_review_status_display }}{% else %}{{ item.get_ai_review_status_display }}{% endif %}</p>
+        {% if change_request.ai_review_status == 'completed' or item.ai_review_status == 'completed' and not change_request %}
           <dl class="resource-metadata">
-            <div><dt>Result</dt><dd>{{ item.ai_review_summary.label|default:'Not available' }}</dd></div>
-            <div><dt>AI probability</dt><dd>{{ item.ai_review_summary.ai_probability|floatformat:2 }}%</dd></div>
-            <div><dt>Human probability</dt><dd>{{ item.ai_review_summary.human_probability|floatformat:2 }}%</dd></div>
-            <div><dt>Confidence</dt><dd>{{ item.ai_review_summary.confidence|floatformat:2 }}%</dd></div>
-            <div><dt>Detector</dt><dd>{{ item.ai_review_summary.detector_name|default:'Not available' }}</dd></div>
-            <div><dt>Chunks</dt><dd>{{ item.ai_review_summary.chunks_analyzed|default:0 }}</dd></div>
+            <div><dt>Result</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.label|default:'Not available' }}{% else %}{{ item.ai_review_summary.label|default:'Not available' }}{% endif %}</dd></div>
+            <div><dt>AI probability</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.ai_probability|floatformat:2 }}{% else %}{{ item.ai_review_summary.ai_probability|floatformat:2 }}{% endif %}%</dd></div>
+            <div><dt>Human probability</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.human_probability|floatformat:2 }}{% else %}{{ item.ai_review_summary.human_probability|floatformat:2 }}{% endif %}%</dd></div>
+            <div><dt>Confidence</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.confidence|floatformat:2 }}{% else %}{{ item.ai_review_summary.confidence|floatformat:2 }}{% endif %}%</dd></div>
+            <div><dt>Detector</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.detector_name|default:'Not available' }}{% else %}{{ item.ai_review_summary.detector_name|default:'Not available' }}{% endif %}</dd></div>
+            <div><dt>Chunks</dt><dd>{% if change_request %}{{ change_request.ai_review_summary.chunks_analyzed|default:0 }}{% else %}{{ item.ai_review_summary.chunks_analyzed|default:0 }}{% endif %}</dd></div>
           </dl>
           <p class="form-helper">AI screening supports review; the Administrator or Superuser makes the publication decision.</p>
         {% else %}
-          <div class="resource-form-note" role="note"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{{ item.ai_review_summary.error|default:'Automatic analysis was not completed. Review the abstract manually.' }}</span></div>
+          <div class="resource-form-note" role="note"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{% if change_request %}{{ change_request.ai_review_summary.error|default:'Automatic analysis was not completed. Review the abstract manually.' }}{% else %}{{ item.ai_review_summary.error|default:'Automatic analysis was not completed. Review the abstract manually.' }}{% endif %}</span></div>
+        {% endif %}
         {% endif %}
       </section>
     </div>
 
     <section class="staff-panel review-decision-panel" aria-labelledby="decisionHeading">
       <span class="section-kicker">Staff decision</span><h2 id="decisionHeading">Approve or request changes</h2>
+      {% if change_request or item.review_status == 'pending' %}
       <form action="{{ approve_url }}" method="post">
         {% csrf_token %}
         <label for="reviewNotes">Review notes (optional)</label>
@@ -69,9 +91,10 @@
         <div class="admin-form-actions">
           <a class="btn btn-outline-secondary" href="{{ staff_portal_url }}">Back to Administrator Home</a>
           <button class="btn-delete" type="submit" formaction="{{ reject_url }}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Request changes</button>
-          <button class="btn-create-admin" type="submit"><i class="fas fa-circle-check" aria-hidden="true"></i> Approve and publish</button>
+          <button class="btn-create-admin" type="submit"><i class="fas fa-circle-check" aria-hidden="true"></i> {% if change_request %}Approve {{ change_request.get_action_display|lower }}{% else %}Approve and publish{% endif %}</button>
         </div>
       </form>
+      {% else %}<p>There is no pending request for this resource.</p>{% endif %}
     </section>
   </div>
 {% endblock %}

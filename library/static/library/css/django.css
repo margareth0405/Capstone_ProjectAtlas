@@ -699,7 +699,7 @@ a.role-btn,
 }
 
 .legal-toc a,
-.legal-copy a {
+.legal-copy a:not(.btn) {
   color: var(--maroon-700);
 }
 
@@ -2441,8 +2441,8 @@ time,
   line-height: 1.75;
 }
 
-main p a,
-.legal-copy a,
+main p a:not(.btn):not([class*="btn-"]),
+.legal-copy a:not(.btn),
 .contact-method-card a {
   font-weight: 700;
   text-decoration: underline;
@@ -2642,10 +2642,33 @@ html.atlas-large-text {
   box-shadow: none;
 }
 
-.atlas-high-contrast .main-content a:not(.btn):not(.btn-details):not(.btn-edit),
+.atlas-high-contrast .main-content a:not(.btn):not([class*="btn-"]):not(.role-btn),
 .atlas-high-contrast .site-footer a {
   color: #62001c;
   text-decoration: underline;
+}
+
+/* Keep button-shaped links on their button palette, including hover states. */
+.atlas-high-contrast .btn-favorite {
+  border-color: #705000;
+  color: #503900;
+}
+
+.atlas-high-contrast .btn-favorite:is(:hover, .active) {
+  background: #ffdc62;
+  border-color: #705000;
+  color: #281c00;
+}
+
+.atlas-high-contrast .announcement-item .btn-action {
+  border-color: #333;
+  color: #111;
+}
+
+.atlas-high-contrast .announcement-item .btn-action:hover {
+  background: #4a111c;
+  border-color: #4a111c;
+  color: #fff;
 }
 
 .atlas-high-contrast :where(input, select, textarea) {

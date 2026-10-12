@@ -18,11 +18,12 @@ from django.views import View
 from django.views.generic import TemplateView
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from library.models import Favorite, LibraryItem
+from library.models import Favorite, LibraryItem, ResourceChangeRequest
 from library.services import (
     CatalogQueryService,
     PageContextBuilder,
     SafeRedirectService,
+    is_teacher,
     visible_library_items,
 )
 from library.services.documents import DocumentExtractionError, DocumentTextExtractor
@@ -50,6 +51,16 @@ class CatalogView(PageContextMixin, TemplateView):
                     "item_id", flat=True
                 )
             )
+        pending_change_ids = set()
+        if self.request.user.is_authenticated and (
+            self.request.user.is_staff or is_teacher(self.request.user)
+        ):
+            pending = ResourceChangeRequest.objects.filter(
+                status=ResourceChangeRequest.Status.PENDING
+            )
+            if not self.request.user.is_staff:
+                pending = pending.filter(requested_by=self.request.user)
+            pending_change_ids = set(pending.values_list("item_id", flat=True))
         context.update(
             {
                 "items": items,
@@ -60,6 +71,7 @@ class CatalogView(PageContextMixin, TemplateView):
                 "selected_collection": query_service.collection,
                 "selected_sort": query_service.sort,
                 "collection_choices": LibraryItem.Collection.choices,
+                "pending_change_ids": pending_change_ids,
             }
         )
         return context
@@ -75,6 +87,12 @@ class ItemDetailView(PageContextMixin, TemplateView):
             visible_library_items(self.request.user), pk=self.kwargs["pk"]
         )
         context["item"] = item
+        can_review_change = self.request.user.is_authenticated and (
+            self.request.user.is_staff or item.created_by_id == self.request.user.pk
+        )
+        context["latest_change"] = (
+            item.change_requests.first() if can_review_change else None
+        )
         context["is_favorite"] = (
             self.request.user.is_authenticated
             and not self.request.user.is_staff

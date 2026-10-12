@@ -74,9 +74,15 @@ class RepositoryItemPersistenceService:
 
     def delete(self, instance):
         stored_files = self._file_snapshots(instance)
+        pending_files = [
+            (field.storage, field.name)
+            for change in instance.change_requests.filter(status="pending")
+            for field in (change.cover_upload, change.abstract_upload)
+            if field and field.name
+        ]
         with transaction.atomic():
             instance.delete()
-        for storage, name in stored_files.values():
+        for storage, name in (*stored_files.values(), *pending_files):
             self._safe_delete(storage, name)
 
     def _file_snapshots(self, instance):
