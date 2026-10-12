@@ -377,8 +377,8 @@ class FormFeedbackTests(LibraryTestCase):
         contact = self.client.get(reverse("library:contact"))
 
         self.assertContains(login, 'placeholder="Example: student@example.com"')
-        self.assertContains(login, "Previously created passwords still work")
-        self.assertContains(login, "at least 12 characters")
+        self.assertNotContains(login, "Previously created passwords still work")
+        self.assertNotContains(login, "every new, reset, or changed password")
         self.assertNotContains(login, 'placeholder="Example: your account password"')
         self.assertContains(
             teacher_login,

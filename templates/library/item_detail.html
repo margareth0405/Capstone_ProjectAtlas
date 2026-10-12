@@ -11,6 +11,8 @@
   {% url 'library:resource_cover' item.pk as resource_cover_url %}
   {% url 'library:favorite_toggle' item.pk as favorite_toggle_url %}
   {% url 'library:staff_item_edit' item.pk as staff_item_edit_url %}
+  {% url 'library:staff_item_delete' item.pk as staff_item_delete_url %}
+  {% url 'library:staff_item_review' item.pk as staff_item_review_url %}
 
   <article class="resource-detail-card">
     <a class="btn-back inline-back" href="{{ catalog_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Digital Sources</a>
@@ -32,8 +34,64 @@
       </div>
       <div class="resource-format-icon" aria-hidden="true"><i class="fas {% if item.file_type == 'WORD' %}fa-file-word{% else %}fa-file-pdf{% endif %}"></i></div>
     </header>
-    {% if latest_change %}<div class="resource-form-note" role="status"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{% if request.user.is_staff %}The{% else %}Your{% endif %} {{ latest_change.get_action_display|lower }} request is {{ latest_change.get_status_display|lower }}.{% if latest_change.review_notes %} Staff note: {{ latest_change.review_notes }}{% endif %}{% if latest_change.status == 'pending' %} The approved resource remains available until staff decide.{% endif %}</span></div>{% endif %}
-    {% if show_submission_decision %}<div class="resource-form-note" role="status"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{% if request.user.is_staff %}The{% else %}Your{% endif %} resource submission was <strong>{{ item.get_review_status_display|lower }}</strong> by {{ item.reviewed_by.get_full_name|default:item.reviewed_by.email|default:'a staff member' }} on {{ item.reviewed_at|date:'M j, Y g:i A' }}.{% if item.review_notes %} Staff note: {{ item.review_notes }}{% endif %}</span></div>{% endif %}
+    {% if latest_change or show_submission_workflow %}
+      <section class="resource-request-panel" id="resourceRequestPanel" aria-labelledby="resourceRequestHeading">
+        <div class="resource-request-heading">
+          <div>
+            <span class="section-kicker">Private resource workflow</span>
+            <h2 id="resourceRequestHeading">Request and decision</h2>
+          </div>
+          <span class="review-status-badge status-{% if latest_change %}{{ latest_change.status }}{% else %}{{ item.review_status }}{% endif %}">{% if latest_change %}{{ latest_change.get_status_display }}{% else %}{{ item.get_review_status_display }}{% endif %}</span>
+        </div>
+
+        <dl class="resource-request-metadata">
+          {% if request.user.is_staff %}
+            <div><dt>Requesting teacher</dt><dd>{% if latest_change %}{{ latest_change.requested_by.get_full_name|default:latest_change.requested_by.email }}{% else %}{{ item.created_by.get_full_name|default:item.created_by.email }}{% endif %}</dd></div>
+          {% endif %}
+          <div><dt>Request</dt><dd>{% if latest_change %}{{ latest_change.get_action_display }} resource{% else %}New resource submission{% endif %}</dd></div>
+          <div><dt>Sent</dt><dd>{% if latest_change %}{{ latest_change.created_at|date:'M j, Y g:i A' }}{% else %}{{ item.created_at|date:'M j, Y g:i A' }}{% endif %}</dd></div>
+        </dl>
+
+        {% if request_change_rows %}
+          <div class="resource-request-section">
+            <h3>Changes requested by the teacher</h3>
+            <dl class="resource-request-changes">
+              {% for row in request_change_rows %}<div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>{% endfor %}
+            </dl>
+          </div>
+        {% elif latest_change and latest_change.action == 'delete' %}
+          <div class="resource-request-section"><h3>Requested change</h3><p>Delete this resource after Administrator or Superuser approval.</p></div>
+        {% endif %}
+
+        {% if latest_change.request_notes or item.submission_notes and show_submission_workflow %}
+          <div class="resource-request-message">
+            <h3>Teacher message</h3>
+            <p>{% if latest_change %}{{ latest_change.request_notes|linebreaksbr }}{% else %}{{ item.submission_notes|linebreaksbr }}{% endif %}</p>
+          </div>
+        {% endif %}
+
+        <div class="resource-request-message staff-response">
+          <h3>Administrator or Superuser response</h3>
+          {% if latest_change %}
+            {% if latest_change.reviewed_at %}
+              <p><strong>{{ latest_change.reviewed_by.get_full_name|default:latest_change.reviewed_by.email|default:'Staff account' }}</strong> &middot; {{ latest_change.reviewed_at|date:'M j, Y g:i A' }}</p>
+              <p>{{ latest_change.review_notes|default:'No additional note was provided.'|linebreaksbr }}</p>
+            {% else %}
+              <p>Waiting for an Administrator or Superuser decision.</p>
+            {% endif %}
+          {% elif item.reviewed_at %}
+            <p><strong>{{ item.reviewed_by.get_full_name|default:item.reviewed_by.email|default:'Staff account' }}</strong> &middot; {{ item.reviewed_at|date:'M j, Y g:i A' }}</p>
+            <p>{{ item.review_notes|default:'No additional note was provided.'|linebreaksbr }}</p>
+          {% else %}
+            <p>Waiting for an Administrator or Superuser decision.</p>
+          {% endif %}
+        </div>
+
+        {% if request.user.is_staff %}
+          {% if has_pending_change or show_submission_workflow and item.review_status == 'pending' %}<a class="btn-details" href="{{ staff_item_review_url }}"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Review this request</a>{% endif %}
+        {% endif %}
+      </section>
+    {% endif %}
 
     <dl class="resource-metadata">
       <div><dt>Call number</dt><dd>{{ item.call_number }}</dd></div>
@@ -63,5 +121,14 @@
       {% endif %}
       {% if can_manage_resources and request.user.is_staff or can_manage_resources and item.created_by_id == request.user.pk %}<a class="btn-edit" href="{{ staff_item_edit_url }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit resource</a>{% endif %}
     </div>
+
+    {% if active_role == 'teacher' and item.created_by_id == request.user.pk and item.is_published and not has_pending_change %}
+      <form action="{{ staff_item_delete_url }}" method="post" class="resource-delete-request-form" data-confirm-form="Request deletion of '{{ item.title|escape }}'? The resource stays available until an Administrator or Superuser approves it." data-confirm-title="Request deletion?" data-confirm-action="Send deletion request" data-confirm-cancel="Keep resource" data-confirm-variant="danger">
+        {% csrf_token %}
+        <label for="deleteRequestNotes">Message to the Administrator or Superuser (optional)</label>
+        <textarea class="form-control" id="deleteRequestNotes" name="request_notes" rows="3" maxlength="2000" placeholder="Explain why this resource should be deleted."></textarea>
+        <button class="btn-delete" type="submit"><i class="fas fa-trash" aria-hidden="true"></i> Request deletion</button>
+      </form>
+    {% endif %}
   </article>
 {% endblock %}

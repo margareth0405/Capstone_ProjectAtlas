@@ -29,10 +29,10 @@ class GuestPageTests(LibraryTestCase):
         response = self.client.get(reverse("library:catalog"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Browse the resource list as a guest")
         self.assertContains(response, item.title)
         self.assertContains(response, item.author)
         self.assertContains(response, "Sign up to view")
+        self.assertNotContains(response, "Browse the resource list as a guest")
         self.assertNotContains(response, "Read resource abstract")
         self.assertNotContains(response, item.details)
 
@@ -368,7 +368,7 @@ class ResourceAbstractReaderTests(LibraryTestCase):
                     )
                 response = self.client.get(reverse("library:catalog"))
                 if role == "guest":
-                    self.assertContains(response, "Browse the resource list as a guest")
+                    self.assertNotContains(response, "Browse the resource list as a guest")
                     self.assertNotContains(response, "Read resource abstract")
                 else:
                     self.assertContains(response, "Read resource abstract")

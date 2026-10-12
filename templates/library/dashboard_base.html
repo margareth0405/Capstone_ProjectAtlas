@@ -24,7 +24,6 @@
   {% url 'library:staff_users' as staff_users_url %}
   {% url 'library:staff_reports' as staff_reports_url %}
   {% url 'library:staff_ai_detection' as staff_ai_detection_url %}
-  {% url 'library:resource_requests' as resource_requests_url %}
   {% url 'library:usage_heartbeat' as usage_heartbeat_url %}
   {% url 'library:login' as login_url %}
   {% url 'account_email' as account_email_url %}
@@ -75,17 +74,6 @@
             {% if favorite_count is not None %}
               <span class="item-counter" data-favorite-count>{{ favorite_count }}</span>
             {% endif %}
-          </a>
-        {% endif %}
-
-        {% if active_role == "teacher" or active_role == "administrator" or request.user.is_staff %}
-          <a
-            href="{{ resource_requests_url }}"
-            {% if active_page == 'resource_requests' %}class="active" aria-current="page"{% endif %}
-          >
-            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-            <span class="sidebar-nav-label">RESOURCE REQUESTS</span>
-            {% if pending_resource_request_count %}<span class="item-counter">{{ pending_resource_request_count }}</span>{% endif %}
           </a>
         {% endif %}
 

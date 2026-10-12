@@ -2,6 +2,7 @@
 
 {% block title %}{% if staff_request_view %}Resource Requests{% else %}My Resource Requests{% endif %} | ATLAS{% endblock %}
 {% block meta_description %}Track teacher resource submissions, edit requests, deletion requests, and staff decisions in ATLAS.{% endblock %}
+{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li>{% endblock %}
 {% block breadcrumb %}{% if staff_request_view %}Resource Requests{% else %}My Resource Requests{% endif %}{% endblock %}
 
 {% block dashboard_content %}

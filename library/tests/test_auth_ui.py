@@ -128,11 +128,11 @@ class ReaderAuthPresentationTests(LibraryTestCase):
         self.assertContains(response, 'data-submit-label="Registering…"')
         self.assertNotContains(response, "Example format: 12+ characters")
 
-    def test_login_clearly_explains_legacy_and_new_password_rules(self):
+    def test_login_omits_password_policy_caption(self):
         response = self.client.get(reverse("library:login"))
 
-        self.assertContains(response, "Previously created passwords still work")
-        self.assertContains(response, "at least 12 characters")
+        self.assertNotContains(response, "Previously created passwords still work")
+        self.assertNotContains(response, "every new, reset, or changed password")
 
     def test_password_feedback_uses_an_encapsulated_controller(self):
         script = (

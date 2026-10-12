@@ -1381,20 +1381,97 @@ textarea {
   padding-right: 0.45rem;
 }
 
-/* Resource access and review history */
-.guest-resource-gate {
+/* Resource review history */
+.resource-request-panel {
+  background: #fffaf8;
+  border: 1px solid #e4d5d0;
+  border-left: 4px solid var(--maroon-700);
+  border-radius: 14px;
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.resource-request-heading {
   align-items: flex-start;
-  padding: clamp(1.25rem, 3vw, 2rem);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
 }
 
-.guest-resource-gate h2 {
+.resource-request-heading h2,
+.resource-request-section h3,
+.resource-request-message h3 {
   color: var(--maroon-800);
-  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
-  margin: 0 0 0.45rem;
+  margin: 0;
 }
 
-.guest-resource-gate .resource-actions {
+.resource-request-heading h2 {
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+}
+
+.resource-request-section h3,
+.resource-request-message h3 {
+  font-size: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.resource-request-metadata,
+.resource-request-changes {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  margin: 0;
+}
+
+.resource-request-metadata > div,
+.resource-request-changes > div,
+.resource-request-message {
+  background: #fff;
+  border: 1px solid #eadfdb;
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+}
+
+.resource-request-metadata dt,
+.resource-request-changes dt {
+  color: #73645f;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resource-request-metadata dd,
+.resource-request-changes dd {
+  margin: 0.25rem 0 0;
+}
+
+.resource-request-message p {
+  margin: 0;
+}
+
+.resource-request-message p + p {
+  margin-top: 0.45rem;
+}
+
+.resource-request-message.staff-response {
+  border-left: 3px solid var(--maroon-600);
+}
+
+.resource-delete-request-form {
+  background: #fffaf8;
+  border: 1px solid #e4d5d0;
+  border-radius: 12px;
+  display: grid;
+  gap: 0.75rem;
   margin-top: 1rem;
+  padding: 1rem;
+}
+
+.resource-delete-request-form .btn-delete {
+  justify-self: start;
 }
 
 .resource-requests-page {

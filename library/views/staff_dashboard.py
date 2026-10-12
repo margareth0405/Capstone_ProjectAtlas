@@ -61,7 +61,7 @@ class ResourceRequestsView(ResourceManagerRequiredMixin, PageContextMixin, Templ
     """Show resource submissions and edit/delete decisions to the right role."""
 
     template_name = "library/resource_requests.html"
-    active_page = "resource_requests"
+    active_page = "catalog"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

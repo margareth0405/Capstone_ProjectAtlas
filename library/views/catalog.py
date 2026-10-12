@@ -20,7 +20,7 @@ from django.views import View
 from django.views.generic import TemplateView
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from library.models import Favorite, LibraryItem, ResourceChangeRequest
+from library.models import Favorite, LibraryItem, Profile, ResourceChangeRequest
 from library.services import (
     CatalogQueryService,
     PageContextBuilder,
@@ -46,6 +46,48 @@ class RegisteredResourceAccessMixin:
             query = urlencode({"next": request.get_full_path()})
             return redirect(f"{reverse('library:register')}?{query}")
         return super().dispatch(request, *args, **kwargs)
+
+
+REQUEST_FIELD_LABELS = {
+    "collection": "Collection",
+    "call_number": "Call number",
+    "title": "Title",
+    "author": "Author",
+    "details": "Description or abstract",
+    "file_type": "Resource abstract format",
+    "pages": "Pages",
+    "hard_copy_available": "Hard copy available",
+    "published_on": "Publication date",
+    "publication_day_known": "Exact publication day supplied",
+    "cover_image": "Cover",
+    "resource_abstract": "Resource abstract file",
+}
+
+
+def requested_change_rows(change):
+    """Present only the fields identified by the teacher's edit request."""
+
+    field_names = change.changed_fields or list(change.proposed_values)
+    rows = []
+    collection_labels = dict(LibraryItem.Collection.choices)
+    file_type_labels = dict(LibraryItem.FileType.choices)
+    for name in field_names:
+        if name == "cover_image":
+            value = "Remove the current cover" if change.clear_cover else "Use the uploaded replacement cover"
+        elif name == "resource_abstract":
+            value = "Use the uploaded replacement abstract"
+        else:
+            value = change.proposed_values.get(name)
+            if name == "collection":
+                value = collection_labels.get(value, value)
+            elif name == "file_type":
+                value = file_type_labels.get(value, value)
+            elif isinstance(value, bool):
+                value = "Yes" if value else "No"
+            elif value in (None, ""):
+                value = "Not specified"
+        rows.append({"label": REQUEST_FIELD_LABELS.get(name, name), "value": value})
+    return rows
 
 
 class CatalogView(PageContextMixin, TemplateView):
@@ -96,23 +138,35 @@ class ItemDetailView(RegisteredResourceAccessMixin, PageContextMixin, TemplateVi
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         item = get_object_or_404(
-            visible_library_items(self.request.user), pk=self.kwargs["pk"]
+            visible_library_items(self.request.user).select_related(
+                "created_by__profile", "reviewed_by"
+            ),
+            pk=self.kwargs["pk"],
         )
         context["item"] = item
-        can_review_change = self.request.user.is_authenticated and (
+        private_workflow_visible = self.request.user.is_authenticated and (
             self.request.user.is_staff or item.created_by_id == self.request.user.pk
         )
         latest_change = (
-            item.change_requests.first() if can_review_change else None
+            item.change_requests.select_related("requested_by", "reviewed_by").first()
+            if private_workflow_visible
+            else None
         )
         context["latest_change"] = latest_change
-        context["show_submission_decision"] = bool(
-            item.reviewed_at
+        context["request_change_rows"] = (
+            requested_change_rows(latest_change)
+            if latest_change and latest_change.action == ResourceChangeRequest.Action.EDIT
+            else []
+        )
+        creator_profile = getattr(item.created_by, "profile", None)
+        context["show_submission_workflow"] = bool(
+            private_workflow_visible
             and latest_change is None
-            and (
-                self.request.user.is_staff
-                or item.created_by_id == self.request.user.pk
-            )
+            and creator_profile is not None
+            and creator_profile.role == Profile.Role.TEACHER
+        )
+        context["has_pending_change"] = bool(
+            latest_change and latest_change.status == ResourceChangeRequest.Status.PENDING
         )
         context["is_favorite"] = (
             self.request.user.is_authenticated

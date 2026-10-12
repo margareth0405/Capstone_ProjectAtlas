@@ -4,7 +4,8 @@
 {% block meta_description %}Read the protected resource abstract for {{ item.title }} inside ATLAS.{% endblock %}
 {% block breadcrumb_parents %}
   {% if staff_review_reader %}
-    <li class="breadcrumb-item"><a href="{% url 'library:resource_requests' %}">Resource Requests</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'library:item_detail' item.pk %}">Resource Details</a></li>
     <li class="breadcrumb-item"><a href="{% url 'library:staff_item_review' item.pk %}">Resource Review</a></li>
   {% else %}
     <li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li>

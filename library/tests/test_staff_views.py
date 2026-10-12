@@ -99,10 +99,9 @@ class StaffAuthorizationTests(LibraryTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Administrator Home")
         self.assertContains(response, "Administration functions")
-        self.assertContains(response, 'class="admin-function-card"', count=7)
+        self.assertContains(response, 'class="admin-function-card"', count=6)
         for destination in (
             reverse("library:catalog"),
-            reverse("library:resource_requests"),
             reverse("library:staff_users"),
             reverse("library:staff_ai_detection"),
             reverse("library:announcements"),
@@ -385,8 +384,76 @@ class StaffCrudTests(LibraryTestCase):
         self.assertContains(response, "AI DETECTION")
         self.assertContains(response, "Bookmark")
         self.assertContains(response, "Edit")
-        self.assertContains(response, "Request delete")
-        self.assertContains(response, "RESOURCE REQUESTS")
+        self.assertContains(response, "Request deletion")
+        self.assertNotContains(response, "My resource requests")
+        self.assertNotContains(response, "RESOURCE REQUESTS")
+
+    def test_teacher_resource_request_history_is_private_to_requesting_teacher(self):
+        requesting_teacher = self.create_user(
+            email="requesting.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        requesting_teacher.first_name = "Requesting"
+        requesting_teacher.last_name = "Teacher"
+        requesting_teacher.save(update_fields=("first_name", "last_name"))
+        other_teacher = self.create_user(
+            email="other.teacher@deped.gov.ph",
+            role=Profile.Role.TEACHER,
+        )
+        other_teacher.first_name = "Other"
+        other_teacher.last_name = "Teacher"
+        other_teacher.save(update_fields=("first_name", "last_name"))
+        own_item = self.create_item(
+            call_number="PRIVATE-REQUEST-001",
+            title="Requesting Teacher Resource",
+            created_by=requesting_teacher,
+        )
+        other_item = self.create_item(
+            call_number="PRIVATE-REQUEST-002",
+            title="Other Teacher Resource",
+            created_by=other_teacher,
+        )
+        ResourceChangeRequest.objects.create(
+            item=own_item,
+            requested_by=requesting_teacher,
+            action=ResourceChangeRequest.Action.DELETE,
+            item_title=own_item.title,
+            item_call_number=own_item.call_number,
+        )
+        ResourceChangeRequest.objects.create(
+            item=other_item,
+            requested_by=other_teacher,
+            action=ResourceChangeRequest.Action.DELETE,
+            item_title=other_item.title,
+            item_call_number=other_item.call_number,
+        )
+
+        self.client.force_login(requesting_teacher)
+        response = self.client.get(reverse("library:resource_requests"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, own_item.title)
+        self.assertNotContains(response, other_item.title)
+        self.assertNotContains(response, other_teacher.email)
+
+        own_detail = self.client.get(reverse("library:item_detail", args=[own_item.pk]))
+        self.assertContains(own_detail, "Request and decision")
+        self.assertNotContains(own_detail, other_teacher.email)
+
+        self.client.force_login(other_teacher)
+        other_teacher_view = self.client.get(
+            reverse("library:item_detail", args=[own_item.pk])
+        )
+        self.assertNotContains(other_teacher_view, "Private resource workflow")
+        self.assertNotContains(other_teacher_view, "Requesting teacher")
+
+        self.client.force_login(self.staff)
+        staff_response = self.client.get(reverse("library:resource_requests"))
+        self.assertContains(staff_response, own_item.title)
+        self.assertContains(staff_response, other_item.title)
+        staff_detail = self.client.get(reverse("library:item_detail", args=[own_item.pk]))
+        self.assertContains(staff_detail, "Requesting teacher")
+        self.assertContains(staff_detail, requesting_teacher.get_full_name())
 
     def test_teacher_upload_is_analyzed_then_waits_for_staff_approval(self):
         teacher = self.create_user(
@@ -422,13 +489,20 @@ class StaffCrudTests(LibraryTestCase):
         ):
             response = self.client.post(
                 reverse("library:staff_item_create"),
-                self.item_payload(call_number="TEACHER-PENDING-001"),
+                self.item_payload(
+                    call_number="TEACHER-PENDING-001",
+                    review_message="This is the final version for publication.",
+                ),
             )
 
         self.assertRedirects(response, reverse("library:catalog"))
         item = LibraryItem.objects.get(call_number="TEACHER-PENDING-001")
         self.assertEqual(item.created_by, teacher)
         self.assertEqual(item.review_status, LibraryItem.ReviewStatus.PENDING)
+        self.assertEqual(
+            item.submission_notes,
+            "This is the final version for publication.",
+        )
         self.assertEqual(
             item.ai_review_status,
             LibraryItem.AIReviewStatus.COMPLETED,
@@ -450,6 +524,8 @@ class StaffCrudTests(LibraryTestCase):
         )
         self.assertContains(review_response, "AI analysis")
         self.assertContains(review_response, "12.50%")
+        self.assertContains(review_response, teacher.get_full_name())
+        self.assertContains(review_response, "This is the final version")
         approval_response = self.client.post(
             reverse("library:staff_item_approve", args=[item.pk]),
             {"review_notes": "Metadata and abstract reviewed."},
@@ -500,27 +576,45 @@ class StaffCrudTests(LibraryTestCase):
         with patch.object(StaffItemEditView, "review_service_class"):
             response = self.client.post(
                 reverse("library:staff_item_edit", args=[item.pk]),
-                self.item_payload(call_number=item.call_number, title="Proposed teacher title"),
+                self.item_payload(
+                    call_number=item.call_number,
+                    title="Proposed teacher title",
+                    review_message="Please update the title to match the final paper.",
+                ),
             )
         self.assertEqual(response.status_code, 302)
         item.refresh_from_db()
         self.assertEqual(item.title, "Django Testing Handbook")
         change = ResourceChangeRequest.objects.get(item=item, status="pending")
         self.assertEqual(change.proposed_values["title"], "Proposed teacher title")
+        self.assertIn("title", change.changed_fields)
+        self.assertEqual(
+            change.request_notes,
+            "Please update the title to match the final paper.",
+        )
         self.assertEqual(
             self.client.get(reverse("library:staff_item_change_abstract", args=[change.pk])).status_code,
             403,
         )
-        self.assertContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "pending review")
+        teacher_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(teacher_detail, "Pending review")
+        self.assertContains(teacher_detail, "Changes requested by the teacher")
+        self.assertContains(teacher_detail, "Please update the title")
 
         student = self.create_user(email="edit.reader@example.com")
         self.client.force_login(student)
         self.assertContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "Django Testing Handbook")
         self.assertNotContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "Proposed teacher title")
+        self.assertNotContains(self.client.get(reverse("library:item_detail", args=[item.pk])), "Please update the title")
 
         self.client.force_login(self.staff)
+        staff_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(staff_detail, teacher.get_full_name())
+        self.assertContains(staff_detail, "Please update the title")
+        self.assertContains(staff_detail, "Proposed teacher title")
         review = self.client.get(reverse("library:staff_item_review", args=[item.pk]))
         self.assertContains(review, "Proposed teacher title")
+        self.assertContains(review, "Please update the title")
         self.assertEqual(self.client.post(
             reverse("library:staff_item_approve", args=[item.pk]),
             {"review_notes": "Approved edited metadata."},
@@ -531,6 +625,10 @@ class StaffCrudTests(LibraryTestCase):
         self.assertEqual(item.review_status, LibraryItem.ReviewStatus.APPROVED)
         self.assertEqual(change.status, ResourceChangeRequest.Status.APPROVED)
         self.assertEqual(change.reviewed_by, self.staff)
+        self.client.force_login(teacher)
+        decided_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(decided_detail, "Approved edited metadata.")
+        self.assertContains(decided_detail, self.staff.get_full_name())
 
     def test_teacher_delete_waits_for_approval_and_rejection_preserves_item(self):
         teacher = self.create_user(email="delete.teacher@deped.gov.ph", role=Profile.Role.TEACHER)
@@ -544,8 +642,14 @@ class StaffCrudTests(LibraryTestCase):
         self.client.post(reverse("library:staff_item_reject", args=[item.pk]))
         self.assertTrue(LibraryItem.objects.filter(pk=item.pk).exists())
         self.client.force_login(teacher)
-        self.client.post(url)
+        self.client.post(
+            url,
+            {"request_notes": "The resource has been replaced by a corrected version."},
+        )
         self.client.force_login(self.staff)
+        staff_detail = self.client.get(reverse("library:item_detail", args=[item.pk]))
+        self.assertContains(staff_detail, "The resource has been replaced")
+        self.assertContains(staff_detail, teacher.get_full_name())
         self.client.post(
             reverse("library:staff_item_approve", args=[item.pk]),
             {"review_notes": "Approved because the teacher confirmed removal."},
@@ -558,6 +662,10 @@ class StaffCrudTests(LibraryTestCase):
         )
         self.assertIsNone(approved_delete.item_id)
         self.assertEqual(approved_delete.item_title, "Django Testing Handbook")
+        self.assertEqual(
+            approved_delete.request_notes,
+            "The resource has been replaced by a corrected version.",
+        )
 
         staff_history = self.client.get(reverse("library:resource_requests"))
         self.assertContains(staff_history, "Approved because the teacher confirmed removal.")

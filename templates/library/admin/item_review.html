@@ -4,11 +4,10 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'library/css/theme/administrator.css' %}?v=20261006-resource-review">{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
 {% block title %}Review {{ item.title }} | ATLAS{% endblock %}
-{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:resource_requests' %}">Resource Requests</a></li>{% endblock %}
+{% block breadcrumb_parents %}<li class="breadcrumb-item"><a href="{% url 'library:catalog' %}">Digital Sources</a></li><li class="breadcrumb-item"><a href="{% url 'library:item_detail' item.pk %}">Resource Details</a></li>{% endblock %}
 {% block breadcrumb %}Resource Review{% endblock %}
 
 {% block dashboard_content %}
-  {% url 'library:resource_requests' as resource_requests_url %}
   {% url 'library:item_detail' item.pk as item_detail_url %}
   {% url 'library:resource_abstract_reader' item.pk as abstract_url %}
   {% url 'library:staff_item_approve' item.pk as approve_url %}
@@ -36,6 +35,12 @@
           <div><dt>Collection</dt><dd>{{ item.get_collection_display }}</dd></div>
         </dl>
         <p>{{ item.details|default:'No description was provided.'|linebreaksbr }}</p>
+        {% if change_request.request_notes or item.submission_notes and not change_request %}
+          <div class="resource-request-message">
+            <h3>Teacher message</h3>
+            <p>{% if change_request %}{{ change_request.request_notes|linebreaksbr }}{% else %}{{ item.submission_notes|linebreaksbr }}{% endif %}</p>
+          </div>
+        {% endif %}
         {% if change_request %}
           <div class="resource-form-note" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>The current approved resource remains available until this request is approved.</span></div>
           {% if change_request.action == 'edit' %}
@@ -90,7 +95,7 @@
         <label for="reviewNotes">Review notes (optional)</label>
         <textarea class="form-control" id="reviewNotes" name="review_notes" rows="4" maxlength="2000" placeholder="Record the reason for the decision or guidance for the teacher.">{{ item.review_notes }}</textarea>
         <div class="admin-form-actions">
-          <a class="btn btn-outline-secondary" href="{{ resource_requests_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Resource Requests</a>
+          <a class="btn btn-outline-secondary" href="{{ item_detail_url }}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Resource</a>
           <button class="btn-delete" type="submit" formaction="{{ reject_url }}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Request changes</button>
           <button class="btn-create-admin" type="submit"><i class="fas fa-circle-check" aria-hidden="true"></i> {% if change_request %}Approve {{ change_request.get_action_display|lower }}{% else %}Approve and publish{% endif %}</button>
         </div>

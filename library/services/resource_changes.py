@@ -27,12 +27,21 @@ class ResourceChangeService:
             )
             for name in PROPOSED_FIELDS
         }
+        changed_fields = {
+            name
+            for name in form.changed_data
+            if name in PROPOSED_FIELDS or name in {"cover_image", "resource_abstract"}
+        }
+        if {"publication_month", "publication_day"} & set(form.changed_data):
+            changed_fields.update({"published_on", "publication_day_known"})
         request = ResourceChangeRequest(
             item=item, requested_by=requester,
             action=ResourceChangeRequest.Action.EDIT,
             item_title=item.title,
             item_call_number=item.call_number,
             proposed_values=values,
+            changed_fields=sorted(changed_fields),
+            request_notes=form.cleaned_data.get("review_message", "").strip(),
             clear_cover=(
                 "cover_image" in form.changed_data
                 and form.cleaned_data.get("cover_image") is False
@@ -64,12 +73,13 @@ class ResourceChangeService:
             raise
         return request
 
-    def submit_delete(self, *, item, requester):
+    def submit_delete(self, *, item, requester, request_notes=""):
         return ResourceChangeRequest.objects.create(
             item=item, requested_by=requester,
             action=ResourceChangeRequest.Action.DELETE,
             item_title=item.title,
             item_call_number=item.call_number,
+            request_notes=request_notes.strip()[:2000],
         )
 
     def decide(self, *, change, reviewer, approve, notes):

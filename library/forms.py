@@ -280,6 +280,17 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
         label="Publication day (optional)",
         help_text="Leave blank when only the month and year are known.",
     )
+    review_message = forms.CharField(
+        required=False,
+        max_length=2000,
+        label="Message to the Administrator or Superuser (optional)",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Explain your submission or requested changes.",
+            }
+        ),
+    )
 
     class Meta:
         model = LibraryItem
@@ -343,8 +354,24 @@ class LibraryItemForm(StyledFormMixin, forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, actor=None, **kwargs):
         super().__init__(*args, **kwargs)
+        profile = getattr(actor, "profile", None) if actor is not None else None
+        self.is_teacher_request = bool(
+            actor is not None
+            and actor.is_active
+            and not actor.is_staff
+            and profile is not None
+            and profile.role == Profile.Role.TEACHER
+        )
+        if not self.is_teacher_request:
+            self.fields.pop("review_message", None)
+        elif (
+            self.instance.pk
+            and self.instance.review_status != LibraryItem.ReviewStatus.APPROVED
+            and not self.is_bound
+        ):
+            self.fields["review_message"].initial = self.instance.submission_notes
         self.fields["file_type"].widget.attrs["class"] = "resource-format-toggle"
         self.fields["hard_copy_available"].widget.attrs["class"] = "form-check-input"
         self.fields["publication_day"].widget.attrs.update(

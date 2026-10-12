@@ -19,7 +19,7 @@
       {% include "library/includes/form_errors.html" with form=form %}
       <div class="admin-form-grid">
         {% for field in form %}
-          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'cover_image' or field.name == 'resource_abstract' or field.name == 'file_type' or field.name == 'hard_copy_available' %} admin-full-field{% endif %}">
+          <div class="form-group field-{{ field.name }}{% if field.name == 'details' or field.name == 'cover_image' or field.name == 'resource_abstract' or field.name == 'file_type' or field.name == 'hard_copy_available' or field.name == 'review_message' %} admin-full-field{% endif %}">
             {% if field.name == 'hard_copy_available' %}
               <div class="resource-availability-control">
                 {{ field }}

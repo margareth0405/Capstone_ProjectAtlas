@@ -115,6 +115,7 @@ class LibraryItem(models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_notes = models.TextField(blank=True)
+    submission_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -181,6 +182,8 @@ class ResourceChangeRequest(models.Model):
         max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True
     )
     proposed_values = models.JSONField(default=dict, blank=True)
+    changed_fields = models.JSONField(default=list, blank=True)
+    request_notes = models.TextField(blank=True)
     cover_upload = models.ImageField(
         upload_to="library/pending/covers/%Y/%m/", blank=True
     )

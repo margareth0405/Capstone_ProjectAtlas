@@ -51,6 +51,8 @@ class StaffFormView(View):
             kwargs["data"] = self.request.POST
             if self.form_class is LibraryItemForm:
                 kwargs["files"] = self.request.FILES
+        if self.form_class is LibraryItemForm:
+            kwargs["actor"] = self.request.user
         return self.form_class(**kwargs)
 
     def prepare_instance(self, instance):
@@ -145,6 +147,10 @@ class StaffItemCreateView(ResourceManagerRequiredMixin, StaffFormView):
             prepare_instance=self.prepare_instance,
         )
         if is_teacher(self.request.user):
+            instance.submission_notes = form.cleaned_data.get(
+                "review_message", ""
+            ).strip()
+            instance.save(update_fields=("submission_notes", "updated_at"))
             analysis_completed = self.review_service_class().analyze(
                 instance,
                 reviewer=self.request.user,
@@ -238,7 +244,7 @@ class StaffItemReviewView(StaffRequiredMixin, View):
 
     def get(self, request, pk):
         item = get_object_or_404(LibraryItem, pk=pk)
-        context = PageContextBuilder(request).build("resource_requests")
+        context = PageContextBuilder(request).build("catalog")
         context["item"] = item
         context["change_request"] = item.change_requests.filter(
             status=ResourceChangeRequest.Status.PENDING
@@ -271,7 +277,7 @@ class StaffItemChangeAbstractView(StaffRequiredMixin, View):
                 document.close()
             except (BotoCoreError, ClientError, OSError):
                 logger.warning("Could not close proposed abstract %s", pk, exc_info=True)
-        context = PageContextBuilder(request).build("resource_requests")
+        context = PageContextBuilder(request).build("catalog")
         context.update({
             "item": change.item, "resource_content": content,
             "reader_error": error, "reader_heading": "Read proposed abstract",
@@ -388,7 +394,11 @@ class StaffItemDeleteView(ResourceManagerRequiredMixin, View):
                 messages.error(request, "This resource already has a change awaiting review.")
                 return redirect("library:item_detail", pk=pk)
             try:
-                self.change_service_class().submit_delete(item=item, requester=request.user)
+                self.change_service_class().submit_delete(
+                    item=item,
+                    requester=request.user,
+                    request_notes=request.POST.get("request_notes", ""),
+                )
             except IntegrityError:
                 messages.error(request, "This resource already has a change awaiting review.")
                 return redirect("library:item_detail", pk=pk)
